@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Device-admin policy declaration. For Phase 0 we declare a minimal set just to
+  hold the device-owner role; real policies (lock, wipe, etc.) come in Phase 1.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <force-lock />
+        <watch-login />
+    </uses-policies>
+</device-admin>

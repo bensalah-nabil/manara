@@ -1,19 +1,75 @@
-# Manara Agent (Android)
+# Manara Agent — Phase 0 (device-owner proof)
 
-The Kotlin app that runs on the child's device as **device owner**. It enforces
-policy locally (offline-first), queues observations, and syncs with the backend.
+The point of this app is **not** to manage anything. It does the smallest
+possible thing that proves the project is viable:
 
-Status: **not started.** First task is Phase 0 in [`../docs/roadmap.md`](../docs/roadmap.md)
-— prove device-owner enrollment on real phones before writing the rest.
+1. It can be installed on a real phone.
+2. It can become **device owner** via ADB on a factory-reset device.
+3. It survives a reboot and keeps running without being killed.
+4. Play Protect does not flag or block it.
 
-## Design (see ../docs/architecture.md §2)
+If all four hold on a Samsung *and* a Xiaomi, Phase 0 passes and the rest of
+the project is worth building. If they don't, we learn it now — before writing a
+backend. See [`../docs/roadmap.md`](../docs/roadmap.md), Phase 0.
 
-- Policy cache (Room) — enforce from local cache, not from the network.
-- Event queue — device-generated UUIDs, written before any upload attempt.
-- One `PolicyEnforcer` per capability; adding a policy = adding a class.
-- A permanent, non-removable "managed device" notice — always on, not an enforcer.
+What the app actually does when running: shows one screen saying whether it is
+device owner, and runs a **visible** foreground service with a permanent
+notification — the "this device is managed" marker that the whole project is
+built around (ADR-0001). Even the throwaway test app is honest by construction.
 
-## Setup
+---
 
-Will be filled in once the skeleton lands. You'll need Android Studio, a
-physical test phone you can factory-reset, and ADB.
+## Build (no Android Studio needed)
+
+Requires a JDK (17+) and the Android SDK command-line tools. With `ANDROID_HOME`
+set:
+
+```bash
+cd agent
+./gradlew assembleDebug
+# output: app/build/outputs/apk/debug/app-debug.apk
+```
+
+First run downloads the Gradle wrapper and Android dependencies, so it needs
+network and a few minutes.
+
+## Test on a factory-reset phone
+
+> Device owner can normally only be set on a device with **no accounts added**
+> — i.e. freshly factory-reset, skip the Google sign-in during setup. On a phone
+> with accounts, `set-device-owner` fails. Use a spare/test phone.
+
+```bash
+# 1. Enable Developer options + USB debugging on the phone, plug in USB.
+adb devices                     # confirm the phone is listed
+
+# 2. Install the APK
+adb install app/build/outputs/apk/debug/app-debug.apk
+
+# 3. Make Manara the device owner
+adb shell dpm set-device-owner com.manara.agent/.OwnerReceiver
+#   success looks like: "Success: Device owner set to package ..."
+
+# 4. Open the app — it should say "Device owner: YES"
+# 5. Reboot the phone, wait, reopen — notice should still be there,
+#    device owner still YES.
+```
+
+### Removing it (cleanup)
+
+Device owner can't be uninstalled normally. To remove:
+
+```bash
+adb shell dpm remove-active-admin com.manara.agent/.OwnerReceiver
+adb uninstall com.manara.agent
+```
+
+(If that's blocked, a factory reset always clears it.)
+
+## What to record for the Phase 0 report
+
+For each phone (model, Android version):
+- [ ] `set-device-owner` succeeded?
+- [ ] App shows "Device owner: YES"?
+- [ ] Notice survives reboot + 24h idle?
+- [ ] Play Protect warning at install or later? (screenshot if so)

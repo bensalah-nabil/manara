@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Manara</string>
+    <string name="notice_title">This device is managed</string>
+    <string name="notice_text">Manara is managing this device. This notice cannot be removed.</string>
+</resources>
