@@ -1,0 +1,32 @@
+# Build output
+/backend/bin/
+/backend/manara-server
+*.exe
+/controller/dist/
+/controller/node_modules/
+/controller/.vite/
+/agent/build/
+/agent/.gradle/
+/agent/app/build/
+*.apk
+*.aab
+
+# Secrets & local config — never commit these
+.env
+.env.*
+*.local
+*.keystore
+*.jks
+deploy/secrets/
+service-account*.json
+
+# Editor / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+/tmp/

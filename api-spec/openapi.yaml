@@ -1,0 +1,374 @@
+openapi: 3.1.0
+info:
+  title: Manara API
+  version: "1.0.0"
+  description: >
+    The contract between the Manara agent (child's Android device), the backend
+    (central server), and the controller (parent web app). This is the single
+    source of truth for all three. Versioned from v1 — never break v1; additive
+    changes only, and a breaking change is served as a new /v2 path alongside.
+
+    Two audiences share this spec:
+      * /agent/*   — called by the device agent (device-token auth)
+      * /console/* — called by the parent controller (parent-session auth)
+
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: localhost:8080
+
+tags:
+  - name: enrollment
+    description: Getting a device under management (device owner).
+  - name: agent-sync
+    description: The offline-first loop — agent pulls policy/commands, pushes events.
+  - name: console
+    description: Parent-facing endpoints behind the web controller.
+
+paths:
+
+  # ------------------------------------------------------------------ #
+  #  ENROLLMENT                                                         #
+  # ------------------------------------------------------------------ #
+  /enroll:
+    post:
+      tags: [enrollment]
+      summary: Enroll a device using a one-time enrollment token
+      description: >
+        The parent generates an enrollment token in the console; it is carried
+        to the factory-reset device via the QR provisioning flow. The agent
+        exchanges it here for a long-lived device token. A device is always
+        visibly managed once enrolled — there is no covert enrollment.
+      security: []   # the enrollment token itself is the credential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enrollmentToken, deviceInfo]
+              properties:
+                enrollmentToken:
+                  type: string
+                  description: One-time token from the console.
+                deviceInfo:
+                  $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '200':
+          description: Enrolled. Returns the device token and initial policy.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deviceId, deviceToken, policy]
+                properties:
+                  deviceId: { type: string, format: uuid }
+                  deviceToken:
+                    type: string
+                    description: Long-lived bearer token for /agent/* calls.
+                  policy: { $ref: '#/components/schemas/Policy' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ------------------------------------------------------------------ #
+  #  AGENT SYNC LOOP (offline-first)                                    #
+  # ------------------------------------------------------------------ #
+  /agent/sync:
+    post:
+      tags: [agent-sync]
+      summary: The single round-trip the agent makes on each check-in
+      description: >
+        One call does the whole loop: the agent reports it is alive (heartbeat),
+        uploads any queued events, and receives the current policy plus any
+        pending commands. Designed so a flaky connection is safe — event upload
+        is idempotent on each event's device-generated id, and commands are
+        acked separately so a dropped response never loses one.
+      security: [{ deviceToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policyVersion, events, commandAcks]
+              properties:
+                policyVersion:
+                  type: integer
+                  description: Version of the policy the agent currently holds.
+                events:
+                  type: array
+                  description: Queued observations. May be empty. Idempotent.
+                  items: { $ref: '#/components/schemas/Event' }
+                commandAcks:
+                  type: array
+                  description: Ids of commands the agent has now carried out.
+                  items:
+                    type: object
+                    required: [commandId, status]
+                    properties:
+                      commandId: { type: string, format: uuid }
+                      status: { type: string, enum: [acked, failed] }
+                      detail: { type: string }
+      responses:
+        '200':
+          description: Current policy (if changed) and pending commands.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [policyChanged, pendingCommands]
+                properties:
+                  policyChanged:
+                    type: boolean
+                    description: If true, `policy` holds a newer policy to cache.
+                  policy:
+                    $ref: '#/components/schemas/Policy'
+                  pendingCommands:
+                    type: array
+                    items: { $ref: '#/components/schemas/Command' }
+                  acceptedEventIds:
+                    type: array
+                    description: Event ids now durably stored; safe to drop locally.
+                    items: { type: string, format: uuid }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ------------------------------------------------------------------ #
+  #  CONSOLE (parent web app)                                           #
+  # ------------------------------------------------------------------ #
+  /console/devices:
+    get:
+      tags: [console]
+      summary: List the parent's managed devices with status
+      security: [{ parentSession: [] }]
+      responses:
+        '200':
+          description: Devices and their reporting status.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DeviceSummary' }
+
+  /console/devices/{deviceId}/policy:
+    put:
+      tags: [console]
+      summary: Set a device's policy
+      description: >
+        Replaces the device's policy. Which capabilities collect data is set
+        here (location on/off, call log on/off, etc). What cannot be set here:
+        turning off the "device is managed" notice — that is not a policy field.
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Policy' }
+      responses:
+        '200':
+          description: Stored. Queued for delivery to the device.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+
+  /console/devices/{deviceId}/commands:
+    post:
+      tags: [console]
+      summary: Queue a command for a device (e.g. lock now)
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { $ref: '#/components/schemas/CommandType' }
+                params: { type: object, additionalProperties: true }
+      responses:
+        '202':
+          description: Command queued (pending until the device picks it up).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Command' }
+
+  /console/devices/{deviceId}/events:
+    get:
+      tags: [console]
+      summary: Read a device's reported history (usage, location, calls)
+      security: [{ parentSession: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/DeviceId' }
+        - name: kind
+          in: query
+          schema: { $ref: '#/components/schemas/EventKind' }
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Matching events, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Event' }
+
+# ==================================================================== #
+components:
+
+  securitySchemes:
+    deviceToken:
+      type: http
+      scheme: bearer
+      description: Long-lived token issued at enrollment; identifies one device.
+    parentSession:
+      type: http
+      scheme: bearer
+      description: Parent's authenticated session for the console.
+
+  parameters:
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    DeviceInfo:
+      type: object
+      required: [model, androidVersion]
+      properties:
+        model: { type: string, example: "SM-A546B" }
+        manufacturer: { type: string, example: "samsung" }
+        androidVersion: { type: string, example: "14" }
+        agentVersion: { type: string, example: "0.1.0" }
+
+    DeviceSummary:
+      type: object
+      required: [deviceId, label, status, lastSeen]
+      properties:
+        deviceId: { type: string, format: uuid }
+        label: { type: string, example: "Aicha's phone" }
+        status:
+          type: string
+          enum: [reporting, not_reporting, never_connected]
+          description: not_reporting = missed N heartbeats; shown to the parent.
+        lastSeen: { type: string, format: date-time }
+        policyVersion: { type: integer }
+
+    # ---- Policy ---------------------------------------------------- #
+    Policy:
+      type: object
+      description: >
+        The full set of rules for one device. `version` increments on every
+        change so the agent can tell when its cache is stale. Note there is no
+        "stealth" or "hide notice" field by design.
+      required: [version, timeLimits, siteFilter, location, callLog]
+      properties:
+        version: { type: integer }
+        timeLimits:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            rules:
+              type: array
+              items:
+                type: object
+                required: [category, dailyMinutes]
+                properties:
+                  category:
+                    type: string
+                    example: "social"
+                  packages:
+                    type: array
+                    items: { type: string }
+                    example: ["com.instagram.android", "com.zhiliaoapp.musically"]
+                  dailyMinutes: { type: integer, example: 60 }
+        siteFilter:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            dnsHost:
+              type: string
+              description: Private DNS host used to enforce filtering.
+              example: "family.adguard-dns.com"
+        location:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            intervalMinutes: { type: integer, example: 15 }
+        callLog:
+          type: object
+          properties:
+            enabled: { type: boolean }
+        lockSchedule:
+          type: object
+          description: Optional recurring lock windows (e.g. bedtime).
+          properties:
+            enabled: { type: boolean }
+            windows:
+              type: array
+              items:
+                type: object
+                properties:
+                  days: { type: array, items: { type: integer }, example: [1,2,3,4,5] }
+                  fromHour: { type: integer, example: 22 }
+                  toHour: { type: integer, example: 7 }
+
+    # ---- Commands -------------------------------------------------- #
+    CommandType:
+      type: string
+      enum: [lock_now, apply_policy, request_location, ping]
+
+    Command:
+      type: object
+      required: [commandId, type, status, createdAt]
+      properties:
+        commandId: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/CommandType' }
+        params: { type: object, additionalProperties: true }
+        status:
+          type: string
+          enum: [pending, delivered, acked, failed, expired]
+        createdAt: { type: string, format: date-time }
+
+    # ---- Events ---------------------------------------------------- #
+    EventKind:
+      type: string
+      enum: [usage, location, call, lock, boot, heartbeat]
+
+    Event:
+      type: object
+      description: >
+        One observation from the device. `id` is generated ON THE DEVICE so the
+        server can dedupe — re-sending the same event is a no-op. This is what
+        makes sync safe over a flaky connection.
+      required: [id, kind, occurredAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/EventKind' }
+        occurredAt: { type: string, format: date-time }
+        payload:
+          type: object
+          additionalProperties: true
+          description: Shape depends on `kind` (usage sample, lat/lng, call entry...).
