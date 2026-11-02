@@ -58,6 +58,14 @@ as an em-dash). `<!-- ... -- ... -->` fails manifest merging with an opaque
 parse error, no line number pointing at the real cause. Use `;` or `—`
 instead.
 
+## Backticks inside a double-quoted `git commit -m "..."` run as commands
+
+Bash expands them before git ever sees the message — corrupted a real
+commit message this session (silently, no error; `git commit --amend -F`
+from a file is the fix). Write multi-paragraph commit messages with code
+snippets to a temp file and commit with `-F`, not `-m` with backticks
+inside double quotes.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
