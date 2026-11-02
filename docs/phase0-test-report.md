@@ -22,7 +22,7 @@ primary method is account removal, not factory reset.
 | `adb install` succeeded | ☑ Yes | over wireless debugging (USB port was unavailable) |
 | `dpm set-device-owner` succeeded **without factory reset** | ☑ Yes | `Success: Device owner set to package com.manara.agent/.OwnerReceiver` |
 | App shows "Device owner: YES" | ☑ Yes | |
-| Accounts re-added successfully afterward, device owner still YES | ☐ Pending | not yet done this session |
+| Accounts re-added successfully afterward, device owner still YES | ☑ Yes | Google account + Reddit/WhatsApp's own account entries all re-added; `dpm list-owners` still shows `DeviceOwner,Affiliated` — confirms the account check is one-time at enrollment, not ongoing, as ADR-0003 predicted |
 | Notice survives reboot | ☑ Yes | confirmed after reboot, see Notes re: notification permission |
 | Notice still present after 24h idle | ☐ Pending | needs time |
 | Play Protect warning at install | ☐ Not observed | no warning seen during this session |
