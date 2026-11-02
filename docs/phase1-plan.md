@@ -112,12 +112,13 @@ policy — it never names `TimeLimitEnforcer` directly (Open/Closed, so adding
    `net/http`, smoke-tested end to end (enroll, sync with matching/stale
    `policyVersion`, simulated policy change, wrong-token 401 — all pass).
 5. ✅ `ManaraApi` (Retrofit + kotlinx.serialization) + `SyncManager` wired to
-   the stub; `SyncWorker` exists but **is not yet scheduled anywhere** —
-   there is no periodic trigger calling `SyncWorker.schedule()` from app
-   startup. Enforcement today only re-evaluates at `apply()` time (an
-   Enroll or Sync call), not continuously — found this gap directly from
-   testing (opening Instagram between syncs didn't get caught until the
-   next manual Sync). Scheduling it is the one piece of step 5 still open.
+   the stub, and `SyncWorker` now actually scheduled — called from
+   `OwnerReceiver.onEnabled()` (real enrollment), `BootReceiver` and
+   `MainActivity.onCreate()` (belt-and-suspenders, idempotent via
+   `enqueueUniquePeriodicWork`'s `KEEP` policy). Confirmed via
+   `dumpsys jobscheduler` on the Samsung SM-A528B: a real
+   `SystemJobService` entry exists, ~15 min minimum latency matching the
+   periodic interval — not just defined in code.
 6. Deferred — manual-entry `EnrollmentActivity` isn't built; step 7 used a
    temporary test-harness button in `MainActivity` instead, enough to prove
    the loop works end to end without building real UI yet.
