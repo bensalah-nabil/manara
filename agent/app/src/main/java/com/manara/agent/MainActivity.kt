@@ -144,5 +144,15 @@ class MainActivity : Activity() {
                 Toast.makeText(this@MainActivity, "Applied — check if $testPackage opens again", Toast.LENGTH_LONG).show()
             }
         })
+
+        root.addView(Button(this).apply {
+            text = "Force-unsuspend $testPackage (bypass tracking)"
+            setOnClickListener {
+                val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                val admin = ComponentName(this@MainActivity, OwnerReceiver::class.java)
+                runCatching { dpm.setPackagesSuspended(admin, arrayOf(testPackage), false) }
+                Toast.makeText(this@MainActivity, "Directly unsuspended $testPackage", Toast.LENGTH_LONG).show()
+            }
+        })
     }
 }

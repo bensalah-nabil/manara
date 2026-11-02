@@ -8,6 +8,9 @@ import com.manara.agent.OwnerReceiver
 import com.manara.agent.events.Event
 import com.manara.agent.events.EventKind
 import com.manara.agent.policy.Policy
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.time.Instant
@@ -36,14 +39,30 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     private val devicePolicyManager =
         context.getSystemService(DevicePolicyManager::class.java)
     private val admin = ComponentName(context, OwnerReceiver::class.java)
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val json = Json { ignoreUnknownKeys = true }
 
     private var currentRules: List<Policy.TimeLimits.Rule> = emptyList()
-    private var overLimitState: Map<String, Boolean> = emptyMap()
-    // In-memory only: resets if the process restarts before enforceNow() runs
-    // again, which could miss a resume that was still pending. Acceptable for
-    // now since the normal path re-applies the cached policy on every start;
-    // revisit if that gap ever shows up in practice.
-    private var suspendedPackages: Set<String> = emptySet()
+
+    /**
+     * Persisted, not in-memory — found the hard way: a *second* instance of
+     * this class (e.g. the app reopened between taps on the Phase 1 test
+     * harness, or any process restart) used to start with this at empty,
+     * silently forgetting what was actually suspended and making "resume"
+     * a permanent no-op even after the TimeLimitDecision logic was fixed.
+     * Read fresh from SharedPreferences on every [enforceNow] call instead
+     * of trusted as in-memory state.
+     */
+    private var overLimitState: Map<String, Boolean>
+        get() = prefs.getString(KEY_OVER_LIMIT, null)
+            ?.let { runCatching { json.decodeFromString<Map<String, Boolean>>(it) }.getOrNull() }
+            ?: emptyMap()
+        set(value) = prefs.edit().putString(KEY_OVER_LIMIT, json.encodeToString(value)).apply()
+
+    private var suspendedPackages: Set<String>
+        get() = prefs.getStringSet(KEY_SUSPENDED, emptySet()).orEmpty()
+        set(value) = prefs.edit().putStringSet(KEY_SUSPENDED, value).apply()
+
     private val pendingEvents = mutableListOf<Event>()
 
     override fun apply(policy: Policy) {
@@ -114,4 +133,10 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
                 )
             )
         )
+
+    companion object {
+        private const val PREFS_NAME = "time_limit_enforcer"
+        private const val KEY_SUSPENDED = "suspended_packages"
+        private const val KEY_OVER_LIMIT = "over_limit_state"
+    }
 }
