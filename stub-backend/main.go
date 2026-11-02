@@ -210,6 +210,13 @@ func main() {
 			return
 		}
 
+		// Always log the request itself, not just its events/acks -- the
+		// old version only logged per-item, so a sync with zero events (the
+		// common case) printed nothing at all, making it look like the
+		// request never arrived during real device testing.
+		log.Printf("device %s sync: policyVersion=%d events=%d commandAcks=%d",
+			d.id, req.PolicyVersion, len(req.Events), len(req.CommandAcks))
+
 		// Idempotent on the device-generated id (architecture.md §3.2) --
 		// this stub just logs and accepts everything unconditionally,
 		// since there's nowhere durable to dedupe against anyway.
@@ -265,7 +272,10 @@ func main() {
 		writeJSON(w, http.StatusOK, p)
 	})
 
-	const addr = "localhost:8080"
+	// "localhost:8080" would bind loopback-only, unreachable from the phone
+	// on the LAN -- that's the actual bind address, not a firewall issue,
+	// found testing against a real device. ":8080" binds all interfaces.
+	const addr = ":8080"
 	log.Printf("manara stub backend listening on %s (enrollment token: %q)", addr, enrollmentToken)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }

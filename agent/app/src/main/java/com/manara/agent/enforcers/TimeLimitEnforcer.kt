@@ -105,7 +105,10 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         return events
     }
 
-    private fun todaysUsageMinutesByPackage(): Map<String, Long> {
+    /** Internal (not private) so the Phase 1 test harness can show the exact
+     *  number this class is actually working with, rather than inferring it
+     *  from `adb shell dumpsys usagestats`'s not-entirely-legible format. */
+    internal fun todaysUsageMinutesByPackage(): Map<String, Long> {
         val startOfDay = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)

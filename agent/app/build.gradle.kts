@@ -44,5 +44,19 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // Phase 1 step 5: the sync loop (architecture.md §3) needs a client for
+    // the v1 API and a periodic job to drive it. Retrofit + the
+    // kotlinx.serialization converter (Jake Wharton's, the de facto
+    // standard since Square doesn't ship one) keeps the same JSON library
+    // used everywhere else in the agent; WorkManager is AndroidX, same
+    // non-third-party-risk reasoning as Room.
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    // Forced explicitly -- something else in the graph was pulling OkHttp
+    // 3.14.9 transitively, which predates the Kotlin toMediaType() extension
+    // ManaraApiFactory needs.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     testImplementation("junit:junit:4.13.2")
 }

@@ -51,6 +51,13 @@ cd agent
 `adb` lives at `C:\Users\nbensalah\AppData\Local\Android\Sdk\platform-tools\adb.exe`
 (not yet on PATH). Multiple devices connected → `adb -s <serial> ...`.
 
+## XML comments can't contain `--`, anywhere, not just at the end
+
+Hit this twice in `AndroidManifest.xml` already (both times from using `--`
+as an em-dash). `<!-- ... -- ... -->` fails manifest merging with an opaque
+parse error, no line number pointing at the real cause. Use `;` or `—`
+instead.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

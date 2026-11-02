@@ -7,16 +7,31 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import com.manara.agent.enforcers.EnforcerRegistry
 import com.manara.agent.enforcers.TimeLimitEnforcer
+import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.Policy
+import com.manara.agent.policy.PolicyCache
+import com.manara.agent.storage.ManaraDatabase
+import com.manara.agent.sync.DeviceInfo
+import com.manara.agent.sync.DeviceTokenStore
+import com.manara.agent.sync.EnrollRequest
+import com.manara.agent.sync.ManaraApiFactory
+import com.manara.agent.sync.SyncManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * One screen. It reports whether Manara is currently the device owner — the one
@@ -44,9 +59,13 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setPadding(48, 48, 48, 48)
+            // WRAP_CONTENT on height, not MATCH_PARENT -- this is now the
+            // direct child of a ScrollView (added test harnesses pushed the
+            // content past one screen's height), and MATCH_PARENT here
+            // would force it to the screen's height and defeat scrolling.
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+                ViewGroup.LayoutParams.WRAP_CONTENT
             )
         }
 
@@ -85,9 +104,10 @@ class MainActivity : Activity() {
 
         if (isDeviceOwner) {
             addTimeLimitTestHarness(root)
+            addSyncTestHarness(root)
         }
 
-        setContentView(root)
+        setContentView(ScrollView(this).apply { addView(root) })
     }
 
     /**
@@ -112,6 +132,21 @@ class MainActivity : Activity() {
             text = "Open Usage Access settings"
             setOnClickListener {
                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "Show tracked usage today ($testPackage)"
+            setOnClickListener {
+                val minutes = enforcer.todaysUsageMinutesByPackage()[testPackage]
+                val message = if (minutes == null) {
+                    "No entry for $testPackage -- either Usage Access isn't really " +
+                        "granted (check appops, not just Settings), or it hasn't been " +
+                        "opened today at all"
+                } else {
+                    "$testPackage: $minutes minute(s) tracked today"
+                }
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
             }
         })
 
@@ -152,6 +187,96 @@ class MainActivity : Activity() {
                 val admin = ComponentName(this@MainActivity, OwnerReceiver::class.java)
                 runCatching { dpm.setPackagesSuspended(admin, arrayOf(testPackage), false) }
                 Toast.makeText(this@MainActivity, "Directly unsuspended $testPackage", Toast.LENGTH_LONG).show()
+            }
+        })
+    }
+
+    /**
+     * Temporary on-device verification harness for docs/phase1-plan.md
+     * steps 5-7 — enroll against stub-backend and run one sync round-trip,
+     * so the whole loop (not just TimeLimitEnforcer in isolation) gets a
+     * real end-to-end check. Not meant to survive once a real enrollment
+     * UI exists; see ManaraApiFactory.DEV_BASE_URL before using this on a
+     * phone that isn't on the same LAN as the machine running the stub.
+     */
+    private fun addSyncTestHarness(root: LinearLayout) {
+        val scope = CoroutineScope(Dispatchers.Main)
+        val tokenStore = DeviceTokenStore(this)
+        val db = ManaraDatabase.get(this)
+        val policyCache = PolicyCache(db)
+        val eventQueue = EventQueue(db)
+        val registry = EnforcerRegistry(listOf(TimeLimitEnforcer(this)))
+
+        val status = TextView(this).apply {
+            text = "\n— Sync test (steps 5-7) —\nNot enrolled"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(0, 32, 0, 8)
+        }
+        root.addView(status)
+
+        fun refreshStatus(message: String) {
+            status.text = "\n— Sync test (steps 5-7) —\n$message"
+        }
+
+        root.addView(Button(this).apply {
+            text = "Enroll (stub-backend, token=test-token)"
+            setOnClickListener {
+                scope.launch {
+                    val api = ManaraApiFactory.create()
+                    val result = runCatching {
+                        withContext(Dispatchers.IO) {
+                            api.enroll(
+                                EnrollRequest(
+                                    enrollmentToken = "test-token",
+                                    deviceInfo = DeviceInfo(
+                                        model = Build.MODEL,
+                                        manufacturer = Build.MANUFACTURER,
+                                        androidVersion = Build.VERSION.RELEASE
+                                    )
+                                )
+                            )
+                        }
+                    }
+                    val response = result.getOrNull()
+                    val body = response?.body()
+                    if (response != null && response.isSuccessful && body != null) {
+                        tokenStore.save(body.deviceId, body.deviceToken)
+                        withContext(Dispatchers.IO) {
+                            policyCache.replace(body.policy)
+                            registry.applyAll(body.policy)
+                        }
+                        refreshStatus("Enrolled as ${body.deviceId}")
+                    } else {
+                        refreshStatus("Enroll failed: ${result.exceptionOrNull()?.message ?: response?.code()}")
+                    }
+                }
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "Sync now"
+            setOnClickListener {
+                scope.launch {
+                    val syncManager = SyncManager(
+                        api = ManaraApiFactory.create(),
+                        policyCache = policyCache,
+                        eventQueue = eventQueue,
+                        enforcerRegistry = registry,
+                        tokenStore = tokenStore
+                    )
+                    val syncResult = withContext(Dispatchers.IO) { syncManager.sync() }
+                    val message = when (syncResult) {
+                        is SyncManager.Result.Success -> {
+                            val version = withContext(Dispatchers.IO) { policyCache.currentVersion() }
+                            "Sync OK, policy version: $version"
+                        }
+                        is SyncManager.Result.NotEnrolled -> "Not enrolled — tap Enroll first"
+                        is SyncManager.Result.Unauthorized -> "Unauthorized — token rejected"
+                        is SyncManager.Result.Failed -> "Sync failed: ${syncResult.cause.message}"
+                    }
+                    refreshStatus(message)
+                }
             }
         })
     }

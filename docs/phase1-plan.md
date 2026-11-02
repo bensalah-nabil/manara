@@ -111,12 +111,28 @@ policy — it never names `TimeLimitEnforcer` directly (Open/Closed, so adding
    OpenAPI spec, in-memory store, no Postgres. `stub-backend/`, Go
    `net/http`, smoke-tested end to end (enroll, sync with matching/stale
    `policyVersion`, simulated policy change, wrong-token 401 — all pass).
-5. `ManaraApi` + `SyncManager` + `SyncWorker` wired to the stub.
-6. `EnrollmentActivity` with manual token entry first; QR scan can follow —
-   manual entry alone is enough to validate the rest of the loop.
-7. End-to-end manual test: enroll → push a policy from the stub's test
-   fixture → confirm the phone enforces it within one sync interval →
-   confirm an event shows up in the stub's log.
+5. ✅ `ManaraApi` (Retrofit + kotlinx.serialization) + `SyncManager` wired to
+   the stub; `SyncWorker` exists but **is not yet scheduled anywhere** —
+   there is no periodic trigger calling `SyncWorker.schedule()` from app
+   startup. Enforcement today only re-evaluates at `apply()` time (an
+   Enroll or Sync call), not continuously — found this gap directly from
+   testing (opening Instagram between syncs didn't get caught until the
+   next manual Sync). Scheduling it is the one piece of step 5 still open.
+6. Deferred — manual-entry `EnrollmentActivity` isn't built; step 7 used a
+   temporary test-harness button in `MainActivity` instead, enough to prove
+   the loop works end to end without building real UI yet.
+7. ✅ End-to-end manual test, on the Samsung SM-A528B: enrolled against
+   stub-backend, pushed a 1-minute Instagram limit via the stub's debug
+   endpoint (simulating a parent), tapped Sync, confirmed
+   `setPackagesSuspended` actually ran (`dumpsys package com.instagram.android`
+   showed `suspended=true`), confirmed opening Instagram was blocked on the
+   device. Real bugs found and fixed along the way, not just the happy
+   path: the stub bound to `localhost` instead of all interfaces (phone
+   couldn't reach it at all), the LAN itself turned out to have client
+   (AP) isolation blocking phone→PC traffic regardless of host-side fixes
+   (worked around with `adb reverse` instead of relying on LAN routing),
+   and the stub's logging only fired per-event so a sync with nothing to
+   report looked like it never arrived.
 
 Steps 1-3 need no backend at all and can start the moment Phase 0 passes.
 
