@@ -10,13 +10,25 @@ Play Protect blocks it, the product doesn't work — better to learn that in a
 week than after building a backend.
 
 - [ ] Minimal Kotlin app with a `DeviceAdminReceiver` + device-owner manifest.
-- [ ] Enroll as device owner on a **factory-reset** phone via ADB
-      (`dpm set-device-owner ...`) — proves the app *can* hold the role.
+- [ ] Enroll as device owner via ADB on an **already-in-use phone, no
+      factory reset** — remove accounts, confirm zero via
+      `dumpsys account`, `dpm set-device-owner`, add accounts back. See
+      [ADR-0003](decisions/0003-enrollment-without-factory-reset.md) for why
+      this works instead of the originally-planned factory reset.
 - [ ] Enroll via the **QR provisioning** flow — the real path for parents.
+      (This flow does need an unprovisioned device going into it, unlike the
+      ADB path above — confirm during testing whether a factory reset is
+      actually required for QR provisioning specifically, or whether it
+      also just needs zero accounts.)
 - [ ] Repeat on at least a **Samsung** and a **Xiaomi** (worst offenders for
-      background-app killing and custom-ROM quirks).
+      background-app killing, custom-ROM quirks, *and* their own account
+      layers — Samsung account / Mi account — which may not clear as
+      cleanly as a plain Google account).
 - [ ] Confirm Play Protect does not flag/block during or after enrollment.
 - [ ] Check current Google developer-verification rules for sideloaded apps.
+- [ ] Fallback path (factory reset + cloud restore) documented and ready if
+      account removal can't reach zero on a given phone — see
+      [`enrollment-options.md`](enrollment-options.md), option F.
 
 **Exit criterion:** a do-nothing agent survives enrollment, reboot, and 24h
 idle on both phones without being killed or flagged.

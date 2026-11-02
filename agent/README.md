@@ -33,27 +33,63 @@ cd agent
 First run downloads the Gradle wrapper and Android dependencies, so it needs
 network and a few minutes.
 
-## Test on a factory-reset phone
+## Test on an already-in-use phone (no factory reset)
 
-> Device owner can normally only be set on a device with **no accounts added**
-> — i.e. freshly factory-reset, skip the Google sign-in during setup. On a phone
-> with accounts, `set-device-owner` fails. Use a spare/test phone.
+Device owner's actual requirement is **zero accounts present at the moment
+the command runs** — not "freshly factory-reset." Removing every account via
+Settings satisfies this with zero data loss: nothing on the phone is wiped,
+so there is nothing to restore afterward. See
+[`../docs/decisions/0003-enrollment-without-factory-reset.md`](../docs/decisions/0003-enrollment-without-factory-reset.md)
+and [`../docs/enrollment-options.md`](../docs/enrollment-options.md) for why
+this works and what else was considered.
 
 ```bash
-# 1. Enable Developer options + USB debugging on the phone, plug in USB.
+# 1. On the phone: Settings → Accounts → remove EVERY account listed
+#    (Google, Samsung/Mi account, work profile, anything). Must be removed
+#    at the OS level (Settings), not just signed out inside an app.
+#    Also remove any extra Android user profile (Settings → Multiple users /
+#    Guest) if present — a second OS-level user blocks enrollment too.
+
+# 2. Enable Developer options + USB debugging on the phone, plug in USB.
 adb devices                     # confirm the phone is listed
 
-# 2. Install the APK
+# 3. Confirm zero accounts remain (OEM/GMS pseudo-accounts can linger even
+#    when Settings shows none):
+adb shell dumpsys account
+#    If anything still shows, try temporarily disabling the account-creating
+#    system packages, then recheck:
+adb shell pm disable-user --user 0 com.google.android.gsf
+adb shell pm disable-user --user 0 com.google.android.gms
+adb shell dumpsys account
+
+# 4. Install the APK
 adb install app/build/outputs/apk/debug/app-debug.apk
 
-# 3. Make Manara the device owner
+# 5. Make Manara the device owner
 adb shell dpm set-device-owner com.manara.agent/.OwnerReceiver
 #   success looks like: "Success: Device owner set to package ..."
 
-# 4. Open the app — it should say "Device owner: YES"
-# 5. Reboot the phone, wait, reopen — notice should still be there,
+# 6. If you disabled gms/gsf in step 3, re-enable them now:
+adb shell pm enable com.google.android.gsf
+adb shell pm enable com.google.android.gms
+
+# 7. Open the app — it should say "Device owner: YES"
+# 8. Sign back into the Google account (and any others) via Settings as
+#    normal. Device owner persists — the account check only applies at the
+#    moment set-device-owner runs, not afterward.
+# 9. Reboot the phone, wait, reopen — notice should still be there,
 #    device owner still YES.
 ```
+
+### Fallback: if accounts won't fully clear on this phone
+
+If `dumpsys account` still shows something after step 3's workaround (OEM
+account layers can be stubborn), fall back to a factory reset per
+`enrollment-options.md`'s option F — but expect it to be lossier: Google's
+own restore only brings back SMS, Wi-Fi passwords, and system settings if
+the account is signed in *during the setup wizard itself*, which is
+incompatible with the account-free window `set-device-owner` needs. App
+data, photos, and contacts still come back fine either way.
 
 ### Removing it (cleanup)
 
