@@ -22,7 +22,7 @@ class OwnerReceiver : DeviceAdminReceiver() {
 
     override fun onEnabled(context: Context, intent: Intent) {
         super.onEnabled(context, intent)
-        grantNotificationPermission(context)
+        grantSelfGrantablePermissions(context)
         ManagedNoticeService.start(context)
         // Phase 1 step 5's one open gap: without this, enforcement only ever
         // re-ran when something manually called apply() (Enroll/Sync button
@@ -32,24 +32,36 @@ class OwnerReceiver : DeviceAdminReceiver() {
         SyncWorker.schedule(context)
     }
 
-    /**
-     * The managed notice (ADR-0001) must not depend on a runtime permission
-     * prompt a parent could miss or deny — found the hard way in Phase 0
-     * testing: POST_NOTIFICATIONS defaults to denied for a sideloaded app on
-     * API 33+, which silently drops the foreground service's notification
-     * with no error. As device owner we can grant our own permission
-     * directly, so the notice is guaranteed from the moment the agent is
-     * enabled rather than depending on anyone granting it by hand.
-     */
-    private fun grantNotificationPermission(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        val dpm = context.getSystemService(DevicePolicyManager::class.java)
-        val admin = ComponentName(context, OwnerReceiver::class.java)
-        dpm.setPermissionGrantState(
-            admin,
-            context.packageName,
-            android.Manifest.permission.POST_NOTIFICATIONS,
-            DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
-        )
+    companion object {
+        /**
+         * Grants every runtime permission the agent can self-grant as
+         * device owner, so none of them depend on a prompt a parent could
+         * miss or deny. Called from [onEnabled] (real enrollment) and
+         * again from `MainActivity.onCreate()` — idempotent, and the only
+         * way an already-enrolled phone (admin activated before a given
+         * permission's grant call existed) actually gets it, short of a
+         * fresh enrollment. `PACKAGE_USAGE_STATS` is deliberately not
+         * here — it's AppOps-backed, not a runtime permission, and has no
+         * device-owner silent-grant API at all (see `TimeLimitEnforcer`).
+         */
+        fun grantSelfGrantablePermissions(context: Context) {
+            val dpm = context.getSystemService(DevicePolicyManager::class.java)
+            val admin = ComponentName(context, OwnerReceiver::class.java)
+            val permissions = buildList {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    add(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+                add(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+            for (permission in permissions) {
+                dpm.setPermissionGrantState(
+                    admin,
+                    context.packageName,
+                    permission,
+                    DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
+                )
+            }
+        }
     }
 }

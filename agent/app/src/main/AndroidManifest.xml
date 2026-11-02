@@ -18,6 +18,15 @@
     <!-- Phase 1 step 5: the sync loop talks to the backend over HTTP. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- LocationEnforcer (architecture.md §2.2). ACCESS_FINE_LOCATION is
+         self-granted by OwnerReceiver (ordinary dangerous-level permission,
+         unlike PACKAGE_USAGE_STATS) so this never depends on a prompt.
+         FOREGROUND_SERVICE_LOCATION is required to declare the service's
+         foregroundServiceType below on API 34+. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
     <!-- usesCleartextTraffic is a DEV-ONLY concession for stub-backend, which
          is plain HTTP on a LAN. architecture.md §6 requires TLS in transit;
          remove this once the agent points at a real HTTPS backend, don't
@@ -74,6 +83,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Shows the permanent 'this device is managed' notice." />
         </service>
+
+        <!-- LocationEnforcer's visible foreground service (ADR-0001). -->
+        <service
+            android:name=".location.LocationNoticeService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 </manifest>

@@ -65,5 +65,12 @@ dependencies {
     // already present on this target hardware (Samsung, GMS).
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 
+    // Finishing Phase 1: LocationEnforcer's FusedLocationProviderClient.
+    // Pinned below the newest (21.4.0) on purpose -- that one's Kotlin
+    // metadata (2.3.0) is incompatible with this project's Kotlin 1.9.24
+    // ("compiled with an incompatible version of Kotlin" at kspDebugKotlin,
+    // found immediately on first build). 21.1.1 predates that shift.
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     testImplementation("junit:junit:4.13.2")
 }

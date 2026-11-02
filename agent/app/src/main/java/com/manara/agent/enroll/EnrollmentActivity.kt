@@ -12,8 +12,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
-import com.manara.agent.enforcers.EnforcerRegistry
-import com.manara.agent.enforcers.TimeLimitEnforcer
+import com.manara.agent.enforcers.defaultEnforcerRegistry
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
 import com.manara.agent.sync.DeviceTokenStore
@@ -118,7 +117,7 @@ class EnrollmentActivity : Activity() {
                 api = ManaraApiFactory.create(),
                 tokenStore = DeviceTokenStore(this@EnrollmentActivity),
                 policyCache = PolicyCache(db),
-                enforcerRegistry = EnforcerRegistry(listOf(TimeLimitEnforcer(this@EnrollmentActivity)))
+                enforcerRegistry = defaultEnforcerRegistry(this@EnrollmentActivity)
             )
             val result = withContext(Dispatchers.IO) { repository.enroll(token) }
             status.text = when (result) {

@@ -17,8 +17,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import com.manara.agent.enforcers.EnforcerRegistry
 import com.manara.agent.enforcers.TimeLimitEnforcer
+import com.manara.agent.enforcers.defaultEnforcerRegistry
 import com.manara.agent.enroll.EnrollmentActivity
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.Policy
@@ -53,10 +53,12 @@ class MainActivity : Activity() {
         if (isDeviceOwner) {
             ManagedNoticeService.start(this)
             // Belt-and-suspenders alongside OwnerReceiver.onEnabled() and
-            // BootReceiver -- idempotent (KEEP policy), and the only way this
-            // phone's already-enrolled admin (from before SyncWorker existed)
-            // actually gets it scheduled without a fresh enrollment.
+            // BootReceiver -- idempotent (KEEP policy / re-granting an
+            // already-granted permission is a no-op), and the only way this
+            // phone's already-enrolled admin (from before these existed)
+            // actually gets them without a fresh enrollment.
             com.manara.agent.sync.SyncWorker.schedule(this)
+            OwnerReceiver.grantSelfGrantablePermissions(this)
         }
 
         val root = LinearLayout(this).apply {
@@ -208,7 +210,7 @@ class MainActivity : Activity() {
         val db = ManaraDatabase.get(this)
         val policyCache = PolicyCache(db)
         val eventQueue = EventQueue(db)
-        val registry = EnforcerRegistry(listOf(TimeLimitEnforcer(this)))
+        val registry = defaultEnforcerRegistry(this)
 
         val status = TextView(this).apply {
             text = "\n— Sync test (steps 5-7) —\nNot enrolled"
@@ -241,6 +243,13 @@ class MainActivity : Activity() {
                         tokenStore = tokenStore
                     )
                     val syncResult = withContext(Dispatchers.IO) { syncManager.sync() }
+                    // Same fix as SyncWorker: re-apply the cached policy
+                    // regardless of whether this sync changed it, since a
+                    // lock schedule / usage limit is wall-clock-driven, not
+                    // just policy-change-driven. Without this, a second
+                    // "Sync now" tap on an unchanged policy looks like
+                    // enforcement silently stopped working.
+                    withContext(Dispatchers.IO) { policyCache.current()?.let { registry.applyAll(it) } }
                     val message = when (syncResult) {
                         is SyncManager.Result.Success -> {
                             val version = withContext(Dispatchers.IO) { policyCache.currentVersion() }

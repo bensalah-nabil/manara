@@ -6,8 +6,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.manara.agent.enforcers.EnforcerRegistry
-import com.manara.agent.enforcers.TimeLimitEnforcer
+import com.manara.agent.enforcers.defaultEnforcerRegistry
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
@@ -24,16 +23,31 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
     override suspend fun doWork(): WorkResult {
         val db = ManaraDatabase.get(applicationContext)
-        val registry = EnforcerRegistry(listOf(TimeLimitEnforcer(applicationContext)))
+        val registry = defaultEnforcerRegistry(applicationContext)
+        val policyCache = PolicyCache(db)
         val syncManager = SyncManager(
             api = ManaraApiFactory.create(),
-            policyCache = PolicyCache(db),
+            policyCache = policyCache,
             eventQueue = EventQueue(db),
             enforcerRegistry = registry,
             tokenStore = DeviceTokenStore(applicationContext)
         )
 
-        return when (syncManager.sync()) {
+        val result = syncManager.sync()
+
+        // Re-apply the cached policy regardless of whether THIS sync
+        // changed it, or even succeeded at all. Found directly from
+        // testing: SyncManager only calls applyAll() when the server
+        // reports policyChanged, but a lock schedule or a usage limit is
+        // wall-clock-driven, not just policy-change-driven -- "it's 22:00
+        // now" needs re-evaluating on a timer even if the policy text
+        // hasn't moved since yesterday. Using the last-known-good cached
+        // policy here also serves architecture.md's resilience goal:
+        // enforcement keeps running with no network, using whatever was
+        // last successfully synced.
+        policyCache.current()?.let { registry.applyAll(it) }
+
+        return when (result) {
             is SyncManager.Result.Success -> WorkResult.success()
             is SyncManager.Result.NotEnrolled -> WorkResult.success() // nothing to sync yet, not a failure
             is SyncManager.Result.Unauthorized -> WorkResult.failure() // needs re-enrollment, retrying won't help
