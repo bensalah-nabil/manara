@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.manara.agent.sync.SyncWorker
 
 /**
  * The device-admin component that holds the device-owner role.
@@ -23,6 +24,12 @@ class OwnerReceiver : DeviceAdminReceiver() {
         super.onEnabled(context, intent)
         grantNotificationPermission(context)
         ManagedNoticeService.start(context)
+        // Phase 1 step 5's one open gap: without this, enforcement only ever
+        // re-ran when something manually called apply() (Enroll/Sync button
+        // taps) -- found directly from testing, not assumed. enqueueUniquePeriodicWork's
+        // KEEP policy makes this idempotent, so calling it again elsewhere
+        // (BootReceiver) is harmless.
+        SyncWorker.schedule(context)
     }
 
     /**

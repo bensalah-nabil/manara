@@ -53,6 +53,11 @@ class MainActivity : Activity() {
         // If we're managing this device, make sure the honest notice is showing.
         if (isDeviceOwner) {
             ManagedNoticeService.start(this)
+            // Belt-and-suspenders alongside OwnerReceiver.onEnabled() and
+            // BootReceiver -- idempotent (KEEP policy), and the only way this
+            // phone's already-enrolled admin (from before SyncWorker existed)
+            // actually gets it scheduled without a fresh enrollment.
+            com.manara.agent.sync.SyncWorker.schedule(this)
         }
 
         val root = LinearLayout(this).apply {

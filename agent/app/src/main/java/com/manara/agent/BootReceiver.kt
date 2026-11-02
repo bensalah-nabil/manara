@@ -3,6 +3,7 @@ package com.manara.agent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.manara.agent.sync.SyncWorker
 
 /**
  * Restarts the visible managed-device notice after a reboot.
@@ -16,6 +17,11 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             ManagedNoticeService.start(context)
+            // Belt-and-suspenders: WorkManager persists periodic work across
+            // reboots on its own, but re-enqueuing here is idempotent (KEEP
+            // policy) and costs nothing, consistent with architecture.md's
+            // "resilient" design goal over trusting a single code path.
+            SyncWorker.schedule(context)
         }
     }
 }
