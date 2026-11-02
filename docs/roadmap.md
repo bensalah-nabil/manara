@@ -24,6 +24,13 @@ week than after building a backend.
       background-app killing, custom-ROM quirks, *and* their own account
       layers — Samsung account / Mi account — which may not clear as
       cleanly as a plain Google account).
+      **Status (2026-11-02): Samsung SM-A528B (Android 14) passed — see
+      `phase0-test-report.md`. No Xiaomi device available to the team right
+      now; Xiaomi/MIUI testing is an open risk, not a blocker — Phase 0 is
+      provisionally passed on Samsung alone. Revisit before Phase 1 ships
+      broadly, or sooner if a Xiaomi (or another aggressive-battery-management
+      OEM — Oppo/Realme/OnePlus's ColorOS also behaves this way) becomes
+      available.**
 - [ ] Confirm Play Protect does not flag/block during or after enrollment.
 - [ ] Check current Google developer-verification rules for sideloaded apps.
 - [ ] Fallback path (factory reset + cloud restore) documented and ready if

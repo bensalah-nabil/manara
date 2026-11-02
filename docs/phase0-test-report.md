@@ -37,7 +37,14 @@ primary method is account removal, not factory reset.
 
 ---
 
-## Phone 2
+## Phone 2 — status: **blocked, no device available**
+
+No Xiaomi (or other second-OEM) device is available to the team as of
+2026-11-02. Per `roadmap.md`, Phase 0 is treated as **provisionally passed
+on Samsung alone** — this is a real, open risk (MIUI's background-app
+killing and account layer are untested), not a silently-dropped
+requirement. Revisit when a Xiaomi or similarly aggressive OEM (MIUI,
+ColorOS, etc.) becomes available, ideally before Phase 1 ships broadly.
 
 - **Model:**
 - **Android version:**
