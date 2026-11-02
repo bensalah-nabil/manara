@@ -81,6 +81,25 @@ adb shell pm enable com.google.android.gms
 #    device owner still YES.
 ```
 
+### Real-world gotchas found during testing (Samsung SM-A528B)
+
+- **Not just Google/Samsung accounts.** `adb shell dumpsys account` can show
+  leftover entries registered by ordinary apps (Instagram, Airbnb, Facebook's
+  SDK, etc.) — these block enrollment exactly like a Google account does.
+  `pm clear` on the app does **not** remove them (accounts live in a central
+  AccountManager database, not the app's own data) — you have to fully
+  uninstall the app to force its token off, then reinstall and log back in
+  afterward.
+- **Samsung's Secure Folder counts as a second Android user** and
+  independently blocks `set-device-owner`
+  (`nonTestNonPrecreatedUsersExist()`) regardless of how clean the accounts
+  are. Find it via Settings → search "Secure Folder" → uninstall it. This
+  deletes whatever's stored inside that isolated vault specifically —
+  nothing outside it.
+- **Removing a Samsung account asks for the account password** (Reactivation
+  Lock, an anti-theft feature) — not the phone's screen-lock PIN. Turning off
+  Find My Mobile's Reactivation Lock first sometimes avoids the re-prompt.
+
 ### Fallback: if accounts won't fully clear on this phone
 
 If `dumpsys account` still shows something after step 3's workaround (OEM
