@@ -96,11 +96,17 @@ policy — it never names `TimeLimitEnforcer` directly (Open/Closed, so adding
 
 ## 4. Build order (so there's always something runnable)
 
-1. Room schema + `PolicyCache` + `EventQueue` with unit tests, no network yet.
-2. `PolicyEnforcer` interface + `EnforcerRegistry`, tested with a fake
+1. ✅ Room schema + `PolicyCache` + `EventQueue` with unit tests, no network
+   yet.
+2. ✅ `PolicyEnforcer` interface + `EnforcerRegistry`, tested with a fake
    enforcer.
-3. `TimeLimitEnforcer` against a manually-constructed `Policy` (no server) —
-   verify `setPackagesSuspended` actually blocks an app on a real phone.
+3. ✅ `TimeLimitEnforcer` against a manually-constructed `Policy` (no
+   server) — verified `setPackagesSuspended` actually blocks (and, once two
+   real bugs were found and fixed, actually resumes) a real app on the
+   Samsung SM-A528B, via a temporary test harness in `MainActivity`. Found
+   in the process: resuming needs durable state (SharedPreferences), not an
+   in-memory field — a new enforcer instance (any app restart) forgot what
+   was suspended. See commits `be4902e` and `d5e09f9`.
 4. Stub backend (§6) implementing `/enroll` and `/agent/sync` against the
    OpenAPI spec, in-memory store, no Postgres.
 5. `ManaraApi` + `SyncManager` + `SyncWorker` wired to the stub.
