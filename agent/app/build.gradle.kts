@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -32,6 +34,13 @@ android {
 }
 
 dependencies {
-    // Intentionally none — Phase 0 uses only the Android framework, to keep the
-    // app minimal and the Play Protect surface as small as possible.
+    // Phase 0 kept this empty on purpose, to keep the Play Protect surface
+    // small. Phase 1's offline-first core (architecture.md §2.1) genuinely
+    // needs local persistence, so that ends here: Room is AndroidX (Google's
+    // own library, not a third-party risk) and kotlinx.serialization is
+    // Kotlin-first with no reflection.
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
