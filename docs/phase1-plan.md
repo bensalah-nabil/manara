@@ -107,8 +107,10 @@ policy — it never names `TimeLimitEnforcer` directly (Open/Closed, so adding
    in the process: resuming needs durable state (SharedPreferences), not an
    in-memory field — a new enforcer instance (any app restart) forgot what
    was suspended. See commits `be4902e` and `d5e09f9`.
-4. Stub backend (§6) implementing `/enroll` and `/agent/sync` against the
-   OpenAPI spec, in-memory store, no Postgres.
+4. ✅ Stub backend (§6) implementing `/enroll` and `/agent/sync` against the
+   OpenAPI spec, in-memory store, no Postgres. `stub-backend/`, Go
+   `net/http`, smoke-tested end to end (enroll, sync with matching/stale
+   `policyVersion`, simulated policy change, wrong-token 401 — all pass).
 5. `ManaraApi` + `SyncManager` + `SyncWorker` wired to the stub.
 6. `EnrollmentActivity` with manual token entry first; QR scan can follow —
    manual entry alone is enough to validate the rest of the loop.
