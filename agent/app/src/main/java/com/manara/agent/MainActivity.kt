@@ -19,13 +19,12 @@ import android.widget.TextView
 import android.widget.Toast
 import com.manara.agent.enforcers.EnforcerRegistry
 import com.manara.agent.enforcers.TimeLimitEnforcer
+import com.manara.agent.enroll.EnrollmentActivity
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.Policy
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
-import com.manara.agent.sync.DeviceInfo
 import com.manara.agent.sync.DeviceTokenStore
-import com.manara.agent.sync.EnrollRequest
 import com.manara.agent.sync.ManaraApiFactory
 import com.manara.agent.sync.SyncManager
 import kotlinx.coroutines.CoroutineScope
@@ -197,12 +196,11 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Temporary on-device verification harness for docs/phase1-plan.md
-     * steps 5-7 — enroll against stub-backend and run one sync round-trip,
-     * so the whole loop (not just TimeLimitEnforcer in isolation) gets a
-     * real end-to-end check. Not meant to survive once a real enrollment
-     * UI exists; see ManaraApiFactory.DEV_BASE_URL before using this on a
-     * phone that isn't on the same LAN as the machine running the stub.
+     * Phase 1 step 7's sync test, now pointed at the real enrollment screen
+     * (step 6) instead of an inline "Enroll" button that duplicated
+     * [EnrollmentRepository]'s logic. "Sync now" stays as a manual trigger
+     * alongside the periodic `SyncWorker` — useful for testing without
+     * waiting out the schedule.
      */
     private fun addSyncTestHarness(root: LinearLayout) {
         val scope = CoroutineScope(Dispatchers.Main)
@@ -225,37 +223,9 @@ class MainActivity : Activity() {
         }
 
         root.addView(Button(this).apply {
-            text = "Enroll (stub-backend, token=test-token)"
+            text = "Enroll this device"
             setOnClickListener {
-                scope.launch {
-                    val api = ManaraApiFactory.create()
-                    val result = runCatching {
-                        withContext(Dispatchers.IO) {
-                            api.enroll(
-                                EnrollRequest(
-                                    enrollmentToken = "test-token",
-                                    deviceInfo = DeviceInfo(
-                                        model = Build.MODEL,
-                                        manufacturer = Build.MANUFACTURER,
-                                        androidVersion = Build.VERSION.RELEASE
-                                    )
-                                )
-                            )
-                        }
-                    }
-                    val response = result.getOrNull()
-                    val body = response?.body()
-                    if (response != null && response.isSuccessful && body != null) {
-                        tokenStore.save(body.deviceId, body.deviceToken)
-                        withContext(Dispatchers.IO) {
-                            policyCache.replace(body.policy)
-                            registry.applyAll(body.policy)
-                        }
-                        refreshStatus("Enrolled as ${body.deviceId}")
-                    } else {
-                        refreshStatus("Enroll failed: ${result.exceptionOrNull()?.message ?: response?.code()}")
-                    }
-                }
+                startActivity(Intent(this@MainActivity, EnrollmentActivity::class.java))
             }
         })
 

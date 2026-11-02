@@ -38,6 +38,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Phase 1 step 6: the real enrollment screen (manual token + QR). -->
+        <activity
+            android:name=".enroll.EnrollmentActivity"
+            android:exported="false" />
+
         <!-- The device-owner admin component. ADB targets this:
              dpm set-device-owner com.manara.agent/.OwnerReceiver -->
         <receiver

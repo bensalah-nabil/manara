@@ -58,5 +58,12 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
+    // Phase 1 step 6: QR enrollment. Google's own "code scanner" module --
+    // not CameraX + ML Kit wired up by hand -- launches a full scanning UI
+    // itself and needs no CAMERA permission in this app's own manifest (the
+    // scanner module handles that internally). Requires Play Services,
+    // already present on this target hardware (Samsung, GMS).
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
     testImplementation("junit:junit:4.13.2")
 }

@@ -119,9 +119,14 @@ policy — it never names `TimeLimitEnforcer` directly (Open/Closed, so adding
    `dumpsys jobscheduler` on the Samsung SM-A528B: a real
    `SystemJobService` entry exists, ~15 min minimum latency matching the
    periodic interval — not just defined in code.
-6. Deferred — manual-entry `EnrollmentActivity` isn't built; step 7 used a
-   temporary test-harness button in `MainActivity` instead, enough to prove
-   the loop works end to end without building real UI yet.
+6. ✅ Real `EnrollmentActivity` (`enroll/`): manual token entry **and** QR
+   scan, via Google's own `play-services-code-scanner` (no CameraX/camera
+   permission needed — the scanner module handles that itself).
+   `MainActivity`'s old inline "Enroll" button now just launches this
+   screen instead of duplicating its logic. Verified both paths on the
+   Samsung SM-A528B: generated a QR encoding the test token, scanned it
+   off a PC screen with the phone's real camera, auto-filled and enrolled
+   successfully; manual entry enrolled successfully too.
 7. ✅ End-to-end manual test, on the Samsung SM-A528B: enrolled against
    stub-backend, pushed a 1-minute Instagram limit via the stub's debug
    endpoint (simulating a parent), tapped Sync, confirmed
@@ -164,13 +169,17 @@ clearly marked `stub/`) once Phase 2 starts.
 time after `TimeLimitEnforcer` is proven, each as one new file registered in
 `EnforcerRegistry`, no changes to `SyncManager` or `PolicyCache`.
 
-## 8. Open questions to resolve before step 6 (enrollment UI)
+## 8. Open questions — resolved at step 6 implementation time
 
-- QR payload format: raw enrollment token as plain text, or a JSON blob with
-  `enrollmentToken` + server host (needed if the backend host isn't
-  hardcoded into the APK)? The latter is more realistic but add complexity;
-  propose plain token + hardcoded host for Phase 1, revisit before Phase 3.
-- `deviceToken` storage: `EncryptedSharedPreferences` is deprecated-adjacent
-  guidance-wise on newer Android — confirm current recommended replacement
-  (Jetpack Security's successor, or Keystore-backed storage directly) at
-  implementation time rather than assuming today's answer holds.
+- **QR payload format: plain enrollment token as text**, no JSON blob,
+  server host stays hardcoded (`ManaraApiFactory.DEV_BASE_URL`). As
+  planned; revisit before anything resembling a real multi-deployment
+  rollout, not before.
+- **`deviceToken` storage: confirmed `EncryptedSharedPreferences` is now
+  officially deprecated** (Google stopped developing
+  `androidx.security:security-crypto` rather than replacing it in-place,
+  no further releases planned) — checked current guidance rather than
+  assumed. Implemented `SecureTokenCipher`: Android Keystore AES-GCM
+  directly, ciphertext in plain `SharedPreferences`, which is what
+  Google's own deprecation notice points at instead of pulling in
+  DataStore + Tink for one value.
