@@ -39,6 +39,11 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
 
     private var currentRules: List<Policy.TimeLimits.Rule> = emptyList()
     private var overLimitState: Map<String, Boolean> = emptyMap()
+    // In-memory only: resets if the process restarts before enforceNow() runs
+    // again, which could miss a resume that was still pending. Acceptable for
+    // now since the normal path re-applies the cached policy on every start;
+    // revisit if that gap ever shows up in practice.
+    private var suspendedPackages: Set<String> = emptySet()
     private val pendingEvents = mutableListOf<Event>()
 
     override fun apply(policy: Policy) {
@@ -56,9 +61,11 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         val decision = TimeLimitDecision.decide(
             rules = currentRules,
             usageMinutesByPackage = todaysUsageMinutesByPackage(),
-            previousOverLimitState = overLimitState
+            previousOverLimitState = overLimitState,
+            previouslySuspendedPackages = suspendedPackages
         )
         overLimitState = decision.newOverLimitState
+        suspendedPackages = decision.newSuspendedPackages
 
         if (decision.toSuspend.isNotEmpty()) {
             runCatching {

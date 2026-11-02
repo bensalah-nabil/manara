@@ -15,6 +15,8 @@ object TimeLimitDecision {
         val toSuspend: List<String>,
         val toResume: List<String>,
         val newOverLimitState: Map<String, Boolean>,
+        /** Pass back in as `previouslySuspendedPackages` on the next call. */
+        val newSuspendedPackages: Set<String>,
         /** Rules whose limit was just crossed this check — report once, not every poll. */
         val justCrossedRules: List<Policy.TimeLimits.Rule>
     )
@@ -22,10 +24,18 @@ object TimeLimitDecision {
     fun decide(
         rules: List<Policy.TimeLimits.Rule>,
         usageMinutesByPackage: Map<String, Long>,
-        previousOverLimitState: Map<String, Boolean>
+        previousOverLimitState: Map<String, Boolean>,
+        /**
+         * What's actually suspended right now, from the last call's
+         * [Result.newSuspendedPackages]. Needed because a package must be
+         * resumed not only when its rule drops under the limit, but also
+         * when its rule disappears entirely (policy disabled, rule removed,
+         * limit raised past a rewrite) — a package never un-suspends
+         * itself just because nothing mentions it anymore.
+         */
+        previouslySuspendedPackages: Set<String> = emptySet()
     ): Result {
-        val toSuspend = mutableListOf<String>()
-        val toResume = mutableListOf<String>()
+        val toSuspend = mutableSetOf<String>()
         val newState = mutableMapOf<String, Boolean>()
         val justCrossed = mutableListOf<Policy.TimeLimits.Rule>()
 
@@ -41,11 +51,19 @@ object TimeLimitDecision {
                 if (previousOverLimitState[rule.category] != true) {
                     justCrossed += rule
                 }
-            } else {
-                toResume += rule.packages
             }
         }
 
-        return Result(toSuspend, toResume, newState, justCrossed)
+        // Anything suspended before that isn't in the new suspend set must be
+        // explicitly resumed, whatever the reason it dropped out.
+        val toResume = (previouslySuspendedPackages - toSuspend).toList()
+
+        return Result(
+            toSuspend = toSuspend.toList(),
+            toResume = toResume,
+            newOverLimitState = newState,
+            newSuspendedPackages = toSuspend,
+            justCrossedRules = justCrossed
+        )
     }
 }

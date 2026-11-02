@@ -11,7 +11,7 @@ class TimeLimitDecisionTest {
         Policy.TimeLimits.Rule(category = category, packages = packages, dailyMinutes = dailyMinutes)
 
     @Test
-    fun `under the limit suspends nothing and resumes the package`() {
+    fun `under the limit suspends nothing`() {
         val result = TimeLimitDecision.decide(
             rules = listOf(rule("social", listOf("com.instagram.android"), 60)),
             usageMinutesByPackage = mapOf("com.instagram.android" to 30L),
@@ -19,7 +19,7 @@ class TimeLimitDecisionTest {
         )
 
         assertEquals(emptyList<String>(), result.toSuspend)
-        assertEquals(listOf("com.instagram.android"), result.toResume)
+        assertEquals(emptySet<String>(), result.newSuspendedPackages)
         assertEquals(emptyList<Policy.TimeLimits.Rule>(), result.justCrossedRules)
     }
 
@@ -40,10 +40,57 @@ class TimeLimitDecisionTest {
         val second = TimeLimitDecision.decide(
             rules = listOf(r),
             usageMinutesByPackage = mapOf("com.instagram.android" to 65L),
-            previousOverLimitState = first.newOverLimitState
+            previousOverLimitState = first.newOverLimitState,
+            previouslySuspendedPackages = first.newSuspendedPackages
         )
         assertEquals(listOf("com.instagram.android"), second.toSuspend)
         assertEquals(emptyList<Policy.TimeLimits.Rule>(), second.justCrossedRules)
+    }
+
+    @Test
+    fun `dropping under the limit resumes the package`() {
+        val r = rule("social", listOf("com.instagram.android"), 60)
+        val suspended = TimeLimitDecision.decide(
+            rules = listOf(r),
+            usageMinutesByPackage = mapOf("com.instagram.android" to 60L),
+            previousOverLimitState = emptyMap()
+        )
+
+        // New day, usage reset to zero, same rule still in the policy.
+        val resumed = TimeLimitDecision.decide(
+            rules = listOf(r),
+            usageMinutesByPackage = mapOf("com.instagram.android" to 0L),
+            previousOverLimitState = suspended.newOverLimitState,
+            previouslySuspendedPackages = suspended.newSuspendedPackages
+        )
+
+        assertEquals(emptyList<String>(), resumed.toSuspend)
+        assertEquals(listOf("com.instagram.android"), resumed.toResume)
+    }
+
+    @Test
+    fun `the rule disappearing entirely still resumes a previously-suspended package`() {
+        // This is the exact bug found testing on a real phone: "resume" sent a
+        // policy with no rules at all (time limits disabled), and the package
+        // stayed suspended because nothing in the old per-rule-only logic ever
+        // told it to resume.
+        val r = rule("social", listOf("com.instagram.android"), 0) // limit=0, suspends immediately
+        val suspended = TimeLimitDecision.decide(
+            rules = listOf(r),
+            usageMinutesByPackage = emptyMap(),
+            previousOverLimitState = emptyMap()
+        )
+        assertEquals(listOf("com.instagram.android"), suspended.toSuspend)
+
+        val afterDisabling = TimeLimitDecision.decide(
+            rules = emptyList(), // policy.timeLimits.enabled = false, as the UI sends
+            usageMinutesByPackage = emptyMap(),
+            previousOverLimitState = suspended.newOverLimitState,
+            previouslySuspendedPackages = suspended.newSuspendedPackages
+        )
+
+        assertEquals(listOf("com.instagram.android"), afterDisabling.toResume)
+        assertEquals(emptySet<String>(), afterDisabling.newSuspendedPackages)
     }
 
     @Test
@@ -65,6 +112,6 @@ class TimeLimitDecisionTest {
             previousOverLimitState = emptyMap()
         )
 
-        assertEquals(listOf("never.opened"), result.toResume)
+        assertEquals(emptyList<String>(), result.toSuspend)
     }
 }

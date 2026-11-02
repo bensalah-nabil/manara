@@ -4,13 +4,19 @@ import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import com.manara.agent.enforcers.TimeLimitEnforcer
+import com.manara.agent.policy.Policy
 
 /**
  * One screen. It reports whether Manara is currently the device owner — the one
@@ -77,6 +83,66 @@ class MainActivity : Activity() {
             })
         }
 
+        if (isDeviceOwner) {
+            addTimeLimitTestHarness(root)
+        }
+
         setContentView(root)
+    }
+
+    /**
+     * Temporary on-device verification harness for docs/phase1-plan.md step
+     * 3 — confirms TimeLimitEnforcer's setPackagesSuspended call actually
+     * blocks a real app, not just that the decision logic is right (that
+     * part is already covered by TimeLimitDecisionTest). Not meant to
+     * survive once that's verified and a real policy-editing UI exists.
+     */
+    private fun addTimeLimitTestHarness(root: LinearLayout) {
+        val testPackage = "com.instagram.android"
+        val enforcer = TimeLimitEnforcer(this)
+
+        root.addView(TextView(this).apply {
+            text = "\n— TimeLimitEnforcer test (step 3) —\nTarget: $testPackage"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(0, 32, 0, 8)
+        })
+
+        root.addView(Button(this).apply {
+            text = "Open Usage Access settings"
+            setOnClickListener {
+                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "Suspend $testPackage now (limit = 0)"
+            setOnClickListener {
+                enforcer.apply(
+                    Policy(
+                        version = 1,
+                        timeLimits = Policy.TimeLimits(
+                            enabled = true,
+                            rules = listOf(
+                                Policy.TimeLimits.Rule(
+                                    category = "test",
+                                    packages = listOf(testPackage),
+                                    dailyMinutes = 0
+                                )
+                            )
+                        )
+                    )
+                )
+                Toast.makeText(this@MainActivity, "Applied — check if $testPackage is now blocked", Toast.LENGTH_LONG).show()
+            }
+        })
+
+        root.addView(Button(this).apply {
+            text = "Resume $testPackage (disable the rule)"
+            setOnClickListener {
+                enforcer.apply(Policy(version = 2, timeLimits = Policy.TimeLimits(enabled = false)))
+                Toast.makeText(this@MainActivity, "Applied — check if $testPackage opens again", Toast.LENGTH_LONG).show()
+            }
+        })
     }
 }
