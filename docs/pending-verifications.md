@@ -37,3 +37,11 @@ they resolve, not left buried in a chat log. Cross-reference:
   genuine user/physical-access-only setting, not a bug. Documented in
   `LocationEnforcer`'s situation as a known fails-closed case, same
   philosophy as Usage Access.
+- **Full Phase 0 → 1 → 2 chain, end to end against the real backend** —
+  2026-11-03, confirmed on the Samsung SM-A528B: real QR-code enrollment
+  against the real containerized Go/Postgres backend (not `stub-backend`),
+  a policy pushed through the real `/console/*` API, synced to the device,
+  and genuinely enforced (`setPackagesSuspended` → Instagram blocked,
+  confirmed via `dumpsys package`), then cleanly reverted the same way.
+  Single-use enrollment-token rejection on a redundant second attempt was
+  also observed live, matching the design rather than being a surprise.
