@@ -40,15 +40,30 @@ week than after building a backend.
 **Exit criterion:** a do-nothing agent survives enrollment, reboot, and 24h
 idle on both phones without being killed or flagged.
 
-## Phase 1 — Minimal agent, one policy end to end
+## Phase 1 — Minimal agent, one policy end to end — ✅ done (2026-11-03)
 
-- [ ] Agent skeleton: policy cache (Room), event queue, sync manager, the
+See [`phase1-plan.md`](phase1-plan.md) for the full build-order detail;
+summary here.
+
+- [x] Agent skeleton: policy cache (Room), event queue, sync manager, the
       always-on "managed device" notice.
-- [ ] First enforcer: **app time limits** (`UsageStatsManager` +
-      `setPackagesSuspended`). Pick this because it's the core feature.
-- [ ] Wire `/enroll` and `/agent/sync` against the v1 spec.
-- [ ] Then add, one at a time: `LockEnforcer`, `SiteFilterEnforcer`,
-      `LocationEnforcer`.
+- [x] First enforcer: **app time limits** (`UsageStatsManager` +
+      `setPackagesSuspended`).
+- [x] Wire `/enroll` and `/agent/sync` against the v1 spec — real
+      `EnrollmentActivity` (manual token + QR scan), `SyncManager`,
+      periodic `SyncWorker`, all against `stub-backend/` (throwaway, not
+      Phase 2's real backend).
+- [x] `LockEnforcer`, `SiteFilterEnforcer`, `LocationEnforcer` — all added
+      and verified end to end on the Samsung SM-A528B: a real
+      `lockNow()` + pattern-unlock prompt, a real Private DNS mode change
+      (confirmed via `settings get global private_dns_mode`, connectivity
+      intact) both pinned and reverted, and real GPS fixes reaching the
+      backend through the full sync pipeline.
+- [x] Found and fixed along the way: enforcement only re-ran when the
+      policy *changed*, not on a timer — `SyncWorker` now always
+      re-applies the cached policy after syncing, which both matches
+      architecture.md's stated design and serves its resilience goal
+      (keeps enforcing from the cache even if sync itself fails).
 
 ## Phase 2 — Backend
 

@@ -12,6 +12,14 @@ import com.manara.agent.policy.Policy
  * location requests and event-writing live there, since the service may
  * run (and keep writing events) across many `apply()`/`collectEvents()`
  * cycles, not just within one.
+ *
+ * Fails closed the same way `TimeLimitEnforcer` does without Usage Access —
+ * found testing on a real device: with the device-wide **Location** toggle
+ * off (Settings → Location), `FusedLocationProviderClient` silently
+ * produces no fixes, even with `ACCESS_FINE_LOCATION` correctly
+ * self-granted. Unlike Usage Access there's no Device Owner API to force
+ * this on — it's a genuine user/physical-access-only setting, not
+ * something to work around.
  */
 class LocationEnforcer(private val context: Context) : PolicyEnforcer {
     override val id = "location"
