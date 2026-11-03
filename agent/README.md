@@ -54,13 +54,15 @@ this works and what else was considered.
 adb devices                     # confirm the phone is listed
 
 # 3. Confirm zero accounts remain (OEM/GMS pseudo-accounts can linger even
-#    when Settings shows none):
-adb shell dumpsys account
-#    If anything still shows, try temporarily disabling the account-creating
-#    system packages, then recheck:
+#    when Settings shows none) -- scripts/enroll-preflight.sh automates this
+#    check plus the extra-user-profile and existing-device-owner checks, and
+#    lists exactly which accounts/apps still block enrollment:
+../scripts/enroll-preflight.sh <serial>     # serial from `adb devices`
+#    If accounts still show after Settings removal, try temporarily disabling
+#    the account-creating system packages, then recheck:
 adb shell pm disable-user --user 0 com.google.android.gsf
 adb shell pm disable-user --user 0 com.google.android.gms
-adb shell dumpsys account
+../scripts/enroll-preflight.sh <serial>
 
 # 4. Install the APK
 adb install app/build/outputs/apk/debug/app-debug.apk
@@ -99,6 +101,36 @@ adb shell pm enable com.google.android.gms
 - **Removing a Samsung account asks for the account password** (Reactivation
   Lock, an anti-theft feature) — not the phone's screen-lock PIN. Turning off
   Find My Mobile's Reactivation Lock first sometimes avoids the re-prompt.
+
+### On credentials: there is nothing to extract or back up
+
+Removing an account via Settings only unlinks this one device — it does not
+delete the account or anything synced to it. Signing back in afterward
+restores Google/Samsung Password Manager entries, contacts, and any
+account-backed app login exactly as before, from the account's own
+server-side data, not from anything this project stores. Don't build or run
+anything that reads another app's saved password off the device (there's no
+supported API for it anyway, short of scraping a password-manager vault) —
+if you can't recall a login after account removal, it's in your own password
+manager already, not something to recover from this process.
+
+### Account-tied apps can be backed up, removed, and restored automatically
+
+`scripts/enroll-backup-apps.sh <serial>` pulls each account-tied app's APK,
+fully uninstalls it (clearing its AccountManager token), and
+`scripts/enroll-restore-apps.sh <serial>` reinstalls everything after
+enrollment.
+
+If `scripts/enroll-preflight.sh` still shows an account present after its
+app is confirmed uninstalled (check via `adb shell pm path <pkg>`) — even
+after a reboot — that account is orphaned, not just slow to clear. Use
+[`tools/orphan-account-cleaner`](../tools/orphan-account-cleaner) to remove
+it directly; see its README for why this is necessary and how it works.
+This also covers the Google account(s) — not just third-party ones — once
+GMS/GSF are temporarily disabled first (same README); verified end-to-end
+on a Samsung SM-A045F, 7-for-7 accounts cleared with no Settings UI step
+at all. Samsung's own account type is untested (wasn't present on that
+device) — don't assume it behaves the same without checking.
 
 ### Fallback: if accounts won't fully clear on this phone
 

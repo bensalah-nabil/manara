@@ -84,6 +84,64 @@ here), showed zero evidence `doWork()` ever ran. To force-test a
 (e.g. a temporary test-harness button) — that worked every time the
 `jobscheduler run -f` command didn't.
 
+## `adb uninstall -k` does not clear an app's AccountManager token
+
+Verified on a real device (Samsung SM-A045F): `-k` (keep data) blocks the
+account-cleanup signal Android sends on a *full* uninstall, so the account
+survives right alongside the data it was meant to preserve — the opposite
+of what `-k`'s name suggests for this purpose. A full uninstall usually
+clears it, but not always: one account (WhatsApp) stayed orphaned (no
+installed app, no registered authenticator, account row still present in
+`dumpsys account`) through a full uninstall *and* a reboot. Neither `adb`
+nor Settings' own Accounts UI can touch an orphaned row like that. Fix:
+`tools/orphan-account-cleaner` — any app can register as the
+`AccountAuthenticator` for an arbitrary type string (account types aren't
+signature-reserved except `com.google`), which is enough standing to call
+`removeAccountExplicitly()` directly. See
+[`docs/enrollment-options.md`](docs/enrollment-options.md).
+
+## A preinstalled/system app needs `pm uninstall --user 0`, not `adb uninstall`
+
+`adb uninstall <pkg>` fails with `DELETE_FAILED_INTERNAL_ERROR` for an OEM
+preinstalled app (Duo on the SM-A045F — installed at `/data/app/Duo/Duo.apk`,
+not the usual per-user hashed path, which is the tell). `adb shell pm
+uninstall --user 0 <pkg>` is the no-root way to remove it for the current
+user.
+
+## Git Bash/MSYS rewrites any absolute-looking path before a native .exe sees it
+
+Not just `adb pull`'s remote-path argument — the same rewrite hit `adb
+shell uiautomator dump /sdcard/ui.xml` too (it ran on-device against a
+mangled path first). Anything invoking `adb.exe` from this shell with an
+argument starting with `/` needs `export MSYS_NO_PATHCONV=1` first, not
+just the specific command that happened to be tested.
+
+## `adb shell` inside a `while read <<< "$var"` loop eats the rest of `$var`
+
+`adb shell` forwards its own stdin to the device. Inside `while read -r x;
+do adbs shell ...; done <<< "$list"`, that forwarding consumes whatever of
+`$list` was left on the loop's stdin, so the loop silently stops after one
+iteration — no error, just fewer iterations than expected. Redirect every
+`adb` call inside such a loop from `/dev/null` explicitly.
+
+## Key any per-device state by the hardware serial, not the connection address
+
+A wireless-debugging `IP:port` changes on every re-pair, reconnect, DHCP
+lease renewal, or reboot (confirmed: same session, same phone, six
+different addresses). A script that names a backup directory after
+`$SERIAL` orphans its own data the next time that phone reconnects. Use
+`adb -s <serial> shell getprop ro.serialno` (stable) as the key instead.
+
+## Restoring a preinstalled/OEM app needs `pm install-existing`, not `adb install`
+
+Removing it with `pm uninstall --user 0` (see above) leaves its
+system/product-partition stub in place. Reinstalling the APK pulled while
+it was running then fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
+("signatures do not match") against that stub. `adb shell cmd package
+install-existing <pkg>` re-enables the existing stub for the user
+directly — no APK transfer, and it fails harmlessly for a normal app that
+has no such stub, so it's safe to just try first for every package.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

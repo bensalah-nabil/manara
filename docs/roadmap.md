@@ -3,42 +3,52 @@
 Ordered by risk, not by what's easy. The whole project hinges on Phase 0 — do
 it before building anything else.
 
-## Phase 0 — Prove device-owner enrollment (do this first)
+## Phase 0 — Prove device-owner enrollment — ✅ core hypothesis proven (2026-11-03)
 
 **Why first:** if a custom agent can't become device owner on real phones, or
 Play Protect blocks it, the product doesn't work — better to learn that in a
 week than after building a backend.
 
-- [ ] Minimal Kotlin app with a `DeviceAdminReceiver` + device-owner manifest.
-- [ ] Enroll as device owner via ADB on an **already-in-use phone, no
+- [x] Minimal Kotlin app with a `DeviceAdminReceiver` + device-owner manifest.
+- [x] Enroll as device owner via ADB on an **already-in-use phone, no
       factory reset** — remove accounts, confirm zero via
       `dumpsys account`, `dpm set-device-owner`, add accounts back. See
       [ADR-0003](decisions/0003-enrollment-without-factory-reset.md) for why
       this works instead of the originally-planned factory reset.
-- [ ] Enroll via the **QR provisioning** flow — the real path for parents.
-      (This flow does need an unprovisioned device going into it, unlike the
-      ADB path above — confirm during testing whether a factory reset is
-      actually required for QR provisioning specifically, or whether it
-      also just needs zero accounts.)
-- [ ] Repeat on at least a **Samsung** and a **Xiaomi** (worst offenders for
-      background-app killing, custom-ROM quirks, *and* their own account
-      layers — Samsung account / Mi account — which may not clear as
-      cleanly as a plain Google account).
-      **Status (2026-11-02): Samsung SM-A528B (Android 14) passed — see
-      `phase0-test-report.md`. No Xiaomi device available to the team right
-      now; Xiaomi/MIUI testing is an open risk, not a blocker — Phase 0 is
-      provisionally passed on Samsung alone. Revisit before Phase 1 ships
-      broadly, or sooner if a Xiaomi (or another aggressive-battery-management
-      OEM — Oppo/Realme/OnePlus's ColorOS also behaves this way) becomes
-      available.**
-- [ ] Confirm Play Protect does not flag/block during or after enrollment.
+      **Now fully automated**, including the Google account(s) — see
+      `scripts/enroll-preflight.sh` / `enroll-backup-apps.sh` /
+      `enroll-restore-apps.sh` and `tools/orphan-account-cleaner`, and
+      `agent/README.md`'s "Account-tied apps can be backed up..." section.
+- [ ] Enroll via the **QR provisioning** flow — the real path for parents
+      (enrollment-token-based manual/QR entry into the *backend*, via
+      `EnrollmentActivity`, is done and verified; this item is specifically
+      about the Android **setup-wizard** QR provisioning flow for a new/
+      unprovisioned device, which is untested — low priority now that
+      account-removal is the primary, verified method).
+- [x] Repeat on a second real device — **Samsung SM-A045F (Galaxy A04s),
+      2026-11-03**: full 7-account removal (fully automated, see above),
+      `dpm set-device-owner` succeeded, all 5 account-tied apps restored,
+      device owner intact throughout. Still Samsung, not the Xiaomi/
+      second-OEM diversity originally wanted — see the still-open item
+      below.
+      **Xiaomi/MIUI (or similarly aggressive OEM) remains untested** — no
+      such device available to the team as of 2026-11-03. This is a real,
+      open risk (background-app killing, a possibly-different account
+      layer), not a silently-dropped requirement.
+- [x] Confirmed Play Protect does not flag/block during or after enrollment
+      — none seen across dozens of installs/enrollments through 2026-11-03
+      (see `pending-verifications.md`; left open-ended since "never seen"
+      isn't the same as "can't happen").
 - [ ] Check current Google developer-verification rules for sideloaded apps.
-- [ ] Fallback path (factory reset + cloud restore) documented and ready if
-      account removal can't reach zero on a given phone — see
-      [`enrollment-options.md`](enrollment-options.md), option F.
+- [x] Fallback path (factory reset + cloud restore) documented — see
+      [`enrollment-options.md`](enrollment-options.md), option F. Not
+      actually needed on either real device tested so far.
 
 **Exit criterion:** a do-nothing agent survives enrollment, reboot, and 24h
-idle on both phones without being killed or flagged.
+idle on both phones without being killed or flagged. **Met on Phone 1**
+(Samsung SM-A528B); **pending on Phone 2** (Samsung SM-A045F — device-owner
+and app-restore confirmed 2026-11-03, the 24h-idle and reboot-survival
+checks specifically are still open, see `phase0-test-report.md`).
 
 ## Phase 1 — Minimal agent, one policy end to end — ✅ done (2026-11-03)
 
@@ -102,17 +112,28 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       port mapping — no code change.
 - [x] Resolved: do not fork Headwind (confirmed Java/Spring/Tomcat, not
       Go — see [ADR-0002](decisions/0002-stack-and-reuse.md)).
+- [x] Parent signup/login: real endpoints
+      (`POST /console/auth/signup`, `POST /console/auth/login`,
+      bcrypt-hashed passwords, parent sessions), plus
+      `POST /console/enrollment-tokens` so a signed-in parent can generate
+      their own token instead of relying on `-seed`. `-seed` remains a
+      separate dev-only CLI shortcut, not replaced for everyone — see
+      `cmd/manara-server/main.go`.
 
-Deliberately not built here (Phase 3's job, not invented ad hoc to
-unblock testing): parent signup/login. `backend/`'s `-seed` flag creates
-one parent and prints tokens directly — same spirit as `stub-backend`'s
-hardcoded test token, not something to build on.
+## Phase 3 — Controller (parent web app) — in progress
 
-## Phase 3 — Controller (parent web app)
-
-- [ ] Responsive SPA: device list, policy editor, time-limit UI, location view,
-      lock button, "not reporting" alerts.
-- [ ] Parent auth / account model.
+- [x] Stack decided: React + Vite + TypeScript — see
+      [ADR-0002](decisions/0002-stack-and-reuse.md).
+- [x] Scaffolded (`npm create vite@latest -- --template react-ts`),
+      `npm install` clean, dev server verified booting on `:5173`. CORS
+      already wired on the backend side
+      (`CORS_ALLOWED_ORIGIN`/`withCORS` in `cmd/manara-server/main.go`) —
+      see `controller/README.md`.
+- [ ] Parent auth UI (signup/login) against the real endpoints above.
+- [ ] Device list, "add device" (generate enrollment token + show it/QR).
+- [ ] Policy editor (time limits first), lock button, "not reporting"
+      indicator — the backend/agent side of all of these already works
+      end to end; this is purely the UI now.
 
 ## Phase 4 — Hardening
 

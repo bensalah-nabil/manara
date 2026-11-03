@@ -10,8 +10,9 @@ they resolve, not left buried in a chat log. Cross-reference:
 |---|---|---|---|---|---|
 | 2 | **Play Protect** warning, at install or any time after (incl. when the Play Store is next opened) | 2026-11-02 | Ongoing — no fixed end | Watch for any scan dialog/warning; screenshot if one appears | ⏳ Open — none seen across dozens of installs/enrollments through 2026-11-03 |
 | 3 | **Code fix for POST_NOTIFICATIONS self-grant** — verified the *symptom* fix manually (pm grant + reboot) on the Samsung, but the actual code path (`OwnerReceiver.grantSelfGrantablePermissions`) hasn't been exercised on a fresh enrollment yet, since this phone's admin was already active before the fix landed | 2026-11-02 | Next fresh enrollment (any new phone) | On a newly-enrolled device, confirm the notice appears **without** running `pm grant` manually | ⏳ Open |
-| 4 | **Second OEM device** (Xiaomi/MIUI or similar) — Phase 0 is provisionally passed on Samsung alone | 2026-11-02 | When a device becomes available | Full account-removal enrollment flow per `agent/README.md`, same checklist as Phone 1 | ⏳ Open — blocked on device availability |
+| 4 | **Second OEM device** (Xiaomi/MIUI or similar) — a second *Samsung* (SM-A045F) was tested 2026-11-03, which doesn't resolve this; still Samsung-only | 2026-11-02 | When a non-Samsung device becomes available | Full account-removal enrollment flow per `agent/README.md`, same checklist as Phone 1 | ⏳ Open — blocked on device availability |
 | 6 | **The real unattended ~15-minute `WorkManager` timer firing on its own** — resolved everything *except* literally waiting out the OS's own schedule (see Resolved below for what was confirmed instead) | 2026-11-03 | Low priority — `WorkManager`'s scheduling reliability is Android platform behavior, not agent code | Leave the phone alone 15-20 min with a pending policy change, confirm it applied with zero taps | ⏳ Open, low priority |
+| 7 | **24h idle + reboot-survival on Phone 2** (Samsung SM-A045F) — device-owner and app-restore confirmed 2026-11-03; the time-based checks specifically weren't run yet on this phone | 2026-11-03 | Needs elapsed time | Leave the phone idle 24h+, reboot, confirm notice + device-owner status both still present | ⏳ Open |
 
 ## Resolved
 
@@ -60,3 +61,26 @@ they resolve, not left buried in a chat log. Cross-reference:
   by this: the literal unattended 15-minute OS timer firing on its own —
   see the still-open item above. That gap is now Android platform
   scheduling behavior, not agent correctness.
+- **Full account-removal enrollment, fully automated, including the Google
+  account(s)** — 2026-11-03, Samsung SM-A045F: all 7 accounts (5 app-tied +
+  2 Google) removed with zero taps in Settings, `dpm set-device-owner`
+  succeeded, all 5 apps restored, device owner intact throughout. Real
+  findings along the way, now in `CLAUDE.md` and `docs/enrollment-options.md`:
+  `adb uninstall -k` does not clear an app's account token (only a full
+  uninstall reliably does); one account can still end up orphaned even
+  after a full uninstall and a reboot, fixed by `tools/orphan-account-cleaner`
+  (any app can register as an arbitrary account type's authenticator —
+  verified from AOSP source, not assumed — which is enough to call
+  `removeAccountExplicitly()` when no competing authenticator is
+  registered); the same tool clears even `com.google` accounts once
+  GMS/GSF are temporarily disabled first, removing their competing
+  registration.
+- **Full Phase 0 → 1 → 2 chain, end to end, on a second real device with a
+  different target app** — 2026-11-03, Samsung SM-A045F: a policy pushed
+  through the real `/console/*` API (`dailyMinutes: 0` for
+  `com.facebook.katana`), synced to the device, genuinely enforced
+  (`setPackagesSuspended` confirmed via `dumpsys package`), and the
+  real-world effect verified — launching Facebook shows Android's own
+  device-owner block dialog ("Action not authorized..."), not a
+  workaround or an app-drawn screen. Same result as the Instagram test on
+  Phone 1, different device and different target app.

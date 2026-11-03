@@ -40,11 +40,38 @@ the backing research.
 - Still needs USB + ADB + a few terminal commands — not a Play-Store
   tap-through.
 - OEM account layers (Samsung account, Mi account) and hidden GMS
-  pseudo-accounts can complicate getting to "zero accounts"; the documented
-  fallback is temporarily `pm disable-user` on `com.google.android.gms` /
-  `com.google.android.gsf`.
+  pseudo-accounts can complicate getting to "zero accounts"; temporarily
+  `pm disable-user` on `com.google.android.gms` / `com.google.android.gsf`
+  was a documented but untested fallback until 2026-11-03 — now verified,
+  with a stronger effect than originally described (see the next bullet).
 - Any extra Android user profile (guest session, second kid profile) on the
   phone has to be cleared first too (`nonTestNonPrecreatedUsersExist()` check).
+- **Account-tied apps can be backed up and removed automatically**
+  (`scripts/enroll-backup-apps.sh` / `enroll-restore-apps.sh`) — pulls each
+  app's APK(s), fully uninstalls to clear its AccountManager token, and
+  reinstalls after enrollment. Real-device finding (SM-A045F, 2026-11-03):
+  `-k` (keep data) looked like the safer choice but silently blocks the
+  account-cleanup signal — verified it doesn't clear the token at all. A
+  full uninstall usually does, but one account (WhatsApp) stayed orphaned
+  (app gone, no authenticator registered, account row still present) through
+  a full uninstall *and* a reboot, and was invisible to Settings' own
+  Accounts UI too. `tools/orphan-account-cleaner` is the fix for that case:
+  account-type strings aren't reserved by name, so any app can register
+  as a type's `AccountAuthenticator`, but `removeAccountExplicitly()` only
+  succeeds if the *caller* has the AUTH signature capability relative to
+  whichever package is currently registered for that type (read from
+  AOSP's `AccountManagerService.java`, not assumed) — satisfied trivially
+  when nothing else is registered (the orphaned case), impossible when a
+  live, differently-signed app still is. `com.google` is exactly that
+  second case while Google Play Services is installed and enabled — but
+  disabling GMS/GSF first (the fallback above) removes the competing
+  registration, and the same tool then clears `com.google` accounts too.
+  Verified end-to-end on the SM-A045F: 7 accounts (5 app-tied + 2 Google)
+  down to 0, entirely without touching Settings, followed by a successful
+  `dpm set-device-owner`. Samsung's own account type
+  (`com.osp.app.signin`) was never actually present as an account on this
+  device (only as a registered authenticator), so it remains untested
+  either way — don't assume it behaves like `com.google` without checking.
 
 **Why this works — the actual AOSP precondition**
 (`DevicePolicyManagerService.checkDeviceOwnerProvisioningPreConditionLocked`,

@@ -8,6 +8,10 @@
 /agent/build/
 /agent/.gradle/
 /agent/app/build/
+/tools/orphan-account-cleaner/build/
+/tools/orphan-account-cleaner/app/build/
+/tools/orphan-account-cleaner/.gradle/
+/scripts/.enroll-backups/
 *.apk
 *.aab
 

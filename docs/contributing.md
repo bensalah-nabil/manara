@@ -39,7 +39,8 @@ that aren't up for debate.
 |--------------|--------------------------------------|
 | `agent/`     | Kotlin, Android device-admin APIs    |
 | `backend/`   | Go, Postgres, clean architecture     |
-| `controller/`| Web (React or Svelte), API clients   |
+| `controller/`| React + TypeScript, API clients (stack decided, see [ADR-0002](decisions/0002-stack-and-reuse.md)) |
+| `scripts/`, `tools/` | Bash, `adb`/AOSP internals — enrollment automation, not shipped product code |
 | `deploy/`    | Docker, VPS, CI — good first area for a DevOps-minded contributor |
 
 Two people *can* work in parallel from day one because both sides build against
@@ -47,8 +48,20 @@ the OpenAPI spec rather than each other's code.
 
 ## Local setup
 
-Nothing runs yet — Phase 0 (device-owner enrollment) comes first. As each
-component lands, its own `README.md` in that folder will carry setup steps.
+Each component's own `README.md` has real, verified steps — don't re-derive
+them here:
+- [`../agent/README.md`](../agent/README.md) — build with Gradle, enroll a
+  real phone as device owner (no factory reset), including the automated
+  account-removal scripts.
+- [`../backend/README.md`](../backend/README.md) — `docker compose up`,
+  env vars, the `-seed` dev shortcut.
+- [`../controller/README.md`](../controller/README.md) — `npm install && npm run dev`.
+
+A new contributor (human or LLM) should also read [`../CLAUDE.md`](../CLAUDE.md)
+before touching Android or the enrollment scripts specifically — it's a
+living list of non-obvious things that already cost real debugging time
+once; it's not a substitute for this file or the architecture doc, just a
+faster way to not repeat a mistake that's already been made and fixed.
 
 ## Decisions
 

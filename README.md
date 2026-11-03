@@ -38,15 +38,18 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 
 | Capability        | Status  | Notes                                             |
 |-------------------|---------|---------------------------------------------------|
-| App time limits   | planned | Measure usage, suspend apps past a daily limit    |
-| Website filtering  | planned | Private DNS pointed at a filtering resolver        |
-| Remote screen lock | planned | Lock the device on demand or on a schedule         |
-| Location          | planned | Visible foreground service; history on reconnect   |
+| Device-owner enrollment | ✅ done, verified on 2 real Samsung phones | No factory reset; account removal fully automated — see below |
+| App time limits   | ✅ done | `UsageStatsManager` + `setPackagesSuspended`, verified end to end (Instagram on one device, Facebook on another) |
+| Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware |
+| Website filtering  | ✅ done | Private DNS, verified via `settings get global private_dns_mode` |
+| Location          | ✅ done | Visible foreground service; fails closed if Location is off device-wide (no DO API for that — physical/user setting) |
 | Call log          | planned | Sideload-only; will not pass Play Store review     |
-| "Not reporting" alert | planned | Flag a device that has gone dark                 |
+| "Not reporting" alert | backend computes it; nothing proactively notifies a parent yet | `GET /console/devices` surfaces it; push/email alert not built |
+| Backend (Go, Postgres) | ✅ core done | Real signup/login, enrollment tokens, Docker + Caddy TLS, verified containerized |
+| Controller (parent web app) | scaffolded (React + Vite + TS) | Not yet wired to the real API — see `controller/README.md` |
 
-Nothing is built yet. This repo is the architecture and the contracts; code
-comes next, starting with the device-owner enrollment test (see the roadmap).
+See **[`docs/roadmap.md`](docs/roadmap.md)** for the phase-by-phase detail and
+what's still open (FCM push, a second-OEM device test, the controller UI).
 
 ---
 
@@ -81,23 +84,33 @@ The agent↔backend contract is the keystone: [`api-spec/openapi.yaml`](api-spec
 
 | Path          | What lives here                                        |
 |---------------|--------------------------------------------------------|
-| `agent/`      | Android agent (Kotlin). Device-owner app.              |
-| `backend/`    | Server (Go). Domain / transport / persistence layers.  |
-| `controller/` | Parent web UI (phone + PC).                            |
+| `agent/`      | Android agent (Kotlin). Device-owner app. See its own `README.md` to build/enroll. |
+| `backend/`    | Server (Go). Domain / transport / persistence layers. See its own `README.md` to run. |
+| `controller/` | Parent web UI (phone + PC). React + Vite + TS, scaffolded, not yet wired to the API. |
 | `api-spec/`   | OpenAPI contract — the shared source of truth.         |
+| `scripts/`    | Enrollment automation: account-removal preflight/backup/restore (see `agent/README.md`). |
+| `tools/`      | One-off dev tools, not shipped product code (e.g. `orphan-account-cleaner`). |
 | `deploy/`     | Docker, compose, VPS setup.                            |
-| `docs/`       | Architecture, roadmap, legal/ethics, contributing.     |
+| `docs/`       | Architecture, roadmap, legal/ethics, contributing, ADRs, test reports. |
 
 ---
 
 ## Getting started
 
-Right now there's nothing to run — the first task is proving device-owner
-enrollment works on real phones. See **[`docs/roadmap.md`](docs/roadmap.md)**,
-Phase 0.
+Each component's own `README.md` has real, verified run steps:
+[`agent/README.md`](agent/README.md) (build + enroll a real phone),
+[`backend/README.md`](backend/README.md) (Docker Compose, env vars),
+[`controller/README.md`](controller/README.md) (`npm install && npm run dev`).
 
-New contributor? Start with [`docs/contributing.md`](docs/contributing.md) and
-[`docs/architecture.md`](docs/architecture.md).
+New contributor (human or LLM)? Read, in order:
+1. [`CLAUDE.md`](CLAUDE.md) — non-obvious lessons already learned the hard
+   way; read this before touching Android or the enrollment scripts
+   specifically, it'll save you from re-discovering real bugs.
+2. [`docs/contributing.md`](docs/contributing.md) and
+   [`docs/architecture.md`](docs/architecture.md) — how the pieces fit and
+   the non-negotiables.
+3. [`docs/roadmap.md`](docs/roadmap.md) — what's done, what's open, in
+   priority order.
 
 ## License
 

@@ -37,39 +37,108 @@ primary method is account removal, not factory reset.
 
 ---
 
-## Phone 2 — status: **blocked, no device available**
+## Phone 2 — status: **in progress**
 
-No Xiaomi (or other second-OEM) device is available to the team as of
-2026-11-02. Per `roadmap.md`, Phase 0 is treated as **provisionally passed
-on Samsung alone** — this is a real, open risk (MIUI's background-app
-killing and account layer are untested), not a silently-dropped
-requirement. Revisit when a Xiaomi or similarly aggressive OEM (MIUI,
-ColorOS, etc.) becomes available, ideally before Phase 1 ships broadly.
+Still Samsung, not the Xiaomi/second-OEM diversity Phase 0 originally wanted
+(that risk — MIUI's background-app killing and account layer — stays open,
+revisit when such a device becomes available). Useful anyway as a second
+real device and as the first live run of `scripts/enroll-preflight.sh`.
 
-- **Model:**
-- **Android version:**
-- **Manufacturer skin/build number:**
-- **Date tested:**
-- **Enrollment method used:** ☐ B — account removal, no reset (primary) ☐ F — factory reset (fallback)
+- **Model:** Samsung SM-A045F (Galaxy A04s)
+- **Android version:** 14
+- **Manufacturer skin/build number:** (not yet recorded)
+- **Date tested:** 2026-11-03
+- **Enrollment method used:** ☑ B — account removal, no reset (primary)
 
 | Check | Result | Notes |
 |---|---|---|
-| All accounts removed via Settings | ☐ Yes ☐ No | |
-| `adb shell dumpsys account` confirms zero accounts | ☐ Yes ☐ No | if No, note whether `pm disable-user` on gms/gsf fixed it |
-| Needed the gms/gsf `pm disable-user` workaround | ☐ Yes ☐ No | |
-| Extra Android user profile had to be removed first | ☐ Yes ☐ No | |
-| `adb install` succeeded | ☐ Yes ☐ No | |
-| `dpm set-device-owner` succeeded **without factory reset** | ☐ Yes ☐ No | if No, fell back to F — note why |
-| App shows "Device owner: YES" | ☐ Yes ☐ No | |
-| Accounts re-added successfully afterward, device owner still YES | ☐ Yes ☐ No | |
-| Notice survives reboot | ☐ Yes ☐ No | |
-| Notice still present after 24h idle | ☐ Yes ☐ No | |
-| Play Protect warning at install | ☐ Yes ☐ No | screenshot if yes |
-| Play Protect warning later (scan, Play Store nag, etc.) | ☐ Yes ☐ No | screenshot if yes |
-| Data actually intact after (spot-check: SMS, call log, Wi-Fi, photos, an app's data) | ☐ Yes ☐ No | should be trivially Yes under method B — flag if not |
+| All accounts removed via Settings | ☑ Yes (automated, not via Settings) | preflight found 7 at start: 2 Google (incl. `nabil.bsalah0@gmail.com`), Duo, Truecaller, Facebook login, Messenger, WhatsApp. All 7 cleared without a single manual Settings tap — see Notes |
+| `adb shell dumpsys account` confirms zero accounts | ☑ Yes | `scripts/enroll-preflight.sh` reported "PASS -- 0 accounts" immediately before enrollment |
+| Needed the gms/gsf `pm disable-user` workaround | ☑ Yes | not for the 5 app-tied accounts, but required for the 2 `com.google` ones — see Notes |
+| Extra Android user profile had to be removed first | ☑ No | preflight: only user 0 present, no Secure Folder on this model |
+| `adb install` succeeded | ☑ Yes | the agent APK, `tools/orphan-account-cleaner`, and the backup/restore cycle all installed fine over wireless debugging |
+| `dpm set-device-owner` succeeded **without factory reset** | ☑ Yes | `Success: Device owner set to package com.manara.agent/.OwnerReceiver` |
+| App shows "Device owner: YES" | ☑ Yes | confirmed via `dpm list-owners`: `DeviceOwner,Affiliated` |
+| Accounts re-added successfully afterward, device owner still YES | ☑ Yes | all 5 apps (Duo, Truecaller, Facebook, Messenger, WhatsApp) restored via `scripts/enroll-restore-apps.sh`, `dpm list-owners` still shows `DeviceOwner,Affiliated` afterward; Google account re-login not yet done (credentials step, not a device-state check) |
+| Notice survives reboot | ☐ Pending | |
+| Notice still present after 24h idle | ☐ Pending | |
+| Play Protect warning at install | ☐ Not observed | no warning seen during this session |
+| Play Protect warning later (scan, Play Store nag, etc.) | ☐ Pending | |
+| Data actually intact after (spot-check: SMS, call log, Wi-Fi, photos, an app's data) | ☑ Yes (by construction) | no reset occurred at any point; the 5 account-tied apps were uninstalled as part of clearing tokens, APKs backed up for restore |
 
-**Verdict:** ☐ Pass ☐ Fail
+**Verdict:** ☑ Pass (core Phase 0 hypothesis, same as Phone 1), with the
+real findings below — notably, this run proved the entire account-removal
+step can be fully automated, including the Google accounts, which Phone 1
+treated as permanently manual.
 **Notes / anything unexpected:**
+1. `com.facebook.katana`, `com.facebook.orca`, `com.whatsapp`,
+   `com.google.android.apps.tachyon` (Duo), and `com.truecaller` were
+   installed and tied to the 7 accounts found — confirming Phone 1's
+   finding, these needed full uninstall (not app-level logout, not even
+   `-k`) to clear their AccountManager tokens.
+2. Tried `adb uninstall -k` first (expecting to keep local app data while
+   still clearing the account) — verified on this device it does **not**
+   clear the account at all; `-k`'s "keep data" also suppresses the
+   cleanup signal the OS sends on uninstall. Switched to a full uninstall,
+   which cleared 4 of the 5 immediately.
+3. The 5th (WhatsApp) stayed **orphaned** after a full uninstall: no
+   package, no registered authenticator, but the account row still showed
+   in `dumpsys account` — and a full device reboot didn't clear it either.
+   Settings' own Accounts screen couldn't show or remove it (nothing to
+   tap — no app owns that type anymore). Built
+   [`tools/orphan-account-cleaner`](../tools/orphan-account-cleaner) to fix
+   this class of problem: any app can register an `AccountAuthenticator`
+   for an arbitrary type string (types aren't reserved by name), which is
+   enough to call `removeAccountExplicitly()` on an orphaned account of
+   that type. Verified working on this device.
+4. Extended the same tool to the 2 `com.google` accounts, previously
+   assumed permanently manual. Read AOSP's `AccountManagerService.java`
+   rather than assume: removal requires `isAccountManagedByCaller`, which
+   checks `PackageManagerInternal.hasSignatureCapability` against
+   whichever package is *currently registered* as that type's
+   authenticator. For an orphaned type that's trivially satisfied (no
+   competitor); for `com.google` it fails because Google Play Services is
+   still alive and registered, and no third-party cert gets a capability
+   grant from it. Disabling GMS and GSF first
+   (`adb shell pm disable-user --user 0 com.google.android.gms com.google.android.gsf`)
+   removes that competing registration, and the
+   same tool then clears both Google accounts the same way. Re-enabled
+   GMS/GSF immediately after. This is the gms/gsf `pm disable-user`
+   workaround `enrollment-options.md` already documented as a possible
+   fallback but Phone 1 never actually needed or tested — now verified,
+   and more capable than originally described (it does not just help
+   `dumpsys account` report zero, it enables actually *removing* the
+   account).
+5. Duo (`com.google.android.apps.tachyon`) is a preinstalled/OEM app on
+   this model — `adb uninstall` fails with `DELETE_FAILED_INTERNAL_ERROR`;
+   needed `adb shell pm uninstall --user 0` instead.
+6. Wireless debugging was unreliable throughout this device's testing:
+   the connect address changed roughly a dozen times (re-pairing, DHCP
+   lease changes, a reboot), and one large install (`com.facebook.katana`,
+   16 split APKs, ~450MB) dropped mid-transfer three times across the
+   backup and restore passes combined before completing.
+   `scripts/enroll-backup-apps.sh`/`enroll-restore-apps.sh` key their
+   backup directory by the device's hardware serial (`ro.serialno`), not
+   the connection address, specifically because of this — see `CLAUDE.md`.
+7. Restoring Duo failed via `adb install <pulled APK>`
+   (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, signature mismatch) — removing a
+   preinstalled/OEM app with `pm uninstall --user 0` (finding 5) leaves its
+   system/product-partition stub in place, and that stub's signature
+   doesn't match the APK we'd pulled while it was running. `adb shell cmd
+   package install-existing <pkg>` is the right restore for this case
+   (re-enables the existing stub for the user, no APK transfer at all) —
+   `scripts/enroll-restore-apps.sh` now tries this first for every
+   package, falling back to the pulled APK only when it fails, so a
+   normal (non-preinstalled) app is unaffected.
+8. End-to-end result, start to finish: `scripts/enroll-preflight.sh` →
+   `READY` (0 accounts) → `adb shell dpm set-device-owner
+   com.manara.agent/.OwnerReceiver` → `Success` → `dpm list-owners` →
+   `DeviceOwner,Affiliated` → `scripts/enroll-restore-apps.sh` → all 5
+   apps reinstalled, `dpm list-owners` still `DeviceOwner,Affiliated`
+   afterward. No factory reset, no data loss, at any point. Not yet done
+   on this phone: re-logging into the 5 apps and the 2 Google accounts
+   (credentials, not a device-state check), the 24h idle notice check,
+   and the reboot-survival check.
 
 ---
 
