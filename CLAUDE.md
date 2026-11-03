@@ -75,6 +75,15 @@ testing, from my own test data, not a real agent bug, but it would have
 hit the same way from one. Match the column type to what the spec actually
 requires, not to what valid input usually looks like.
 
+## `adb shell cmd jobscheduler run -f` doesn't reliably run WorkManager jobs
+
+Five forced runs against a real `CoroutineWorker`, confirmed via a
+race-free persisted marker (logcat timing was too unreliable to trust
+here), showed zero evidence `doWork()` ever ran. To force-test a
+`WorkManager`-backed worker, enqueue a real `OneTimeWorkRequest` instead
+(e.g. a temporary test-harness button) — that worked every time the
+`jobscheduler run -f` command didn't.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

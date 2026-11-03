@@ -11,7 +11,7 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 2 | **Play Protect** warning, at install or any time after (incl. when the Play Store is next opened) | 2026-11-02 | Ongoing — no fixed end | Watch for any scan dialog/warning; screenshot if one appears | ⏳ Open — none seen across dozens of installs/enrollments through 2026-11-03 |
 | 3 | **Code fix for POST_NOTIFICATIONS self-grant** — verified the *symptom* fix manually (pm grant + reboot) on the Samsung, but the actual code path (`OwnerReceiver.grantSelfGrantablePermissions`) hasn't been exercised on a fresh enrollment yet, since this phone's admin was already active before the fix landed | 2026-11-02 | Next fresh enrollment (any new phone) | On a newly-enrolled device, confirm the notice appears **without** running `pm grant` manually | ⏳ Open |
 | 4 | **Second OEM device** (Xiaomi/MIUI or similar) — Phase 0 is provisionally passed on Samsung alone | 2026-11-02 | When a device becomes available | Full account-removal enrollment flow per `agent/README.md`, same checklist as Phone 1 | ⏳ Open — blocked on device availability |
-| 5 | **`SyncWorker`'s real ~15-minute periodic trigger** — every enforcement test so far used the manual "Sync now" button or a fresh policy push, never an untouched wait for the actual `WorkManager` schedule to fire on its own | 2026-11-03 | Leave the phone alone for 15-20 min with a pending policy change, no button taps | Check `dumpsys jobscheduler` ran, and that enforcement changed without any manual trigger | ⏳ Open |
+| 6 | **The real unattended ~15-minute `WorkManager` timer firing on its own** — resolved everything *except* literally waiting out the OS's own schedule (see Resolved below for what was confirmed instead) | 2026-11-03 | Low priority — `WorkManager`'s scheduling reliability is Android platform behavior, not agent code | Leave the phone alone 15-20 min with a pending policy change, confirm it applied with zero taps | ⏳ Open, low priority |
 
 ## Resolved
 
@@ -45,3 +45,18 @@ they resolve, not left buried in a chat log. Cross-reference:
   confirmed via `dumpsys package`), then cleanly reverted the same way.
   Single-use enrollment-token rejection on a redundant second attempt was
   also observed live, matching the design rather than being a surprise.
+- **`SyncWorker` actually works when dispatched by `WorkManager`** —
+  2026-11-03, confirmed on the Samsung SM-A528B via a `OneTimeWorkRequest`
+  from a test-harness button (same dispatch mechanism the real periodic
+  job uses, immediate instead of waiting ~15 min): three separate runs,
+  each confirmed success via a fresh `lastSeen` timestamp server-side.
+  Found along the way that `adb shell cmd jobscheduler run -f` does **not**
+  reliably invoke a `WorkManager`-backed `CoroutineWorker`'s `doWork()` —
+  five forced runs via that command produced zero evidence of entering the
+  method (confirmed with a race-free `SharedPreferences` marker, not just
+  logcat timing), while the `OneTimeWorkRequest` approach worked every
+  time. Not a bug in the agent — a tooling quirk of that specific adb
+  command with WorkManager-backed jobs specifically. What's *not* resolved
+  by this: the literal unattended 15-minute OS timer firing on its own —
+  see the still-open item above. That gap is now Android platform
+  scheduling behavior, not agent correctness.

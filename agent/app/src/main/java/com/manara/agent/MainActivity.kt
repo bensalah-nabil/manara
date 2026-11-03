@@ -263,5 +263,22 @@ class MainActivity : Activity() {
                 }
             }
         })
+
+        root.addView(Button(this).apply {
+            text = "Run SyncWorker via WorkManager (not a direct call)"
+            setOnClickListener {
+                // Unlike the button above (which calls SyncManager directly
+                // from this Activity's own scope), this actually goes
+                // through WorkManager -- the same dispatch path the real
+                // periodic job uses, just as a one-time request instead of
+                // waiting ~15 min. Added because `adb shell cmd jobscheduler
+                // run -f` turned out NOT to reliably invoke doWork() for a
+                // WorkManager-backed job when tested -- this is the cleaner
+                // way to actually exercise that code path on demand.
+                val request = androidx.work.OneTimeWorkRequestBuilder<com.manara.agent.sync.SyncWorker>().build()
+                androidx.work.WorkManager.getInstance(this@MainActivity).enqueue(request)
+                refreshStatus("Enqueued one-time SyncWorker run (id=${request.id}) -- check logcat/adb for the result")
+            }
+        })
     }
 }

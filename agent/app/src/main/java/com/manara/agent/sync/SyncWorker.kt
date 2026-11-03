@@ -1,6 +1,7 @@
 package com.manara.agent.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -18,6 +19,12 @@ import androidx.work.ListenableWorker.Result as WorkResult
  * 15 minutes is both `docs/phase1-plan.md`'s suggested interval and
  * `WorkManager`'s own enforced minimum for periodic work — can't be set
  * shorter even if a tighter loop were wanted later.
+ *
+ * Verified actually working as dispatched by `WorkManager` (not just
+ * "should work") via a `OneTimeWorkRequest` from `MainActivity`'s test
+ * harness — `adb shell cmd jobscheduler run -f` turned out to not
+ * reliably invoke a `WorkManager`-backed `CoroutineWorker`'s [doWork], so
+ * that command isn't a trustworthy way to force-test this specific class.
  */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -34,6 +41,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         )
 
         val result = syncManager.sync()
+        Log.i(TAG, "sync result: $result")
 
         // Re-apply the cached policy regardless of whether THIS sync
         // changed it, or even succeeded at all. Found directly from
@@ -58,6 +66,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
     }
 
     companion object {
+        private const val TAG = "ManaraSyncWorker"
         private const val WORK_NAME = "manara-sync"
         private const val MAX_RETRIES = 5
 
