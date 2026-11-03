@@ -12,12 +12,35 @@ domain calls and holds no business rules.
 
 ```bash
 cd backend
+cp .env.example .env   # first time only -- edit the values, see comments inside
 docker compose up --build -d
 ```
 
-Brings up Postgres and the server (migrations run automatically on
-startup — `IF NOT EXISTS` throughout, safe to re-run). Server listens on
-`:8080`.
+Brings up Postgres, the server, and Caddy (migrations run automatically on
+startup — `IF NOT EXISTS` throughout, safe to re-run). The server itself
+listens on `:8080` (dev-only direct access, see the comment in
+`docker-compose.yml`); Caddy fronts it with TLS on `:443` (`:80` redirects
+there automatically) — verified working locally via `curl -k` against
+`DOMAIN=localhost`'s self-signed cert from Caddy's own internal CA.
+
+## Deploying to a real VPS
+
+The whole point of the `DOMAIN` env var is that this is the only thing
+that changes:
+
+1. Get a VPS, point the domain's DNS A record at its IP.
+2. Copy this directory there (or `git clone`), set `DOMAIN=yourdomain.com`
+   and a real `POSTGRES_PASSWORD` in `.env`.
+3. `docker compose up --build -d`.
+
+Caddy detects `DOMAIN` is a real, publicly-resolvable hostname and
+automatically requests a genuine Let's Encrypt certificate instead of its
+local self-signed one — no config or code change beyond that env var.
+Once this is live, drop the `8080:8080` port mapping in
+`docker-compose.yml` (the one thing that's dev-only) and point the agent's
+`ManaraApiFactory.DEV_BASE_URL` at `https://yourdomain.com/api/v1/`,
+removing the manifest's `usesCleartextTraffic` concession at the same
+time — both already flagged as dev-only in their own comments.
 
 ### Bootstrap a test parent
 

@@ -1,28 +1,57 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: manara
-      POSTGRES_PASSWORD: manara
-      POSTGRES_DB: manara
+      POSTGRES_USER: ${POSTGRES_USER:-manara}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-manara}
+      POSTGRES_DB: ${POSTGRES_DB:-manara}
     volumes:
       - manara-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U manara"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-manara}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   server:
     build: .
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://manara:manara@postgres:5432/manara
+      DATABASE_URL: postgres://${POSTGRES_USER:-manara}:${POSTGRES_PASSWORD:-manara}@postgres:5432/${POSTGRES_DB:-manara}
       ADDR: ":8080"
     ports:
+      # Dev-only direct access -- see ManaraApiFactory's and the agent
+      # manifest's usesCleartextTraffic comments. Drop this mapping once a
+      # real domain + the caddy service below is the only way in.
       - "8080:8080"
+
+  # TLS termination (architecture.md §6: "encrypt in transit"). With
+  # DOMAIN=localhost (the .env.example default), Caddy issues itself a
+  # self-signed cert via its internal CA -- verify with `curl -k`, a real
+  # device won't trust it without extra setup, and that's fine for local
+  # dev. Set DOMAIN to a real hostname once there's a VPS with DNS pointed
+  # at it, and Caddy automatically requests a real Let's Encrypt cert
+  # instead -- no other change, that's the whole migration.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - manara-caddy-data:/data
+      - manara-caddy-config:/config
 
 volumes:
   manara-postgres-data:
+  manara-caddy-data:
+  manara-caddy-config:

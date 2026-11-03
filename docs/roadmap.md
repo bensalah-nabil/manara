@@ -91,7 +91,15 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       full enroll → sync → console flow against the real containerized
       stack on port 8080 — the same port/tunnel the agent already uses,
       so swapping from `stub-backend/` needed zero agent-side changes.
-      **Not yet done:** deploy to an actual VPS — only run locally so far.
+      Added a Caddy service for TLS termination (architecture.md §6),
+      verified working locally (`curl -k` against its self-signed cert,
+      confirmed automatic HTTP→HTTPS redirect); secrets moved to a
+      gitignored `.env`. **Not yet done:** an actual VPS — decided
+      (2026-11-03) to keep developing locally on Docker and migrate once
+      one is rented; per `backend/README.md`, that migration is just
+      setting a real `DOMAIN` in `.env` (Caddy then gets a real Let's
+      Encrypt cert automatically) and dropping the dev-only `8080:8080`
+      port mapping — no code change.
 - [x] Resolved: do not fork Headwind (confirmed Java/Spring/Tomcat, not
       Go — see [ADR-0002](decisions/0002-stack-and-reuse.md)).
 
