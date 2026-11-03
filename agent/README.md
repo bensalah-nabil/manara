@@ -153,6 +153,64 @@ adb uninstall com.manara.agent
 
 (If that's blocked, a factory reset always clears it.)
 
+## Push notifications (FCM)
+
+`lock_now` (and anything else `domain.CommandType.IsUrgent()` marks on the
+backend) can wake the device immediately via Firebase Cloud Messaging
+instead of waiting for the next ~15-minute poll. Fully additive: a build
+without the setup below runs exactly as it did before this existed, just
+polling-only — see `PushConfig.kt`'s and `app/build.gradle.kts`'s comments
+for why there's no `google-services.json`/Google Services Gradle plugin
+dependency here.
+
+To actually enable it:
+
+1. Create a Firebase project at console.firebase.google.com (free tier).
+2. Add an Android app to it with this project's applicationId
+   (`com.manara.agent`).
+3. From the project's web API key / app config, add four lines to
+   `agent/local.properties` (already gitignored, same file `sdk.dir`
+   lives in):
+   ```
+   FCM_API_KEY=...
+   FCM_APP_ID=...
+   FCM_PROJECT_ID=...
+   FCM_SENDER_ID=...
+   ```
+4. On the backend side: generate a service account key (Project settings
+   → Service accounts → Generate new private key) and point
+   `FIREBASE_SERVICE_ACCOUNT` at it — see `backend/README.md`.
+5. Rebuild and reinstall the agent. `PushManager.ensureRegistered` runs
+   from `OwnerReceiver.onEnabled`, `BootReceiver`, and
+   `MainActivity.onCreate` — any of those gets a fresh install/reboot/open
+   registered.
+
+Verified end to end on a Samsung SM-A045F against a real Firebase project
+(`manara-abff9`), with **zero manual device interaction**: a `lock_now`
+command queued via the console API → live FCM push → device fetched and
+executed it (`DevicePolicyManager.lockNow()` actually locked the screen,
+confirmed via `dumpsys power`'s `mWakefulness` → `Dozing`, device left
+completely untouched afterward to rule out any interaction confound) →
+acked back → the resulting lock event reached `GET /console/.../events`.
+
+Chasing this to a clean result surfaced and fixed three real, pre-existing
+bugs, none push-specific (all were already broken for the existing
+poll-only path, just never exercised by a real `lock_now` command before):
+`SyncManager` parsed `pendingCommands` from every sync response but never
+executed or acked any of them (`LockEnforcer.lockImmediately()` already
+existed for exactly this, just was never called); `EnforcerRegistry.collectAllEvents()`
+was defined and never called from anywhere, so no enforcer-generated event
+(a scheduled lock, a time-limit suspension) ever reached the backend; and
+`lockImmediately()` swallowed any exception from `lockNow()` via a bare
+`runCatching` with no logging, so a real failure would have looked
+identical to success. That last one briefly looked like a genuine
+WorkManager-specific failure (command acked, screen never visibly locked)
+before turning out to be test methodology: checking wakefulness
+immediately after an `adb` tap that itself re-woke the device, not a code
+or platform bug — the fix (propagate the real error instead of swallowing
+it) still landed, since a silent `runCatching` around a safety-relevant
+call is a real defect regardless of what triggered finding it.
+
 ## What to record for the Phase 0 report
 
 For each phone (model, Android version):

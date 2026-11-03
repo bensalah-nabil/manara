@@ -75,7 +75,7 @@ summary here.
       architecture.md's stated design and serves its resilience goal
       (keeps enforcing from the cache even if sync itself fails).
 
-## Phase 2 — Backend — core done (2026-11-03), FCM and VPS deploy still open
+## Phase 2 — Backend — core done (2026-11-03), VPS deploy still open
 
 See [`backend/README.md`](../backend/README.md) for how to run it.
 
@@ -92,10 +92,28 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       computes it correctly and `GET /console/devices` surfaces it, but
       nothing proactively notifies a parent when a device crosses that
       line; today it's only visible if someone looks.
-- [ ] FCM delivery with polling fallback — polling (the agent's existing
-      `/agent/sync` loop) already works; FCM push itself isn't wired yet.
-      The command queue is already push-ready (persisted, not in-memory),
-      so this is additive, not a redesign.
+- [x] FCM delivery with polling fallback — built *and* verified live
+      (`domain.CommandType.IsUrgent()`, `internal/notify/fcm` talking to
+      FCM's HTTP v1 API directly rather than the bloated Firebase Admin Go
+      SDK, `notify.Noop{}` when `FIREBASE_SERVICE_ACCOUNT` is unset). A
+      real Firebase project now exists (`manara-abff9`); confirmed
+      end-to-end on a Samsung SM-A045F with **zero manual interaction**:
+      `lock_now` queued via the console API → live FCM push → device
+      woke, synced, and actually locked (`dumpsys power`'s `mWakefulness`
+      → `Dozing`, left completely untouched to rule out any interaction
+      confound) → acked → lock event reached `GET /console/.../events`.
+      Verifying this surfaced and fixed three real, pre-existing bugs on
+      the agent side: `pendingCommands` from every sync response were
+      parsed but never executed or acked (`LockEnforcer.lockImmediately()`
+      existed, just wasn't called); `EnforcerRegistry.collectAllEvents()`
+      was defined and called nowhere, so no enforcer-generated event ever
+      reached the backend; and `lockImmediately()` swallowed any exception
+      from `lockNow()` via a bare `runCatching` with no logging, so a real
+      failure would have looked identical to success (`"acked"`) with zero
+      signal anywhere — found while chasing what first looked like a
+      WorkManager-specific failure that turned out to be test methodology
+      (my own `adb` taps immediately re-waking the device right after
+      triggering the lock), not a code bug.
 - [x] Docker + compose, verified actually working (not just written):
       built the image, brought up Postgres + server together, ran the
       full enroll → sync → console flow against the real containerized

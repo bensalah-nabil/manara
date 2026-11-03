@@ -84,3 +84,12 @@ they resolve, not left buried in a chat log. Cross-reference:
   device-owner block dialog ("Action not authorized..."), not a
   workaround or an app-drawn screen. Same result as the Instagram test on
   Phone 1, different device and different target app.
+- **FCM push, live, end to end, zero manual interaction** — 2026-11-03,
+  Samsung SM-A045F against a real Firebase project (`manara-abff9`):
+  `lock_now` queued via the console API → live push → device woke on its
+  own, synced, and actually locked (`dumpsys power`'s `mWakefulness` →
+  `Dozing`, confirmed with the device deliberately left untouched) →
+  acked → lock event reached `GET /console/.../events`. Fixed three real
+  bugs along the way (`pendingCommands` never executed, enforcer events
+  never collected, a silently-swallowed `lockNow()` exception) — see
+  `CLAUDE.md` and `agent/README.md`'s "Push notifications (FCM)".

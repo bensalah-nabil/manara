@@ -44,8 +44,10 @@ time — both already flagged as dev-only in their own comments.
 
 ### Bootstrap a test parent
 
-There's no real parent signup yet — that's Phase 3's "Parent auth /
-account model," deliberately not invented here. For now:
+Real signup/login exists (`POST /console/auth/signup`, `POST
+/console/auth/login`) -- use those for anything resembling a real parent.
+`-seed` remains a separate dev-only shortcut for quick local testing, not
+something to build product features on:
 
 ```bash
 docker compose exec server /usr/local/bin/manara-server -seed
@@ -53,7 +55,30 @@ docker compose exec server /usr/local/bin/manara-server -seed
 
 Prints a `parentId`, a `parentSession` bearer token (for `/console/*`
 calls), and a one-time `enrollmentToken` (for the agent's `/enroll` call —
-same QR/manual-entry flow as `agent/`'s `EnrollmentActivity`).
+same QR/manual-entry flow as `agent/`'s `EnrollmentActivity`). A signed-in
+parent can also generate their own enrollment token via `POST
+/console/enrollment-tokens`.
+
+### Push notifications (FCM)
+
+Optional, additive -- unset (the default), the server logs it and falls
+back to `notify.Noop{}`: commands are still enqueued and reach the device
+on its next `/agent/sync` poll exactly as before, nothing refuses to
+start over a missing push config.
+
+```bash
+FIREBASE_SERVICE_ACCOUNT=/path/to/service-account.json
+```
+
+Get that file from the Firebase console: Project settings → Service
+accounts → Generate new private key. See
+[`../agent/README.md`](../agent/README.md)'s "Push notifications (FCM)"
+section for the matching agent-side setup (four config strings in
+`agent/local.properties`, not this file). `internal/notify/fcm` talks to
+FCM's HTTP v1 API directly (`golang.org/x/oauth2/google` for the
+service-account token) rather than the Firebase Admin Go SDK -- that
+package pulls in Firestore, Cloud Monitoring, OpenTelemetry, and gRPC
+transitively for one "send a message" call this project doesn't need.
 
 ## Try it
 
@@ -80,13 +105,7 @@ curl -s -X POST http://localhost:8080/api/v1/console/devices/DEVICE_ID/commands 
 
 ## What's not here yet
 
-- **FCM delivery** (`roadmap.md`): commands currently only reach the agent
-  via the agent's own polling (`/agent/sync`), no push. The command queue
-  itself is already push-ready (persisted, `pending → delivered → acked`),
-  wiring FCM is additive, not a redesign.
 - **A real migration tool**: `db.Migrate()` just re-runs every embedded
   `.sql` file on every start (`IF NOT EXISTS` makes that safe for now).
   Fine for a single schema version; revisit with `golang-migrate` or
   similar once there's more than one to step between.
-- **Parent signup/login** (Phase 3) — the `-seed` flag is a deliberate
-  stand-in, not something to build on.

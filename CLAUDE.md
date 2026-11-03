@@ -142,6 +142,58 @@ install-existing <pkg>` re-enables the existing stub for the user
 directly — no APK transfer, and it fails harmlessly for a normal app that
 has no such stub, so it's safe to just try first for every package.
 
+## The Firebase Admin Go SDK is overkill for just sending FCM messages
+
+`firebase.google.com/go/v4` pulls in Firestore, Cloud Monitoring,
+OpenTelemetry, and gRPC transitively — ~40 packages for one "send a push
+message" call. Use FCM's HTTP v1 REST API directly instead:
+`golang.org/x/oauth2/google` for the service-account token, plain
+`net/http`/`encoding/json` for the request. Two dependencies instead of
+forty, same result. See `backend/internal/notify/fcm`.
+
+## A sync response field being parsed doesn't mean it's acted on
+
+`SyncManager` decoded `pendingCommands` from every `/agent/sync` response
+and `EnforcerRegistry.collectAllEvents()` was fully implemented — neither
+was ever actually wired to anything. A `lock_now` command genuinely did
+nothing on a real device until this was found and fixed (confirmed via
+`dumpsys power`'s `mWakefulness`, not just by reading the code). Both
+looked done from the type signatures alone. When adding a new
+`CommandType` or a new `PolicyEnforcer` that calls `collectEvents()`,
+check there's a real caller all the way through, not just a matching
+field/method.
+
+## A bare `runCatching { }` with no `.onFailure` hides real failures as false successes
+
+`LockEnforcer.lockImmediately()` wrapped `devicePolicyManager.lockNow()` in
+`runCatching { ... }` and threw the result away — any exception vanished
+silently, so `SyncManager` reported `"acked"` for a `lock_now` that could
+have actually failed, with zero signal anywhere that anything was wrong.
+This specific call turned out not to be throwing (see the adb-interaction
+lesson below), but the pattern itself was still a real defect independent
+of that — found it while chasing what looked like a different bug. Either
+let a safety-relevant call throw and catch it where there's something
+useful to do with the error (log it, report "failed" instead of "acked"),
+or at minimum `.onFailure { Log.w(...) }` — never a bare `runCatching`
+that discards the result.
+
+## Don't trust your own `adb` interaction timing when testing an async device effect
+
+Spent real effort chasing what looked like "`lockNow()` doesn't work when
+triggered via `WorkManager`/push, only when triggered from foreground UI
+code" — command acked, screen never visibly locked, confirmed over
+multiple repeats and even after setting a real PIN. Turned out to be
+`adb shell input tap`/`keyevent` commands in my own test script, sent
+*right after* triggering the lock to check the result, themselves
+re-waking the device before the next `dumpsys power` read could observe
+`Dozing`. System logcat (`PowerManagerService: Going to sleep due to
+device_admin`) had already shown the call was genuinely succeeding the
+whole time. The fix wasn't code — it was leaving the device completely
+untouched after triggering, for a full ScheduleWakeup-length wait, before
+checking. When a test keeps showing a surprising negative for an async
+device effect, check whether the *test's own adb traffic* is the
+confound before concluding the feature is broken.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

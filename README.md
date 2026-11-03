@@ -40,7 +40,7 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 |-------------------|---------|---------------------------------------------------|
 | Device-owner enrollment | ✅ done, verified on 2 real Samsung phones | No factory reset; account removal fully automated — see below |
 | App time limits   | ✅ done | `UsageStatsManager` + `setPackagesSuspended`, verified end to end (Instagram on one device, Facebook on another) |
-| Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware |
+| Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware, including via live FCM push with zero manual interaction |
 | Website filtering  | ✅ done | Private DNS, verified via `settings get global private_dns_mode` |
 | Location          | ✅ done | Visible foreground service; fails closed if Location is off device-wide (no DO API for that — physical/user setting) |
 | Call log          | planned | Sideload-only; will not pass Play Store review     |
