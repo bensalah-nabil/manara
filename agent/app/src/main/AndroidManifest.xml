@@ -90,5 +90,16 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- Only ever instantiated by the OS when Firebase is actually
+             initialized (PushConfig.isConfigured); harmless to declare
+             unconditionally on a build without a Firebase project set up. -->
+        <service
+            android:name=".push.ManaraFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>

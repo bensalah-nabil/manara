@@ -24,8 +24,10 @@ import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.Policy
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
+import com.manara.agent.sync.CommandAckQueue
 import com.manara.agent.sync.DeviceTokenStore
 import com.manara.agent.sync.ManaraApiFactory
+import com.manara.agent.sync.PushTokenStore
 import com.manara.agent.sync.SyncManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +61,7 @@ class MainActivity : Activity() {
             // actually gets them without a fresh enrollment.
             com.manara.agent.sync.SyncWorker.schedule(this)
             OwnerReceiver.grantSelfGrantablePermissions(this)
+            com.manara.agent.push.PushManager.ensureRegistered(this)
         }
 
         val root = LinearLayout(this).apply {
@@ -240,7 +243,9 @@ class MainActivity : Activity() {
                         policyCache = policyCache,
                         eventQueue = eventQueue,
                         enforcerRegistry = registry,
-                        tokenStore = tokenStore
+                        tokenStore = tokenStore,
+                        commandAckQueue = CommandAckQueue(db),
+                        pushTokenStore = PushTokenStore(this@MainActivity)
                     )
                     val syncResult = withContext(Dispatchers.IO) { syncManager.sync() }
                     // Same fix as SyncWorker: re-apply the cached policy
@@ -270,14 +275,15 @@ class MainActivity : Activity() {
                 // Unlike the button above (which calls SyncManager directly
                 // from this Activity's own scope), this actually goes
                 // through WorkManager -- the same dispatch path the real
-                // periodic job uses, just as a one-time request instead of
-                // waiting ~15 min. Added because `adb shell cmd jobscheduler
-                // run -f` turned out NOT to reliably invoke doWork() for a
-                // WorkManager-backed job when tested -- this is the cleaner
-                // way to actually exercise that code path on demand.
-                val request = androidx.work.OneTimeWorkRequestBuilder<com.manara.agent.sync.SyncWorker>().build()
-                androidx.work.WorkManager.getInstance(this@MainActivity).enqueue(request)
-                refreshStatus("Enqueued one-time SyncWorker run (id=${request.id}) -- check logcat/adb for the result")
+                // periodic job (and an incoming FCM push, see
+                // ManaraFirebaseMessagingService) uses, just as a one-time
+                // request instead of waiting ~15 min. Added because `adb
+                // shell cmd jobscheduler run -f` turned out NOT to reliably
+                // invoke doWork() for a WorkManager-backed job when tested
+                // -- this is the cleaner way to actually exercise that code
+                // path on demand.
+                val id = com.manara.agent.sync.SyncWorker.enqueueOneTime(this@MainActivity)
+                refreshStatus("Enqueued one-time SyncWorker run (id=$id) -- check logcat/adb for the result")
             }
         })
     }

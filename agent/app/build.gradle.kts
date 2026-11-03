@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
 }
+
+// Firebase project identity for push notifications, read from
+// local.properties (already gitignored -- sdk.dir already lives there)
+// rather than google-services.json/the Google Services Gradle plugin, so
+// the build doesn't require a Firebase project to exist at all until
+// someone actually wants push working. See PushConfig.kt.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+fun fcmProperty(key: String): String = localProperties.getProperty(key, "")
 
 android {
     namespace = "com.manara.agent"
@@ -15,6 +28,11 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0-phase0"
+
+        buildConfigField("String", "FCM_API_KEY", "\"${fcmProperty("FCM_API_KEY")}\"")
+        buildConfigField("String", "FCM_APP_ID", "\"${fcmProperty("FCM_APP_ID")}\"")
+        buildConfigField("String", "FCM_PROJECT_ID", "\"${fcmProperty("FCM_PROJECT_ID")}\"")
+        buildConfigField("String", "FCM_SENDER_ID", "\"${fcmProperty("FCM_SENDER_ID")}\"")
     }
 
     buildTypes {
@@ -30,6 +48,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 }
 
@@ -71,6 +93,14 @@ dependencies {
     // ("compiled with an incompatible version of Kotlin" at kspDebugKotlin,
     // found immediately on first build). 21.1.1 predates that shift.
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Push notifications (FCM) -- additive, see PushConfig.kt: a build
+    // without local.properties' FCM_* keys set runs exactly as before this
+    // existed. No firebase-bom/google-services plugin -- FirebaseMessaging
+    // is initialized manually with four plain config strings instead
+    // (PushConfig.ensureFirebaseInitialized), so push doesn't need a
+    // Firebase project to exist just to compile.
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
 
     testImplementation("junit:junit:4.13.2")
 }

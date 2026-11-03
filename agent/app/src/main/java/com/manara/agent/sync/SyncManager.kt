@@ -1,26 +1,43 @@
 package com.manara.agent.sync
 
 import com.manara.agent.enforcers.EnforcerRegistry
+import com.manara.agent.enforcers.LockEnforcer
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.PolicyCache
 
 /**
  * The one round-trip of the agent-sync loop (architecture.md §3,
  * `api-spec/openapi.yaml`'s `/agent/sync`): drains the event queue,
- * reports the policy version currently cached, and applies whatever comes
- * back. Knows nothing about what an event *means* — that's
- * [EnforcerRegistry]'s job.
+ * reports the policy version currently cached, sends any push token and
+ * command acks, and applies/executes whatever comes back. Knows nothing
+ * about what an event *means* — that's [EnforcerRegistry]'s job.
  *
- * `commandAcks` is always sent empty for now: Phase 1's scope ends before
- * any enforcer that actually executes a pushed command (`LockEnforcer`
- * etc.) exists, so there's nothing yet to ack.
+ * [pendingCommands] execution is the other half of `CommandType.IsUrgent()`
+ * on the backend (the push-wake-up only matters if the sync it triggers
+ * actually does something): found while wiring FCM push that a received
+ * `lock_now` command was parsed into [SyncResponse.pendingCommands] but
+ * never executed or acked anywhere — `LockEnforcer.lockImmediately()`
+ * already existed for exactly this, just never called.
+ *
+ * Same discovery turned up a second, separate gap: [EnforcerRegistry.collectAllEvents]
+ * was defined and called nowhere — an enforcer's own events (a scheduled
+ * lock, a time-limit suspension) sat in its in-memory list forever,
+ * never reaching [eventQueue] and so never the backend. Collected at two
+ * points below: before draining (picks up whatever accumulated between
+ * syncs, e.g. `SyncWorker`'s periodic re-apply entering a lock window)
+ * and after executing pushed commands (picks up e.g. the lock event
+ * `lockImmediately()` just generated, queued for the *next* sync same as
+ * its ack — the same "ack/report on the following round" pattern already
+ * used for command acks).
  */
 class SyncManager(
     private val api: ManaraApi,
     private val policyCache: PolicyCache,
     private val eventQueue: EventQueue,
     private val enforcerRegistry: EnforcerRegistry,
-    private val tokenStore: DeviceTokenStore
+    private val tokenStore: DeviceTokenStore,
+    private val commandAckQueue: CommandAckQueue,
+    private val pushTokenStore: PushTokenStore
 ) {
     sealed class Result {
         data object Success : Result()
@@ -32,13 +49,22 @@ class SyncManager(
 
     suspend fun sync(): Result {
         val token = tokenStore.deviceToken() ?: return Result.NotEnrolled
+
+        collectEnforcerEvents()
+
         val policyVersion = policyCache.currentVersion() ?: 0
         val events = eventQueue.drainBatch()
+        val acksToSend = commandAckQueue.pending()
 
         return try {
             val response = api.sync(
                 bearerToken = "Bearer $token",
-                request = SyncRequest(policyVersion = policyVersion, events = events, commandAcks = emptyList())
+                request = SyncRequest(
+                    policyVersion = policyVersion,
+                    events = events,
+                    commandAcks = acksToSend,
+                    pushToken = pushTokenStore.current()
+                )
             )
 
             when {
@@ -50,19 +76,68 @@ class SyncManager(
 
                     // Safe to drop locally once the backend confirms receipt
                     // (architecture.md §3.2) -- a dropped response here just
-                    // means the same events get re-sent next sync, harmless
-                    // since the backend dedupes on id.
+                    // means the same events/acks get re-sent next sync,
+                    // harmless since the backend dedupes events by id and
+                    // command acks are idempotent (re-acking is a no-op).
                     eventQueue.markAccepted(body.acceptedEventIds)
+                    commandAckQueue.markSent(acksToSend.map { it.commandId })
 
                     if (body.policyChanged && body.policy != null) {
                         policyCache.replace(body.policy)
                         enforcerRegistry.applyAll(body.policy)
                     }
+
+                    for (command in body.pendingCommands) {
+                        val (status, detail) = execute(command)
+                        commandAckQueue.enqueue(CommandAck(command.commandId, status, detail))
+                    }
+                    collectEnforcerEvents()
+
                     Result.Success
                 }
             }
         } catch (t: Exception) {
             Result.Failed(t)
         }
+    }
+
+    private suspend fun collectEnforcerEvents() {
+        for (event in enforcerRegistry.collectAllEvents()) {
+            eventQueue.enqueue(event)
+        }
+    }
+
+    /**
+     * Runs one pushed command now. `apply_policy`/`ping` need no action
+     * beyond what already happened above (a changed policy is applied via
+     * [EnforcerRegistry.applyAll] regardless of whether it arrived as a
+     * policyChanged flag or an explicit command) -- acked here only so the
+     * backend's command-queue lifecycle (architecture.md §3.1) always
+     * resolves to acked|failed instead of sitting pending/delivered.
+     *
+     * `request_location` is acked but is **not actually a one-off fix
+     * today** -- `LocationEnforcer`/`LocationNoticeService` only support a
+     * running periodic service, no "get one fix right now" entry point
+     * exists yet. Acking it as a no-op rather than "failed" because the
+     * policy-level periodic location (when enabled) already covers the
+     * same need on its own schedule; a true immediate-fix command is a
+     * separate `LocationEnforcer` capability to add later, not implied by
+     * this ack.
+     */
+    private fun execute(command: Command): Pair<String, String?> = when (command.type) {
+        "lock_now" -> {
+            val lockEnforcer = enforcerRegistry.find("lock") as? LockEnforcer
+            when {
+                lockEnforcer == null -> "failed" to "LockEnforcer not registered"
+                else -> try {
+                    lockEnforcer.lockImmediately()
+                    "acked" to null
+                } catch (e: Exception) {
+                    "failed" to "lockNow() threw: ${e.message}"
+                }
+            }
+        }
+        "apply_policy", "ping", "request_location" -> "acked" to null
+        else -> "failed" to "unknown command type: ${command.type}"
     }
 }

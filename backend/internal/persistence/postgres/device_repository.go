@@ -31,7 +31,7 @@ func (r *DeviceRepository) Create(ctx context.Context, d *domain.Device) error {
 
 func (r *DeviceRepository) FindByID(ctx context.Context, id string) (*domain.Device, error) {
 	row := r.db.Pool.QueryRow(ctx, `
-		SELECT id, parent_id, label, model, manufacturer, android_version, agent_version, last_seen, created_at
+		SELECT id, parent_id, label, model, manufacturer, android_version, agent_version, last_seen, created_at, push_token
 		FROM devices WHERE id = $1
 	`, id)
 	return scanDevice(row)
@@ -39,7 +39,7 @@ func (r *DeviceRepository) FindByID(ctx context.Context, id string) (*domain.Dev
 
 func (r *DeviceRepository) ListByParent(ctx context.Context, parentID string) ([]*domain.Device, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, parent_id, label, model, manufacturer, android_version, agent_version, last_seen, created_at
+		SELECT id, parent_id, label, model, manufacturer, android_version, agent_version, last_seen, created_at, push_token
 		FROM devices WHERE parent_id = $1 ORDER BY created_at
 	`, parentID)
 	if err != nil {
@@ -66,6 +66,14 @@ func (r *DeviceRepository) UpdateLastSeen(ctx context.Context, id string, at tim
 	return nil
 }
 
+func (r *DeviceRepository) UpdatePushToken(ctx context.Context, id string, token string) error {
+	_, err := r.db.Pool.Exec(ctx, `UPDATE devices SET push_token = $1 WHERE id = $2`, token, id)
+	if err != nil {
+		return fmt.Errorf("update push_token: %w", err)
+	}
+	return nil
+}
+
 type rowScanner interface {
 	Scan(dest ...any) error
 }
@@ -73,10 +81,11 @@ type rowScanner interface {
 func scanDevice(row rowScanner) (*domain.Device, error) {
 	var d domain.Device
 	var lastSeen *time.Time
+	var pushToken *string
 	err := row.Scan(
 		&d.ID, &d.ParentID, &d.Label,
 		&d.Info.Model, &d.Info.Manufacturer, &d.Info.AndroidVersion, &d.Info.AgentVersion,
-		&lastSeen, &d.CreatedAt,
+		&lastSeen, &d.CreatedAt, &pushToken,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -86,6 +95,9 @@ func scanDevice(row rowScanner) (*domain.Device, error) {
 	}
 	if lastSeen != nil {
 		d.LastSeen = *lastSeen
+	}
+	if pushToken != nil {
+		d.PushToken = *pushToken
 	}
 	return &d, nil
 }

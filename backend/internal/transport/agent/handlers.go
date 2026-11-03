@@ -54,6 +54,10 @@ type syncRequest struct {
 	PolicyVersion int             `json:"policyVersion"`
 	Events        []eventDTO      `json:"events"`
 	CommandAcks   []commandAckDTO `json:"commandAcks"`
+	// PushToken is optional and omitted by an agent build that doesn't
+	// have Firebase configured -- an empty/missing value just means push
+	// isn't available for this device, not an error.
+	PushToken string `json:"pushToken,omitempty"`
 }
 
 type eventDTO struct {
@@ -169,6 +173,13 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 		log.Printf("sync: update last_seen: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
+	}
+	if req.PushToken != "" {
+		if err := h.Devices.UpdatePushToken(r.Context(), deviceID, req.PushToken); err != nil {
+			// Not fatal to the sync itself -- push is additive, polling
+			// already works regardless of whether this write succeeds.
+			log.Printf("sync: update push_token: %v", err)
+		}
 	}
 
 	events := make([]*domain.Event, 0, len(req.Events))

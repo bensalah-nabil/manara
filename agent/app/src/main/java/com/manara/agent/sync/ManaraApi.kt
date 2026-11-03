@@ -42,7 +42,11 @@ data class CommandAck(val commandId: String, val status: String, val detail: Str
 data class SyncRequest(
     val policyVersion: Int,
     val events: List<Event>,
-    val commandAcks: List<CommandAck>
+    val commandAcks: List<CommandAck>,
+    // Omitted entirely (not even an empty string) when push isn't
+    // configured -- see PushConfig.isConfigured -- so a build without
+    // Firebase set up behaves exactly as it did before this field existed.
+    val pushToken: String? = null
 )
 
 @Serializable

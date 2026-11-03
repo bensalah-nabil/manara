@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -11,6 +12,7 @@ import com.manara.agent.enforcers.defaultEnforcerRegistry
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import androidx.work.ListenableWorker.Result as WorkResult
 
@@ -37,7 +39,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             policyCache = policyCache,
             eventQueue = EventQueue(db),
             enforcerRegistry = registry,
-            tokenStore = DeviceTokenStore(applicationContext)
+            tokenStore = DeviceTokenStore(applicationContext),
+            commandAckQueue = CommandAckQueue(db),
+            pushTokenStore = PushTokenStore(applicationContext)
         )
 
         val result = syncManager.sync()
@@ -74,6 +78,20 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             val request = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES).build()
             WorkManager.getInstance(context)
                 .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+        }
+
+        /**
+         * Runs one sync right now instead of waiting for the next
+         * periodic tick -- what an incoming FCM push triggers
+         * (ManaraFirebaseMessagingService), and also used by MainActivity's
+         * test-harness button. Goes through WorkManager rather than
+         * calling SyncManager directly so it's the same dispatch path as
+         * the real periodic job, not a separate code path to keep correct.
+         */
+        fun enqueueOneTime(context: Context): UUID {
+            val request = OneTimeWorkRequestBuilder<SyncWorker>().build()
+            WorkManager.getInstance(context).enqueue(request)
+            return request.id
         }
     }
 }

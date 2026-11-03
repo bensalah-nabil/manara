@@ -110,6 +110,16 @@ paths:
                       commandId: { type: string, format: uuid }
                       status: { type: string, enum: [acked, failed] }
                       detail: { type: string }
+                pushToken:
+                  type: string
+                  description: >
+                    The device's current FCM registration token, if the agent
+                    build has Firebase configured. Omitted or empty is not an
+                    error -- it just means this device falls back to being
+                    reached only on its next /agent/sync poll, same as before
+                    push existed. Used only for CommandType.IsUrgent() types
+                    (e.g. lock_now) to wake the device immediately instead of
+                    waiting for the next poll.
       responses:
         '200':
           description: Current policy (if changed) and pending commands.

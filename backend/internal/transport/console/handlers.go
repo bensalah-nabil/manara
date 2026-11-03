@@ -23,6 +23,11 @@ type Handlers struct {
 	Sessions    domain.ParentSessionRepository
 	Auth        domain.AuthRepository
 	Enrollments domain.EnrollmentTokenRepository
+	// Notifier wakes a device immediately for CommandType.IsUrgent()
+	// commands (e.g. lock_now), instead of relying solely on the next
+	// /agent/sync poll. notify.Noop{} when Firebase isn't configured --
+	// see cmd/manara-server/main.go.
+	Notifier domain.PushNotifier
 }
 
 type deviceSummaryDTO struct {
@@ -246,7 +251,8 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceID := r.PathValue("deviceId")
-	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+	device, ok := h.ownsDevice(w, r, parentID, deviceID)
+	if !ok {
 		return
 	}
 
@@ -255,12 +261,23 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
-	command, err := h.Commands.Enqueue(r.Context(), deviceID, domain.CommandType(req.Type), req.Params)
+	commandType := domain.CommandType(req.Type)
+	command, err := h.Commands.Enqueue(r.Context(), deviceID, commandType, req.Params)
 	if err != nil {
 		log.Printf("console: enqueue command: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+
+	// Best-effort, by domain.PushNotifier's contract: the command above is
+	// already durably queued, so a push failure here never loses it --
+	// worst case it's picked up on the device's next poll instead.
+	if commandType.IsUrgent() {
+		if err := h.Notifier.Notify(r.Context(), device.PushToken); err != nil {
+			log.Printf("console: push notify for command %s: %v", command.ID, err)
+		}
+	}
+
 	writeJSON(w, http.StatusAccepted, commandDTO{
 		CommandID: command.ID, Type: string(command.Type), Params: command.Params,
 		Status: string(command.Status), CreatedAt: command.CreatedAt,

@@ -34,6 +34,13 @@ type Device struct {
 	PolicyVersion int
 	LastSeen      time.Time // zero value means never
 	CreatedAt     time.Time
+	// PushToken is the device's current FCM registration token, sent on
+	// /agent/sync and refreshed whenever the agent gets a new one from
+	// Firebase. Empty means push isn't available for this device yet
+	// (agent not updated, Firebase not configured, or just hasn't synced
+	// since this field was added) -- callers must treat empty as "fall
+	// back to polling," not as an error.
+	PushToken string
 }
 
 // Status is a pure function of LastSeen and now, not a stored field --
@@ -58,6 +65,10 @@ type DeviceRepository interface {
 	FindByID(ctx context.Context, id string) (*Device, error)
 	ListByParent(ctx context.Context, parentID string) ([]*Device, error)
 	UpdateLastSeen(ctx context.Context, id string, at time.Time) error
+	// UpdatePushToken stores the device's latest FCM token. Called on every
+	// /agent/sync that includes one -- tokens rotate under Firebase's own
+	// control, not just once at enrollment.
+	UpdatePushToken(ctx context.Context, id string, token string) error
 }
 
 // TokenRepository resolves a bearer token to the device it authenticates --

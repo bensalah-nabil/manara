@@ -14,6 +14,8 @@ import (
 
 	"github.com/google/uuid"
 	"manara/backend/internal/domain"
+	"manara/backend/internal/notify"
+	"manara/backend/internal/notify/fcm"
 	"manara/backend/internal/persistence/postgres"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
@@ -54,6 +56,7 @@ func main() {
 	commands := postgres.NewCommandQueue(db)
 	events := postgres.NewEventStore(db)
 	auth := postgres.NewAuthRepository(db)
+	notifier := newNotifier(ctx)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
@@ -62,6 +65,7 @@ func main() {
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
 		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments,
+		Notifier: notifier,
 	}
 
 	mux := http.NewServeMux()
@@ -83,6 +87,26 @@ func main() {
 	}
 	log.Printf("manara-server listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, withCORS(mux)))
+}
+
+// newNotifier is additive, not a hard dependency: FIREBASE_SERVICE_ACCOUNT
+// unset (the default -- no Firebase project configured yet) gives
+// notify.Noop{}, and the server runs exactly as it did before FCM existed.
+// A bad/unreadable key file logs a warning and falls back the same way,
+// rather than refusing to start the whole server over a push-only feature.
+func newNotifier(ctx context.Context) domain.PushNotifier {
+	path := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
+	if path == "" {
+		log.Printf("FIREBASE_SERVICE_ACCOUNT not set -- push notifications disabled, polling only")
+		return notify.Noop{}
+	}
+	n, err := fcm.New(ctx, path)
+	if err != nil {
+		log.Printf("fcm: %v -- push notifications disabled, polling only", err)
+		return notify.Noop{}
+	}
+	log.Printf("push notifications enabled via FCM")
+	return n
 }
 
 // withCORS exists for the controller (Phase 3): a React dev server on its

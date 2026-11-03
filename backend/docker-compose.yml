@@ -23,6 +23,15 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-manara}:${POSTGRES_PASSWORD:-manara}@postgres:5432/${POSTGRES_DB:-manara}
       ADDR: ":8080"
+      # Optional: see agent/README.md's "Push notifications (FCM)". If
+      # ./service-account.json (gitignored) doesn't exist, Docker mounts an
+      # empty directory at this path instead of failing the whole compose
+      # up -- newNotifier() in cmd/manara-server/main.go already handles
+      # that gracefully (os.ReadFile errors, logs a warning, falls back to
+      # notify.Noop{}), so this is safe to leave in place unconditionally.
+      FIREBASE_SERVICE_ACCOUNT: /run/secrets/firebase-service-account.json
+    volumes:
+      - ./service-account.json:/run/secrets/firebase-service-account.json:ro
     ports:
       # Dev-only direct access -- see ManaraApiFactory's and the agent
       # manifest's usesCleartextTraffic comments. Drop this mapping once a

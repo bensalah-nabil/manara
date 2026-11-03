@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.manara.agent.push.PushManager
 import com.manara.agent.sync.SyncWorker
 
 /**
@@ -23,6 +24,7 @@ class OwnerReceiver : DeviceAdminReceiver() {
     override fun onEnabled(context: Context, intent: Intent) {
         super.onEnabled(context, intent)
         grantSelfGrantablePermissions(context)
+        PushManager.ensureRegistered(context)
         ManagedNoticeService.start(context)
         // Phase 1 step 5's one open gap: without this, enforcement only ever
         // re-ran when something manually called apply() (Enroll/Sync button

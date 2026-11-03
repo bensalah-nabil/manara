@@ -14,6 +14,17 @@ const (
 	CommandTypePing            CommandType = "ping"
 )
 
+// IsUrgent marks the command types worth an immediate push wake-up
+// (domain.PushNotifier) rather than waiting for the next /agent/sync poll --
+// a pure decision, no I/O, so it's testable without a push provider and
+// reusable wherever a command gets enqueued. lock_now is the clear case: a
+// parent tapping "lock now" and the phone locking up to ~15 minutes later
+// defeats the point. apply_policy and request_location stay poll-only --
+// a short delay there doesn't change the outcome.
+func (t CommandType) IsUrgent() bool {
+	return t == CommandTypeLockNow
+}
+
 type CommandStatus string
 
 const (

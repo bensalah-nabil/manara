@@ -2,6 +2,7 @@ package com.manara.agent.enforcers
 
 import android.app.admin.DevicePolicyManager
 import android.content.Context
+import android.util.Log
 import com.manara.agent.events.Event
 import com.manara.agent.events.EventKind
 import com.manara.agent.policy.Policy
@@ -49,15 +50,24 @@ class LockEnforcer(context: Context) : PolicyEnforcer {
         )
 
         if (isLocked) {
+            // Logged, not silently swallowed -- see lockImmediately()'s doc
+            // comment for why a bare runCatching here hid a real failure.
             runCatching { devicePolicyManager.lockNow() }
+                .onFailure { Log.w(TAG, "scheduled lockNow() failed", it) }
             if (!wasLocked) pendingEvents.add(lockEvent())
         }
         wasLocked = isLocked
     }
 
-    /** For an explicit `lock_now` command from the backend, independent of any schedule. */
+    /**
+     * For an explicit `lock_now` command from the backend, independent of
+     * any schedule. Lets `lockNow()` throw rather than swallowing it --
+     * found on a real device that a silent `runCatching` here meant
+     * `SyncManager` reported "acked" for a `lock_now` that had actually
+     * failed, with zero signal anywhere that anything was wrong.
+     */
     fun lockImmediately() {
-        runCatching { devicePolicyManager.lockNow() }
+        devicePolicyManager.lockNow()
         pendingEvents.add(lockEvent())
     }
 
@@ -75,6 +85,7 @@ class LockEnforcer(context: Context) : PolicyEnforcer {
     )
 
     companion object {
+        private const val TAG = "ManaraLockEnforcer"
         private const val PREFS_NAME = "lock_enforcer"
         private const val KEY_WAS_LOCKED = "was_locked"
     }
