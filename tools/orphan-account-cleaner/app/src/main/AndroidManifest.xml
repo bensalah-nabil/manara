@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          One service per account type this tool can claim. Any installed
+          app can declare an AccountAuthenticator for an arbitrary type
+          string; account types are not reserved by name. What actually
+          gates removeAccountExplicitly(), read from AOSP's
+          AccountManagerService.java (isAccountManagedByCaller, then
+          getTypesForCaller, then
+          PackageManagerInternal.hasSignatureCapability), is whether the
+          CALLER's signing cert has AUTH capability granted by whichever
+          package is currently registered as that type's authenticator.
+          If no authenticator is currently registered for a type (the
+          orphaned-account case this tool exists for; see
+          ../../docs/enrollment-options.md), this app registering itself
+          satisfies that check trivially via self-capability. If one is
+          still registered (e.g. com.google, still served by Google Play
+          Services), the check fails unless that package's own signature
+          grants capability to this app's cert, which it will not for an
+          arbitrary dev-signed APK; this only works for com.google once
+          GMS/GSF are disabled first ("pm disable-user" for user 0 on
+          com.google.android.gms and com.google.android.gsf), removing
+          the competing registration. Each type needs its own
+          service/class pair: Android manifests cannot declare the same
+          component class under two service tags, even though all six
+          share one no-op implementation.
+        -->
+        <service android:name=".WhatsAppAuthenticatorService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator_whatsapp" />
+        </service>
+
+        <service android:name=".TachyonAuthenticatorService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator_tachyon" />
+        </service>
+
+        <service android:name=".TruecallerAuthenticatorService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator_truecaller" />
+        </service>
+
+        <service android:name=".FacebookLoginAuthenticatorService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator_facebook_login" />
+        </service>
+
+        <service android:name=".FacebookMessengerAuthenticatorService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator_facebook_messenger" />
+        </service>
+
+        <service android:name=".GoogleAuthenticatorService" android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator_google" />
+        </service>
+
+    </application>
+</manifest>
