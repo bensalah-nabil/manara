@@ -66,6 +66,15 @@ from a file is the fix). Write multi-paragraph commit messages with code
 snippets to a temp file and commit with `-F`, not `-m` with backticks
 inside double quotes.
 
+## Don't type a DB column stricter than the wire contract actually is
+
+`events.id` was `UUID` in Postgres; `api-spec/openapi.yaml` types `Event.id`
+as a plain string (`format: uuid` is a hint, not a constraint). A
+malformed id crashed with an opaque 500 instead of a clean 400 — found
+testing, from my own test data, not a real agent bug, but it would have
+hit the same way from one. Match the column type to what the spec actually
+requires, not to what valid input usually looks like.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
