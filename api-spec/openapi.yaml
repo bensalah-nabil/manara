@@ -137,6 +137,83 @@ paths:
   # ------------------------------------------------------------------ #
   #  CONSOLE (parent web app)                                           #
   # ------------------------------------------------------------------ #
+  /console/auth/signup:
+    post:
+      tags: [console]
+      summary: Create a parent account
+      description: >
+        Phase 3's real account model (roadmap.md) — the signup half.
+        `cmd/manara-server`'s `-seed` CLI flag remains a separate dev-only
+        shortcut, not something this endpoint replaces for everyone.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        '200':
+          description: Account created, already signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '409':
+          description: Email already registered.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/auth/login:
+    post:
+      tags: [console]
+      summary: Sign in to an existing parent account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /console/enrollment-tokens:
+    post:
+      tags: [console]
+      summary: Generate a one-time enrollment token for a new device
+      description: >
+        The real path a signed-in parent uses to add a device — carried to
+        the child's phone via the agent's QR scan or manual-entry
+        enrollment screen, then redeemed once at `/enroll`.
+      security: [{ parentSession: [] }]
+      responses:
+        '200':
+          description: A fresh, single-use enrollment token.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enrollmentToken]
+                properties:
+                  enrollmentToken: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /console/devices:
     get:
       tags: [console]
@@ -253,6 +330,15 @@ components:
       properties:
         code: { type: string }
         message: { type: string }
+
+    AuthResponse:
+      type: object
+      required: [parentId, parentSession]
+      properties:
+        parentId: { type: string, format: uuid }
+        parentSession:
+          type: string
+          description: Bearer token for subsequent `/console/*` calls.
 
     DeviceInfo:
       type: object

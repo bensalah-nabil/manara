@@ -53,6 +53,7 @@ func main() {
 	policies := postgres.NewPolicyRepository(db)
 	commands := postgres.NewCommandQueue(db)
 	events := postgres.NewEventStore(db)
+	auth := postgres.NewAuthRepository(db)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
@@ -60,12 +61,15 @@ func main() {
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
-		Events: events, Sessions: sessions,
+		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/enroll", agentHandlers.Enroll)
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
+	mux.HandleFunc("POST /api/v1/console/auth/signup", consoleHandlers.SignUp)
+	mux.HandleFunc("POST /api/v1/console/auth/login", consoleHandlers.Login)
+	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
 	mux.HandleFunc("GET /api/v1/console/devices", consoleHandlers.ListDevices)
 	mux.HandleFunc("PUT /api/v1/console/devices/{deviceId}/policy", consoleHandlers.SetPolicy)
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.CreateCommand)
@@ -78,7 +82,31 @@ func main() {
 		addr = ":8080"
 	}
 	log.Printf("manara-server listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Fatal(http.ListenAndServe(addr, withCORS(mux)))
+}
+
+// withCORS exists for the controller (Phase 3): a React dev server on its
+// own origin (Vite's default :5173) making fetch calls to this API is a
+// cross-origin request by definition, and browsers block those outright
+// without these headers -- not an edge case to handle later, the
+// controller simply wouldn't work at all without this from day one.
+// CORS_ALLOWED_ORIGIN lets a real deployment restrict this once there's a
+// real controller origin to allow instead of every origin.
+func withCORS(next http.Handler) http.Handler {
+	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "*"
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // runHeartbeatSweep is architecture.md §3.1/§3.3's expiry side: a command

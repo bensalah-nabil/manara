@@ -1,12 +1,12 @@
 // Package console implements api-spec/openapi.yaml's "console" tag -- the
-// endpoints the parent-facing controller calls. Parent auth here is
-// deliberately minimal (see domain/parent.go's comment) -- Phase 3 owns
-// the real account model, this just authenticates whatever parentSession
-// token Phase 2's `-seed` flag printed.
+// endpoints the parent-facing controller (Phase 3) calls, including the
+// real signup/login this package's earlier doc comment deferred -- that
+// deferral ended the moment Phase 3 actually started (roadmap.md).
 package console
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -16,11 +16,13 @@ import (
 )
 
 type Handlers struct {
-	Devices  domain.DeviceRepository
-	Policies domain.PolicyRepository
-	Commands domain.CommandQueue
-	Events   domain.EventStore
-	Sessions domain.ParentSessionRepository
+	Devices     domain.DeviceRepository
+	Policies    domain.PolicyRepository
+	Commands    domain.CommandQueue
+	Events      domain.EventStore
+	Sessions    domain.ParentSessionRepository
+	Auth        domain.AuthRepository
+	Enrollments domain.EnrollmentTokenRepository
 }
 
 type deviceSummaryDTO struct {
@@ -49,6 +51,25 @@ type eventDTO struct {
 type createCommandRequest struct {
 	Type   string         `json:"type"`
 	Params map[string]any `json:"params,omitempty"`
+}
+
+type signUpRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type authResponse struct {
+	ParentID      string `json:"parentId"`
+	ParentSession string `json:"parentSession"`
+}
+
+type enrollmentTokenResponse struct {
+	EnrollmentToken string `json:"enrollmentToken"`
 }
 
 type errorBody struct {
@@ -89,6 +110,82 @@ func (h *Handlers) ownsDevice(w http.ResponseWriter, r *http.Request, parentID, 
 		return nil, false
 	}
 	return device, true
+}
+
+func (h *Handlers) SignUp(w http.ResponseWriter, r *http.Request) {
+	var req signUpRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+	if req.Email == "" || req.Password == "" {
+		writeError(w, http.StatusBadRequest, "bad_request", "email and password are required")
+		return
+	}
+
+	parent, err := h.Auth.SignUp(r.Context(), req.Email, req.Password)
+	if errors.Is(err, domain.ErrEmailTaken) {
+		writeError(w, http.StatusConflict, "email_taken", "")
+		return
+	}
+	if err != nil {
+		log.Printf("console: sign up: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+
+	session, err := h.Sessions.Issue(r.Context(), parent.ID)
+	if err != nil {
+		log.Printf("console: issue session after signup: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, authResponse{ParentID: parent.ID, ParentSession: session})
+}
+
+func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
+	var req loginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+
+	parent, err := h.Auth.Login(r.Context(), req.Email, req.Password)
+	if errors.Is(err, domain.ErrInvalidCredentials) {
+		writeError(w, http.StatusUnauthorized, "invalid_credentials", "")
+		return
+	}
+	if err != nil {
+		log.Printf("console: login: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+
+	session, err := h.Sessions.Issue(r.Context(), parent.ID)
+	if err != nil {
+		log.Printf("console: issue session after login: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, authResponse{ParentID: parent.ID, ParentSession: session})
+}
+
+// CreateEnrollmentToken lets a signed-in parent generate their own
+// enrollment token from the console -- the real path a parent actually
+// uses; cmd/manara-server's -seed flag remains a dev-only shortcut, not
+// something this replaces for everyone.
+func (h *Handlers) CreateEnrollmentToken(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	token, err := h.Enrollments.Create(r.Context(), parentID)
+	if err != nil {
+		log.Printf("console: create enrollment token: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, enrollmentTokenResponse{EnrollmentToken: token})
 }
 
 func (h *Handlers) ListDevices(w http.ResponseWriter, r *http.Request) {

@@ -6,8 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"golang.org/x/crypto/bcrypt"
 	"manara/backend/internal/domain"
 )
 
@@ -22,6 +26,83 @@ func (r *ParentRepository) Create(ctx context.Context, p *domain.Parent) error {
 		return fmt.Errorf("insert parent: %w", err)
 	}
 	return nil
+}
+
+func (r *ParentRepository) FindByID(ctx context.Context, id string) (*domain.Parent, error) {
+	var p domain.Parent
+	var email, hash *string
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT id, email, password_hash, created_at FROM parents WHERE id = $1`, id,
+	).Scan(&p.ID, &email, &hash, &p.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find parent: %w", err)
+	}
+	if email != nil {
+		p.Email = *email
+	}
+	if hash != nil {
+		p.PasswordHash = *hash
+	}
+	return &p, nil
+}
+
+type AuthRepository struct{ db *DB }
+
+func NewAuthRepository(db *DB) *AuthRepository { return &AuthRepository{db: db} }
+
+func (r *AuthRepository) SignUp(ctx context.Context, email, password string) (*domain.Parent, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+
+	p := &domain.Parent{
+		ID:           uuid.NewString(),
+		Email:        email,
+		PasswordHash: string(hash),
+		CreatedAt:    time.Now().UTC(),
+	}
+	_, err = r.db.Pool.Exec(ctx,
+		`INSERT INTO parents (id, email, password_hash, created_at) VALUES ($1, $2, $3, $4)`,
+		p.ID, p.Email, p.PasswordHash, p.CreatedAt,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, domain.ErrEmailTaken
+		}
+		return nil, fmt.Errorf("insert parent: %w", err)
+	}
+	return p, nil
+}
+
+func (r *AuthRepository) Login(ctx context.Context, email, password string) (*domain.Parent, error) {
+	var p domain.Parent
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT id, email, password_hash, created_at FROM parents WHERE email = $1`, email,
+	).Scan(&p.ID, &p.Email, &p.PasswordHash, &p.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, domain.ErrInvalidCredentials
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find parent by email: %w", err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(p.PasswordHash), []byte(password)); err != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+	return &p, nil
+}
+
+// 23505 is Postgres's SQLSTATE for unique_violation. Importing
+// jackc/pgx/v5/pgconn specifically, not the standalone jackc/pgconn --
+// they're different types to errors.As even though they print identically,
+// a real mistake documented widely enough to check for deliberately.
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 type ParentSessionRepository struct{ db *DB }
