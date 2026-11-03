@@ -1,27 +1,69 @@
-# Manara Backend (Go)
+# Manara backend
 
-The central server — the "AD controller." Issues policies, queues commands,
-ingests events, tracks which devices are reporting.
+Phase 2's real backend (`docs/roadmap.md`), replacing `stub-backend/`.
+Domain / transport / persistence layering per
+[`../docs/architecture.md`](../docs/architecture.md) §3:
+`internal/domain` has no HTTP or SQL imports and defines the ports
+(`DeviceRepository`, `CommandQueue`, etc.); `internal/persistence/postgres`
+implements them; `internal/transport/{agent,console}` translates HTTP ↔
+domain calls and holds no business rules.
 
-Status: **not started** — Phase 2 in [`../docs/roadmap.md`](../docs/roadmap.md).
+## Run it
 
-## Layering (see ../docs/architecture.md §3 — dependencies point inward)
+```bash
+cd backend
+docker compose up --build -d
+```
 
-    cmd/manara-server/      main(): wiring only
-    internal/domain/        entities + rules. NO http, NO sql.
-    internal/transport/     HTTP handlers (agent/ and console/)
-    internal/persistence/   Postgres repositories
+Brings up Postgres and the server (migrations run automatically on
+startup — `IF NOT EXISTS` throughout, safe to re-run). Server listens on
+`:8080`.
 
-Built against [`../api-spec/openapi.yaml`](../api-spec/openapi.yaml).
+### Bootstrap a test parent
 
-## Key resilience properties to preserve
+There's no real parent signup yet — that's Phase 3's "Parent auth /
+account model," deliberately not invented here. For now:
 
-- Idempotent event ingestion (dedupe on event id).
-- Persisted command queue (pending → delivered → acked/expired).
-- Heartbeat + "not reporting" sweep.
-- Stateless process (horizontal scaling).
+```bash
+docker compose exec server /usr/local/bin/manara-server -seed
+```
 
-## Setup
+Prints a `parentId`, a `parentSession` bearer token (for `/console/*`
+calls), and a one-time `enrollmentToken` (for the agent's `/enroll` call —
+same QR/manual-entry flow as `agent/`'s `EnrollmentActivity`).
 
-Will be filled in once the skeleton lands. Target: Go 1.22+, Postgres 15+,
-runnable via `deploy/`.
+## Try it
+
+```bash
+# Enroll (consumes the enrollment token -- single-use, per the API spec)
+curl -s -X POST http://localhost:8080/api/v1/enroll \
+  -H "Content-Type: application/json" \
+  -d '{"enrollmentToken":"TOKEN","deviceInfo":{"model":"SM-A528B","manufacturer":"samsung","androidVersion":"14"}}'
+
+# Sync (use the deviceToken from enroll)
+curl -s -X POST http://localhost:8080/api/v1/agent/sync \
+  -H "Authorization: Bearer DEVICE_TOKEN" -H "Content-Type: application/json" \
+  -d '{"policyVersion":1,"events":[],"commandAcks":[]}'
+
+# Console: list devices, push a policy, queue a command (use parentSession)
+curl -s http://localhost:8080/api/v1/console/devices -H "Authorization: Bearer PARENT_SESSION"
+curl -s -X PUT http://localhost:8080/api/v1/console/devices/DEVICE_ID/policy \
+  -H "Authorization: Bearer PARENT_SESSION" -H "Content-Type: application/json" \
+  -d '{"timeLimits":{"enabled":true,"rules":[{"category":"social","packages":["com.instagram.android"],"dailyMinutes":30}]}}'
+curl -s -X POST http://localhost:8080/api/v1/console/devices/DEVICE_ID/commands \
+  -H "Authorization: Bearer PARENT_SESSION" -H "Content-Type: application/json" \
+  -d '{"type":"lock_now"}'
+```
+
+## What's not here yet
+
+- **FCM delivery** (`roadmap.md`): commands currently only reach the agent
+  via the agent's own polling (`/agent/sync`), no push. The command queue
+  itself is already push-ready (persisted, `pending → delivered → acked`),
+  wiring FCM is additive, not a redesign.
+- **A real migration tool**: `db.Migrate()` just re-runs every embedded
+  `.sql` file on every start (`IF NOT EXISTS` makes that safe for now).
+  Fine for a single schema version; revisit with `golang-migrate` or
+  similar once there's more than one to step between.
+- **Parent signup/login** (Phase 3) — the `-seed` flag is a deliberate
+  stand-in, not something to build on.

@@ -65,16 +65,40 @@ summary here.
       architecture.md's stated design and serves its resilience goal
       (keeps enforcing from the cache even if sync itself fails).
 
-## Phase 2 — Backend
+## Phase 2 — Backend — core done (2026-11-03), FCM and VPS deploy still open
 
-- [ ] Go server: domain / transport / persistence layering.
-- [ ] Postgres schema: devices, policies, commands, events.
-- [ ] Idempotent event ingestion; persisted command queue; heartbeat +
-      "not reporting" sweep.
-- [ ] FCM delivery with polling fallback.
-- [ ] Docker + compose; deploy to a small VPS.
-- [ ] Evaluate forking Headwind's server for enrollment plumbing vs clean build
-      (see ADR-0002).
+See [`backend/README.md`](../backend/README.md) for how to run it.
+
+- [x] Go server: domain / transport / persistence layering
+      (`backend/internal/{domain,transport,persistence}`).
+- [x] Postgres schema: parents, devices, device/parent tokens,
+      enrollment tokens (single-use), policies, commands, events.
+- [x] Idempotent event ingestion (`ON CONFLICT DO NOTHING` on the
+      device-generated id — confirmed at the storage level, not just via
+      the API response, that a re-sent event doesn't duplicate); persisted
+      command queue with the full `pending → delivered → acked|expired`
+      lifecycle; a sweep goroutine expiring stale commands.
+      **Not yet done:** the "not reporting" *alert* — `Device.Status()`
+      computes it correctly and `GET /console/devices` surfaces it, but
+      nothing proactively notifies a parent when a device crosses that
+      line; today it's only visible if someone looks.
+- [ ] FCM delivery with polling fallback — polling (the agent's existing
+      `/agent/sync` loop) already works; FCM push itself isn't wired yet.
+      The command queue is already push-ready (persisted, not in-memory),
+      so this is additive, not a redesign.
+- [x] Docker + compose, verified actually working (not just written):
+      built the image, brought up Postgres + server together, ran the
+      full enroll → sync → console flow against the real containerized
+      stack on port 8080 — the same port/tunnel the agent already uses,
+      so swapping from `stub-backend/` needed zero agent-side changes.
+      **Not yet done:** deploy to an actual VPS — only run locally so far.
+- [x] Resolved: do not fork Headwind (confirmed Java/Spring/Tomcat, not
+      Go — see [ADR-0002](decisions/0002-stack-and-reuse.md)).
+
+Deliberately not built here (Phase 3's job, not invented ad hoc to
+unblock testing): parent signup/login. `backend/`'s `-seed` flag creates
+one parent and prints tokens directly — same spirit as `stub-backend`'s
+hardcoded test token, not something to build on.
 
 ## Phase 3 — Controller (parent web app)
 

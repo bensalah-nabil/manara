@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: manara
+      POSTGRES_PASSWORD: manara
+      POSTGRES_DB: manara
+    volumes:
+      - manara-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manara"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://manara:manara@postgres:5432/manara
+      ADDR: ":8080"
+    ports:
+      - "8080:8080"
+
+volumes:
+  manara-postgres-data:
