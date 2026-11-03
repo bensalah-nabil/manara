@@ -1,6 +1,6 @@
 # ADR-0002: Technology stack and reuse of prior art
 
-- Status: Accepted (stack); Open (Headwind reuse)
+- Status: Accepted (stack); Accepted (Headwind reuse — do not fork)
 - Date: 2026-11-02
 
 ## Context
@@ -22,16 +22,19 @@ existing open-source MDM code to save time.
 - **License:** Apache-2.0, chosen partly so we can reuse Apache-licensed prior
   art.
 
-### Open question: fork Headwind MDM?
+### Resolved: do not fork Headwind MDM
 
-Headwind's server and agent are Apache-2.0 and already implement enrollment and
-device registry. Forking could save months, but its structure may not fit the
-domain/transport/persistence layering here.
+Confirmed at Phase 2 implementation time (not assumed): Headwind's server
+(`h-mdm/hmdm-server`) is a Java/Spring/Tomcat monolith, not Go — forking it
+would directly contradict the Go decision above, not complement it. The
+"borrow agent provisioning know-how" half of the original leaning is also
+moot: Phase 0/1's Android agent was already built and verified end to end
+from scratch (own AOSP-source research, own on-device testing), with
+nothing left to borrow for it.
 
-**Leaning:** clean-build the backend for architectural control, but borrow
-Headwind's *agent provisioning* know-how (and possibly code) for Phase 0/1. To
-be confirmed after reviewing its repo. Do **not** reuse AGPL code (e.g.
-TimeLimit) in a way that would relicense our distribution.
+Clean-build the Go backend per architecture.md §3's layering. Still do
+**not** reuse AGPL code (e.g. TimeLimit) in a way that would relicense our
+distribution.
 
 ## Consequences
 
