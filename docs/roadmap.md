@@ -3,6 +3,10 @@
 Ordered by risk, not by what's easy. The whole project hinges on Phase 0 — do
 it before building anything else.
 
+Capabilities adopted from other open-source projects, and the ones
+deliberately rejected, are planned in [`capability-plan.md`](capability-plan.md)
+(milestones M1–M7), on top of the phases below.
+
 ## Phase 0 — Prove device-owner enrollment — ✅ core hypothesis proven (2026-11-03)
 
 **Why first:** if a custom agent can't become device owner on real phones, or
