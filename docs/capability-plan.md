@@ -59,6 +59,18 @@ idea), how it fits Manara's design, and how it will be verified.
 
 ### Track A — Hardening (closes the biggest verified gap)
 
+**Status (2026-11-04):** A1 and A2 are built (`33bc186`) and verified on the
+SM-A045F (Android 14, Device Owner).
+
+- All five restrictions became active through a real WorkManager sync.
+- Each bypass was blocked in Settings when tried by hand.
+- With `DISALLOW_CONFIG_PRIVATE_DNS` active, the Device Owner could still pin
+  `dns.google`, and connectivity stayed intact.
+- Turning the flags off cleared every restriction Manara had set, and Private
+  DNS went back to `opportunistic`.
+- One `no_add_user` entry remained after that. It is a base user restriction
+  ("Device policy restrictions: none"), not one Manara sets.
+
 | ID  | Capability                                                                         | From                                 | Obtained by       | Manara design                                                                                                                                                                                                                                                                           | Verify                                                                                                 |
 | --- | ---------------------------------------------------------------------------------- | ------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | A1  | Site-filter failures must be visible                                               | — (own defect)                       | —                 | Replace the bare `runCatching` in `SiteFilterEnforcer` with `.onFailure { Log.w }` and emit a `filter_apply_failed` event                                                                                                                                                               | Unit test, plus an unreachable host on a real device                                                   |

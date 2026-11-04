@@ -194,6 +194,22 @@ checking. When a test keeps showing a surprising negative for an async
 device effect, check whether the *test's own adb traffic* is the
 confound before concluding the feature is broken.
 
+## A wireless-adb reconnect silently drops `adb reverse`
+
+The agent's dev backend URL is `localhost:8080` on the phone, which only
+works through `adb reverse tcp:8080 tcp:8080`. After the phone reconnects
+(new `IP:port`, new transport), that forward is gone. The next sync just
+logs `Worker result RETRY`, with no error pointing at the cause. Re-run
+`adb reverse` after every reconnect, before triggering a sync.
+
+## A new policy field needs a rebuilt server container, not just `go build`
+
+`docker compose up -d` reuses the existing image. A server image built
+before a new `Policy` field existed silently drops that field on
+`PUT /console/.../policy`. The response simply omits it, with no error.
+After changing `backend/internal/domain`, run
+`docker compose up -d --build server` before testing against the stack.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
