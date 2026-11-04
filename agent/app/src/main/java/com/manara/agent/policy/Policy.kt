@@ -17,7 +17,8 @@ data class Policy(
     val siteFilter: SiteFilter = SiteFilter(),
     val location: Location = Location(),
     val callLog: CallLog = CallLog(),
-    val lockSchedule: LockSchedule? = null
+    val lockSchedule: LockSchedule? = null,
+    val restrictions: Restrictions = Restrictions()
 ) {
     @Serializable
     data class TimeLimits(
@@ -47,6 +48,16 @@ data class Policy(
     @Serializable
     data class CallLog(
         val enabled: Boolean = false
+    )
+
+    /** Closes the Settings-level bypasses. All off by default, so existing policies behave as before. */
+    @Serializable
+    data class Restrictions(
+        val blockVpnConfig: Boolean = false,
+        val blockPrivateDnsConfig: Boolean = false,
+        val blockFactoryReset: Boolean = false,
+        val blockSafeBoot: Boolean = false,
+        val blockAddUser: Boolean = false
     )
 
     @Serializable

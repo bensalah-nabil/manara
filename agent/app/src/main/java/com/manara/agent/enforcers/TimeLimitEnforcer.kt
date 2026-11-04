@@ -4,9 +4,11 @@ import android.app.admin.DevicePolicyManager
 import android.app.usage.UsageStatsManager
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 import com.manara.agent.OwnerReceiver
 import com.manara.agent.events.Event
 import com.manara.agent.events.EventKind
+import com.manara.agent.events.enforcementEvent
 import com.manara.agent.policy.Policy
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -89,14 +91,31 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         if (decision.toSuspend.isNotEmpty()) {
             runCatching {
                 devicePolicyManager.setPackagesSuspended(admin, decision.toSuspend.toTypedArray(), true)
+            }.onSuccess { refused ->
+                reportRefused("suspend", refused)
+            }.onFailure {
+                Log.w(TAG, "setPackagesSuspended(true) threw", it)
+                pendingEvents.add(enforcementEvent(id, "failed", "suspend: ${it.javaClass.simpleName}"))
             }
         }
         if (decision.toResume.isNotEmpty()) {
             runCatching {
                 devicePolicyManager.setPackagesSuspended(admin, decision.toResume.toTypedArray(), false)
+            }.onSuccess { refused ->
+                reportRefused("resume", refused)
+            }.onFailure {
+                Log.w(TAG, "setPackagesSuspended(false) threw", it)
+                pendingEvents.add(enforcementEvent(id, "failed", "resume: ${it.javaClass.simpleName}"))
             }
         }
         decision.justCrossedRules.forEach { pendingEvents.add(limitHitEvent(it)) }
+    }
+
+    // setPackagesSuspended returns the packages it could NOT change (e.g. system/critical apps).
+    private fun reportRefused(action: String, refused: Array<String>?) {
+        if (refused.isNullOrEmpty()) return
+        Log.w(TAG, "$action refused for ${refused.joinToString()}")
+        pendingEvents.add(enforcementEvent(id, "failed", "$action refused: ${refused.joinToString()}"))
     }
 
     override fun collectEvents(): List<Event> {
@@ -138,6 +157,7 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         )
 
     companion object {
+        private const val TAG = "ManaraTimeLimit"
         private const val PREFS_NAME = "time_limit_enforcer"
         private const val KEY_SUSPENDED = "suspended_packages"
         private const val KEY_OVER_LIMIT = "over_limit_state"

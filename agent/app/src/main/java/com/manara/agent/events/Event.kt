@@ -2,6 +2,9 @@ package com.manara.agent.events
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import java.time.Instant
+import java.util.UUID
 
 /**
  * Mirrors the `Event` schema in `api-spec/openapi.yaml`. `id` is generated
@@ -19,5 +22,23 @@ data class Event(
 
 @Serializable
 enum class EventKind {
-    usage, location, call, lock, boot, heartbeat
+    usage, location, call, lock, boot, heartbeat, enforcement
 }
+
+/**
+ * A protection that isn't actually in effect: [status] is `failed` (the
+ * Android call errored or returned an error code) or `missing` (it was
+ * applied earlier but is no longer active). Never carries user content.
+ */
+fun enforcementEvent(enforcer: String, status: String, detail: String?): Event = Event(
+    id = UUID.randomUUID().toString(),
+    kind = EventKind.enforcement,
+    occurredAt = Instant.now().toString(),
+    payload = JsonObject(
+        buildMap {
+            put("enforcer", JsonPrimitive(enforcer))
+            put("status", JsonPrimitive(status))
+            if (detail != null) put("detail", JsonPrimitive(detail))
+        }
+    )
+)

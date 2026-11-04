@@ -14,6 +14,17 @@ type Policy struct {
 	Location     LocationPolicy `json:"location"`
 	CallLog      CallLog        `json:"callLog"`
 	LockSchedule *LockSchedule  `json:"lockSchedule,omitempty"`
+	Restrictions *Restrictions  `json:"restrictions,omitempty"`
+}
+
+// Restrictions maps to device-owner UserManager.DISALLOW_* keys on the agent;
+// all false (or absent) means none applied.
+type Restrictions struct {
+	BlockVPNConfig        bool `json:"blockVpnConfig,omitempty"`
+	BlockPrivateDNSConfig bool `json:"blockPrivateDnsConfig,omitempty"`
+	BlockFactoryReset     bool `json:"blockFactoryReset,omitempty"`
+	BlockSafeBoot         bool `json:"blockSafeBoot,omitempty"`
+	BlockAddUser          bool `json:"blockAddUser,omitempty"`
 }
 
 type TimeLimits struct {

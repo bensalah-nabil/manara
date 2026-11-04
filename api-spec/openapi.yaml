@@ -430,6 +430,28 @@ components:
                   days: { type: array, items: { type: integer }, example: [1,2,3,4,5] }
                   fromHour: { type: integer, example: 22 }
                   toHour: { type: integer, example: 7 }
+        restrictions:
+          type: object
+          description: >
+            Optional. Closes Settings-level bypasses via device-owner user
+            restrictions. Every flag defaults to false; omitting the object
+            keeps the previous behaviour.
+          properties:
+            blockVpnConfig:
+              type: boolean
+              description: UserManager.DISALLOW_CONFIG_VPN (also stops user VPNs from starting).
+            blockPrivateDnsConfig:
+              type: boolean
+              description: UserManager.DISALLOW_CONFIG_PRIVATE_DNS. Ignored below Android 10 (API 29).
+            blockFactoryReset:
+              type: boolean
+              description: UserManager.DISALLOW_FACTORY_RESET (reset from Settings).
+            blockSafeBoot:
+              type: boolean
+              description: UserManager.DISALLOW_SAFE_BOOT.
+            blockAddUser:
+              type: boolean
+              description: UserManager.DISALLOW_ADD_USER.
 
     # ---- Commands -------------------------------------------------- #
     CommandType:
@@ -451,7 +473,10 @@ components:
     # ---- Events ---------------------------------------------------- #
     EventKind:
       type: string
-      enum: [usage, location, call, lock, boot, heartbeat]
+      description: >
+        `enforcement` reports a protection that is not in effect. Its payload is
+        `{enforcer, status: failed|missing, detail?}` and never carries user content.
+      enum: [usage, location, call, lock, boot, heartbeat, enforcement]
 
     Event:
       type: object

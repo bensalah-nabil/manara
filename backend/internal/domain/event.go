@@ -14,6 +14,9 @@ const (
 	EventKindLock      EventKind = "lock"
 	EventKindBoot      EventKind = "boot"
 	EventKindHeartbeat EventKind = "heartbeat"
+	// EventKindEnforcement: a protection on the device is not in effect
+	// (payload: enforcer, status failed|missing, optional detail).
+	EventKindEnforcement EventKind = "enforcement"
 )
 
 // Event mirrors api-spec/openapi.yaml's Event schema. ID is generated ON
