@@ -34,10 +34,11 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val db = ManaraDatabase.get(applicationContext)
         val registry = defaultEnforcerRegistry(applicationContext)
         val policyCache = PolicyCache(db)
+        val eventQueue = EventQueue(db)
         val syncManager = SyncManager(
             api = ManaraApiFactory.create(),
             policyCache = policyCache,
-            eventQueue = EventQueue(db),
+            eventQueue = eventQueue,
             enforcerRegistry = registry,
             tokenStore = DeviceTokenStore(applicationContext),
             commandAckQueue = CommandAckQueue(db),
@@ -58,6 +59,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         // enforcement keeps running with no network, using whatever was
         // last successfully synced.
         policyCache.current()?.let { registry.applyAll(it) }
+        // This registry dies with the worker, so its in-memory events must be persisted now or
+        // they're lost (found on a real device: every post-sync enforcement event was dropped).
+        registry.collectAllEvents().forEach { eventQueue.enqueue(it) }
 
         return when (result) {
             is SyncManager.Result.Success -> WorkResult.success()

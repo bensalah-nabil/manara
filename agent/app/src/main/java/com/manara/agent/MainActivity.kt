@@ -10,6 +10,7 @@ import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
@@ -23,14 +24,25 @@ import com.manara.agent.enroll.EnrollmentActivity
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.Policy
 import com.manara.agent.policy.PolicyCache
+import com.manara.agent.policy.PolicySummary
+import com.manara.agent.policy.CollectionStatusReader
+import com.manara.agent.policy.CollectionStatusSummary
 import com.manara.agent.storage.ManaraDatabase
 import com.manara.agent.sync.CommandAckQueue
 import com.manara.agent.sync.DeviceTokenStore
 import com.manara.agent.sync.ManaraApiFactory
 import com.manara.agent.sync.PushTokenStore
 import com.manara.agent.sync.SyncManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -41,6 +53,10 @@ import kotlinx.coroutines.withContext
  * No layout XML on purpose: keeps the Phase 0 app to the fewest files possible.
  */
 class MainActivity : Activity() {
+    private val policyStatusScope = MainScope()
+    private var policyStatusJob: Job? = null
+    private lateinit var policyStatus: TextView
+    private lateinit var collectionStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,7 +95,7 @@ class MainActivity : Activity() {
         }
 
         root.addView(TextView(this).apply {
-            text = "Manara — Phase 0"
+            text = "Manara"
             textSize = 22f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -111,12 +127,88 @@ class MainActivity : Activity() {
             })
         }
 
+        root.addView(TextView(this).apply {
+            text = "Collection status"
+            textSize = 18f
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(0, 32, 0, 16)
+        })
+        collectionStatus = TextView(this).apply {
+            text = "Loading status..."
+            textSize = 16f
+            gravity = Gravity.START
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        root.addView(collectionStatus)
+
+        root.addView(TextView(this).apply {
+            text = "Configured policy"
+            textSize = 18f
+            setTypeface(typeface, Typeface.BOLD)
+            setPadding(0, 32, 0, 16)
+        })
+        policyStatus = TextView(this).apply {
+            text = "Loading policy..."
+            textSize = 16f
+            gravity = Gravity.START
+            setPadding(0, 0, 0, 24)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        root.addView(policyStatus)
+
         if (isDeviceOwner) {
             addTimeLimitTestHarness(root)
             addSyncTestHarness(root)
         }
 
         setContentView(ScrollView(this).apply { addView(root) })
+    }
+
+    override fun onStart() {
+        super.onStart()
+        policyStatus.text = "Loading policy..."
+        collectionStatus.text = "Loading status..."
+        policyStatusJob = policyStatusScope.launch {
+            val statusReader = CollectionStatusReader(applicationContext, ManaraDatabase.get(applicationContext))
+            try {
+                PolicyCache(ManaraDatabase.get(applicationContext)).observe()
+                    .flowOn(Dispatchers.IO)
+                    .collectLatest { policy ->
+                        do {
+                            val snapshot = withContext(Dispatchers.IO) { statusReader.read(policy) }
+                            val summary = PolicySummary.describe(policy, snapshot.usageMinutes)
+                            if (policyStatus.text.toString() != summary) policyStatus.text = summary
+                            val status = CollectionStatusSummary.describe(policy, snapshot.usage, snapshot.location)
+                            if (collectionStatus.text.toString() != status) collectionStatus.text = status
+                            if (!CollectionStatusSummary.needsRefresh(policy)) return@collectLatest
+                            delay(30_000)
+                        } while (isActive)
+                    }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w("ManaraPolicyStatus", "Cannot read cached policy", error)
+                policyStatus.text = "Policy unavailable"
+                collectionStatus.text = CollectionStatusSummary.describe(null)
+            }
+        }
+    }
+
+    override fun onStop() {
+        policyStatusJob?.cancel()
+        policyStatusJob = null
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        policyStatusScope.cancel()
+        super.onDestroy()
     }
 
     /**
@@ -254,7 +346,10 @@ class MainActivity : Activity() {
                     // just policy-change-driven. Without this, a second
                     // "Sync now" tap on an unchanged policy looks like
                     // enforcement silently stopped working.
-                    withContext(Dispatchers.IO) { policyCache.current()?.let { registry.applyAll(it) } }
+                    withContext(Dispatchers.IO) {
+                        policyCache.current()?.let { registry.applyAll(it) }
+                        registry.collectAllEvents().forEach { eventQueue.enqueue(it) }
+                    }
                     val message = when (syncResult) {
                         is SyncManager.Result.Success -> {
                             val version = withContext(Dispatchers.IO) { policyCache.currentVersion() }

@@ -71,13 +71,49 @@ SM-A045F (Android 14, Device Owner).
 - One `no_add_user` entry remained after that. It is a base user restriction
   ("Device policy restrictions: none"), not one Manara sets.
 
-| ID  | Capability                                                                         | From                                 | Obtained by       | Manara design                                                                                                                                                                                                                                                                           | Verify                                                                                                 |
-| --- | ---------------------------------------------------------------------------------- | ------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| A1  | Site-filter failures must be visible                                               | — (own defect)                       | —                 | Replace the bare `runCatching` in `SiteFilterEnforcer` with `.onFailure { Log.w }` and emit a `filter_apply_failed` event                                                                                                                                                               | Unit test, plus an unreachable host on a real device                                                   |
-| A2  | Close bypasses: VPN config, Private DNS config, factory reset, safe boot, add user | Déchaîner (Apache), TimeLimit (idea) | port / clean-room | New `RestrictionsEnforcer` with a pure `RestrictionDecision` (desired set vs applied set gives add/clear lists). New `Policy.restrictions` field with per-restriction booleans, all defaulting to off. *Verify* each `UserManager.DISALLOW_*` constant and its Device Owner requirement | `dumpsys user` / `dumpsys device_policy` shows the restriction set. Try each bypass by hand on a phone |
-| A3  | Bypass-evident reporting: tell the parent when a protection stops working          | OpenParental (MIT, idea)             | clean-room        | Each enforcer reports its own failure state from `collectEvents()`: Usage Access revoked, Location off, Private DNS host changed, restriction missing. New `EventKind.TAMPER_DETECTED`. Backend raises the "not reporting"/tamper alert already planned in roadmap Phase 2              | Revoke Usage Access on a phone; the event reaches `GET /console/.../events`                            |
-| A4  | Make the dead `callLog` field honest                                               | —                                    | —                 | Keep the field, but mark it "not yet enforced" in `openapi.yaml` and in the console, so a parent can't switch on something that does nothing. It gets implemented in H3                                                                                                                 | The spec says so; the console disables the toggle                                                      |
-| A5  | Google factory-reset protection                                                    | Déchaîner (partial)                  | research          | `setFactoryResetProtectionPolicy`. *Verify* the API level, the Google-account requirement, and how it interacts with ADR-0003's account removal. Research spike only                                                                                                                    | Spike write-up                                                                                         |
+**A3 agent-to-API verification (2026-11-04):** Usage Access, the device
+Location toggle, and Private DNS drift each produced `enforcement` events
+with `missing` and `restored` statuses on the SM-A045F. Events were read
+through `GET /console/devices/{deviceId}/events?kind=enforcement` after real
+one-time WorkManager runs. Repeated missing Usage Access did not duplicate
+the warning. DNS checks now compare both mode and hostname: automatic mode
+can retain the old hostname, which previously hid the drift. All 32 unit
+tests and `assembleDebug` pass. The original policy and device settings were
+restored after testing, with Usage Access enabled.
+
+This verifies health-event delivery, **not the whole parent-alert feature**.
+Checks run when policy is applied; post-sync observations upload on a later
+sync. Health state and its event now commit atomically in Room instead of
+updating preferences before queueing. Seven storage tests pass on the same
+phone: rollback on enqueue failure, concurrent deduplication, reopen,
+acknowledgement, legacy-state import/reset, independent checks, and database
+migration. An offline warning survived a confirmed debug-process kill and
+reached the parent API once after reconnect, followed by one recovery.
+An opt-in two-process test also terminates at the real event-insert boundary,
+after the health-state write but before commit. The next process verified
+rollback to the previous state, no queued event, and one warning on retry.
+Restriction drift was also verified on the same phone: an opt-in test cleared
+the previously applied Private DNS configuration restriction under policy v10.
+A real worker reapplied it without a policy change; subsequent workers uploaded
+exactly one `restrictions/missing` event to the parent API, with no duplicate
+on healthy reapplication. This was privileged fault injection, not a demonstrated
+child-accessible bypass. The original policy content is restored as v11, with
+no Manara restrictions, unchanged DNS settings, enrollment, and managed notice.
+Restriction events still use `collectEvents()` and do not inherit the atomic
+health-state transaction guarantee. Other restriction keys/OEMs are not covered
+by this drift test. All 32 unit tests and `assembleDebug` pass; the new
+instrumentation APK compiles and both the drift and restoration checks pass.
+Proactive parent notifications (E4) and physical power-loss testing remain open in
+[`pending-verifications.md`](pending-verifications.md). A health change is
+not evidence that the child deliberately bypassed a protection.
+
+| ID  | Capability                                                                         | From                                 | Obtained by       | Manara design                                                                                                                                                                                                                                                                                                                                                | Verify                                                                                                                |
+| --- | ---------------------------------------------------------------------------------- | ------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| A1  | Site-filter failures must be visible                                               | — (own defect)                       | —                 | Replace the bare `runCatching` in `SiteFilterEnforcer` with `.onFailure { Log.w }` and emit a `filter_apply_failed` event                                                                                                                                                                                                                                    | Unit test, plus an unreachable host on a real device                                                                  |
+| A2  | Close bypasses: VPN config, Private DNS config, factory reset, safe boot, add user | Déchaîner (Apache), TimeLimit (idea) | port / clean-room | New `RestrictionsEnforcer` with a pure `RestrictionDecision` (desired set vs applied set gives add/clear lists). New `Policy.restrictions` field with per-restriction booleans, all defaulting to off. *Verify* each `UserManager.DISALLOW_*` constant and its Device Owner requirement                                                                      | `dumpsys user` / `dumpsys device_policy` shows the restriction set. Try each bypass by hand on a phone                |
+| A3  | Bypass-evident reporting: tell the parent when a protection stops working          | OpenParental (MIT, idea)             | clean-room        | Usage Access, Location toggle, and Private DNS health transitions commit state and event together through `HealthTracker`; application failures and restriction checks still use `collectEvents()`. Reuses `enforcement` events with `enforcer`, `status`, and `detail`; health transitions use `missing`/`restored`. Parent alert delivery remains E4 work. | Three health checks and offline process-restart replay verified through the console events API; remaining gates above |
+| A4  | Make the dead `callLog` field honest                                               | —                                    | —                 | Keep the field, but mark it "not yet enforced" in `openapi.yaml` and in the console, so a parent can't switch on something that does nothing. It gets implemented in H3                                                                                                                                                                                      | The spec says so; the console disables the toggle                                                                     |
+| A5  | Google factory-reset protection                                                    | Déchaîner (partial)                  | research          | `setFactoryResetProtectionPolicy`. *Verify* the API level, the Google-account requirement, and how it interacts with ADR-0003's account removal. Research spike only                                                                                                                                                                                         | Spike write-up                                                                                                        |
 
 ### Track B — Filtering v2 (from "pins a DNS host" to "the child can't route around it")
 
@@ -100,6 +136,50 @@ SM-A045F (Android 14, Device Owner).
 | C5  | Bonus time and pause, granted from the console       | Fengard (pause), TimeLimit                       | clean-room  | New `CommandType` values `grant_bonus` and `pause_rules` (non-urgent, applied through the next sync or push)                                                                                              | Command → effect → ack, end to end                                                                 |
 
 ### Track D — Child-side transparency (strengthens the core instead of only constraining it)
+
+**D1 first increment (2026-11-04, baseline device verification passed):** The agent
+screen now presents a read-only configured-policy summary ahead of the debug
+harnesses. It observes the Room cache while the activity is started, showing
+policy version, app budgets/packages, scheduled locks (Sunday-first numbering,
+matching enforcement), requested restrictions, and collection settings. Requested
+filtering/location is not labelled as confirmed operational; call logs are
+explicitly unsupported, even if requested. Five new pure formatter tests and
+all 37 unit tests pass; `assembleDebug` passes. The APK was updated in place on
+the SM-A045F and the foreground notice was confirmed. The baseline portrait
+screen and wrapping were inspected after unlocking. Returning to the activity
+showed v13; a real worker then updated the open summary from v13 to v14 without
+leaving the activity, with its identity and policy content unchanged. Enabled
+policy variants remain unit-tested rather than visually verified on the phone.
+D1 is not complete:
+live collection verification, richer notice content, and
+parity with the future parent console are still outstanding.
+
+**D1 remaining-time increment (2026-11-04):** Each configured app now shows
+estimated daily minutes left using the same reader and budget calculation as
+enforcement. Shared budgets and overlapping rules are handled; unavailable
+usage is not presented as an unused allowance. Reads refresh on activity start,
+policy change, and every 30 seconds while started. All 43 unit tests and both
+APK builds pass. Two opt-in SM-A045F tests verified live usage against synthetic
+budgets and denied Usage Access without applying a test policy. The actual
+zero-minute and unavailable screens were inspected, then recovered after
+permission restoration. Policy v14 and its settings were unchanged. This is
+an estimate using existing Android daily buckets, not an exact countdown or
+confirmation of suspension. Day/timezone boundaries and live usage growth
+remain device-verification gaps.
+
+**D1 collection-status increment (2026-11-04, visual verification pending):**
+The native screen separates current usage readability, location prerequisites,
+and historical locally saved location samples. It never treats prerequisites
+as proof of active collection or confirms parent delivery. A one-row Room v4
+observation is committed atomically with each location event and survives
+acceptance/restart; provider sample time is distinct from local save time.
+The preserving v3->v4 and v2->v3->v4 migrations, rollback, and fixture reads
+passed on the SM-A045F. All 50 unit tests and both APK builds pass; 15 device
+tests executed successfully, with three opt-in cases skipped. Location stayed
+disabled by policy and in device settings; no permission changes were made.
+The managed notice is active, but the phone lock blocked inspection of the
+new UI. Live location callbacks, actual delivery, and richer notice content
+are not verified or claimed by this increment.
 
 | ID  | Capability                                                                        | From                                            | Obtained by | Manara design                                                                                                                                                                                         | Verify                                     |
 | --- | --------------------------------------------------------------------------------- | ----------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |

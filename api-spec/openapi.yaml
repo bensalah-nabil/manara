@@ -415,6 +415,9 @@ components:
             intervalMinutes: { type: integer, example: 15 }
         callLog:
           type: object
+          description: >
+            Not yet enforced by the agent: enabling it currently does nothing.
+            Planned as capability-plan.md H3 (sideload builds only).
           properties:
             enabled: { type: boolean }
         lockSchedule:
@@ -474,8 +477,9 @@ components:
     EventKind:
       type: string
       description: >
-        `enforcement` reports a protection that is not in effect. Its payload is
-        `{enforcer, status: failed|missing, detail?}` and never carries user content.
+        `enforcement` reports a protection that is not in effect, or that came
+        back. Its payload is `{enforcer, status: failed|missing|restored, detail?}`
+        and never carries user content.
       enum: [usage, location, call, lock, boot, heartbeat, enforcement]
 
     Event:

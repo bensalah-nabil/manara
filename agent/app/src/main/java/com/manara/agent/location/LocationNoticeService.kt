@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -20,8 +21,8 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.manara.agent.events.Event
 import com.manara.agent.events.EventKind
-import com.manara.agent.events.EventQueue
 import com.manara.agent.storage.ManaraDatabase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -89,21 +90,28 @@ class LocationNoticeService : Service() {
 
     private fun recordFix(location: Location) {
         scope.launch {
-            val db = ManaraDatabase.get(applicationContext)
-            EventQueue(db).enqueue(
-                Event(
-                    id = UUID.randomUUID().toString(),
-                    kind = EventKind.location,
-                    occurredAt = Instant.now().toString(),
-                    payload = JsonObject(
-                        mapOf(
-                            "lat" to JsonPrimitive(location.latitude),
-                            "lng" to JsonPrimitive(location.longitude),
-                            "accuracyMeters" to JsonPrimitive(location.accuracy)
+            try {
+                val db = ManaraDatabase.get(applicationContext)
+                LocationObservationStore(db).record(
+                    Event(
+                        id = UUID.randomUUID().toString(),
+                        kind = EventKind.location,
+                        occurredAt = Instant.now().toString(),
+                        payload = JsonObject(
+                            mapOf(
+                                "lat" to JsonPrimitive(location.latitude),
+                                "lng" to JsonPrimitive(location.longitude),
+                                "accuracyMeters" to JsonPrimitive(location.accuracy)
+                            )
                         )
-                    )
+                    ),
+                    sampleAt = location.time
                 )
-            )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w("ManaraLocation", "Cannot persist location sample", error)
+            }
         }
     }
 

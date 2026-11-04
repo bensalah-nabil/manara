@@ -11,6 +11,30 @@ class TimeLimitDecisionTest {
         Policy.TimeLimits.Rule(category = category, packages = packages, dailyMinutes = dailyMinutes)
 
     @Test
+    fun `remaining budget is shared across packages`() {
+        val sharedRule = rule("social", listOf("first.app", "second.app"), 60)
+        assertEquals(5L, TimeLimitDecision.remainingMinutes(
+            sharedRule, mapOf("first.app" to 30L, "second.app" to 25L)
+        ))
+        assertEquals(60L, TimeLimitDecision.remainingMinutes(sharedRule, emptyMap()))
+    }
+
+    @Test
+    fun `remaining budget agrees with enforcement at boundaries`() {
+        for (limit in listOf(0, 1, 60)) {
+            for (used in listOf(0L, 1L, 59L, 60L, 61L)) {
+                val budgetRule = rule("social", listOf("target.app"), limit)
+                val usage = mapOf("target.app" to used)
+                val remaining = TimeLimitDecision.remainingMinutes(budgetRule, usage)
+                assertEquals((limit.toLong() - used).coerceAtLeast(0L), remaining)
+                assertEquals(remaining == 0L, TimeLimitDecision.decide(
+                    listOf(budgetRule), usage, emptyMap()
+                ).toSuspend.contains("target.app"))
+            }
+        }
+    }
+
+    @Test
     fun `under the limit suspends nothing`() {
         val result = TimeLimitDecision.decide(
             rules = listOf(rule("social", listOf("com.instagram.android"), 60)),

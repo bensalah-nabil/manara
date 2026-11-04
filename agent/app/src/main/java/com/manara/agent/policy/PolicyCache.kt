@@ -2,6 +2,8 @@ package com.manara.agent.policy
 
 import com.manara.agent.storage.ManaraDatabase
 import com.manara.agent.storage.PolicyEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 
 /**
@@ -17,6 +19,10 @@ class PolicyCache(private val db: ManaraDatabase) {
         db.policyDao().get()?.let { json.decodeFromString(Policy.serializer(), it.json) }
 
     suspend fun currentVersion(): Int? = db.policyDao().currentVersion()
+
+    fun observe(): Flow<Policy?> = db.policyDao().observe().map { stored ->
+        stored?.let { json.decodeFromString(Policy.serializer(), it.json) }
+    }
 
     suspend fun replace(policy: Policy) {
         db.policyDao().replace(

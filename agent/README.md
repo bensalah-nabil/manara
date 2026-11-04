@@ -21,7 +21,7 @@ built around (ADR-0001). Even the throwaway test app is honest by construction.
 
 ## Build (no Android Studio needed)
 
-Requires a JDK (17+) and the Android SDK command-line tools. With `ANDROID_HOME`
+Requires JDK 17 (tested) and the Android SDK command-line tools. With `ANDROID_HOME`
 set:
 
 ```bash
@@ -32,6 +32,187 @@ cd agent
 
 First run downloads the Gradle wrapper and Android dependencies, so it needs
 network and a few minutes.
+
+The current Kotlin/KSP tooling rejected Java 25 in testing. Set `JAVA_HOME` to
+JDK 17; if an old Kotlin daemon is still being reused, add
+`-Pkotlin.compiler.execution.strategy=in-process` to the Gradle command.
+
+### Configured policy summary
+
+The main screen shows the cached policy ahead of the existing debug harnesses:
+app budgets and package names, scheduled locks, requested restrictions, and
+collection settings. It observes Room updates while the activity is started,
+including policies received by background sync. It never applies or edits
+policy itself. "Requested" does not mean a protection or collection service
+is confirmed working; unsupported call logging is labelled explicitly.
+
+This D1 screen now also shows estimated daily time left for each configured app.
+It shares the usage reader and remaining-budget calculation with enforcement:
+packages in one rule share its budget, overlapping rules use the smallest
+remaining allowance, and exhausted budgets show zero. Missing Usage Access or
+unreadable usage shows "unavailable", not a full allowance. Reads run off the
+main thread when the activity starts, when policy changes, and every 30 seconds
+while started; stopping the activity cancels the refresh. A rapid return that
+does not stop the activity can retain the prior value until the next refresh.
+
+These are whole-minute estimates, not an exact countdown or proof an app is
+currently blocked. The existing `INTERVAL_DAILY` accounting is unchanged;
+Android's [queryUsageStats reference](https://developer.android.com/reference/android/app/usage/UsageStatsManager#queryUsageStats(int,%20long,%20long))
+notes that query boundaries can expand to whole interval buckets. Collection
+status is described below; richer managed-notice content remains separate D1 work.
+
+Build and all 43 unit tests pass. On the Samsung SM-A045F, the baseline portrait
+screen and text wrapping were inspected, returning to the activity showed v13,
+and a real worker updated the open summary from v13 to v14 without reopening
+the activity. The remaining-time increment kept v14 unchanged and verified both
+zero remaining and unavailable screens, followed by recovery after Usage Access
+was restored. Two opt-in device tests passed using live usage and synthetic
+budgets without applying a test policy. See
+[`pending-verifications.md`](../docs/pending-verifications.md).
+
+After building/installing both debug APKs as below, run the reader checks with:
+
+```bash
+adb -s <serial> shell am instrument -w -r -e dailyUsageMode available -e class com.manara.agent.enforcers.DailyUsageReaderDeviceTest#availableUsageFeedsRemainingBudgetWithoutApplyingPolicy com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
+adb -s <serial> shell am instrument -w -r -e dailyUsageMode unavailable -e class com.manara.agent.enforcers.DailyUsageReaderDeviceTest#deniedUsageIsUnavailableRatherThanUnusedBudget com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The first check requires Usage Access and a recorded Manara usage entry (open
+the app first). The second requires Usage Access to be denied deliberately;
+record the original AppOps mode and restore it in `finally` after that check.
+Neither test changes permissions or policy itself. Instrumentation restarts
+the target process; reopen Manara afterward to restore the visible notice.
+
+### Collection status
+
+The read-only collection section distinguishes usage data that was actually
+read from missing Usage Access or unavailable data. For location it shows
+policy-off, observed prerequisite blockers, or available prerequisites without
+claiming collection is running. Historical evidence contains only the last
+locally saved event identity and its sample/save timestamps, not coordinates
+or an upload receipt. Disabled location does not trigger location reads from
+this status section. Active location status refreshes even without app limits.
+
+`LocationNoticeService.recordFix` now saves its event and observation metadata
+in one Room transaction. The one-row observation survives event acceptance and
+restart; failures roll back both writes. Provider sample time and local save
+time stay distinct, including cached or out-of-order samples. Android's
+[Location.getTime reference](https://developer.android.com/reference/android/location/Location#getTime())
+notes that provider/device wall clocks may differ or jump. Times are displayed
+as UTC timestamps, with invalid/future values marked unknown; no freshness or
+continuous-collection guarantee is inferred.
+
+Room v4 adds this metadata without rewriting existing records. Both v3->v4 and
+v2->v3->v4 preservation paths are tested; existing history is not backfilled.
+All 50 unit tests and both APK builds pass. On SM-A045F, 13 storage/fixture
+tests plus two available-usage/read-only-enrollment tests passed; two crash
+phases and the denied-access mode were skipped in that run. Location policy
+and the device toggle stayed disabled, no permissions were changed, and the
+managed notice was confirmed active after reopening. The updated APK is
+installed, but the lock screen blocked visual inspection of the new section.
+Real location callbacks remain deliberately unverified in this increment.
+
+With location disabled by policy and in device settings, and Usage Access
+already granted, run the combined read-only checks after installing both APKs:
+
+```bash
+adb -s <serial> shell am instrument -w -r -e dailyUsageMode available -e class com.manara.agent.enforcers.HealthTrackerStorageTest,com.manara.agent.enforcers.DailyUsageReaderDeviceTest com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The runner reports 18 cases, of which 15 execute and three are assumption-skipped.
+Fixture location events never enter the enrolled database or start a service.
+Reopen Manara after instrumentation and check the managed notice.
+
+### Health storage regression tests
+
+Pure decisions run with `./gradlew testDebugUnitTest`. The Room transaction
+tests need an Android device. They create and delete only UUID-named test
+databases/preferences, without changing the enrolled policy or permissions.
+For an enrolled debug device, update in place and invoke instrumentation
+explicitly (use `gradlew.bat` on Windows and replace `<serial>`):
+
+```bash
+./gradlew assembleDebug assembleDebugAndroidTest
+adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s <serial> install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb -s <serial> shell am instrument -w -e class com.manara.agent.enforcers.HealthTrackerStorageTest com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The thirteen routine checks run normally; two process-death phases are skipped
+unless explicitly selected. To test the state-write/event-insert crash
+boundary, run both phases with the same fresh UUID. This deliberately kills
+the target debug process, briefly interrupting the managed notice; reopen
+the activity afterward. It does not touch the enrolled database. In
+PowerShell, after installing the test APK above:
+
+```powershell
+$device = '<serial>'
+$crashId = [Guid]::NewGuid().ToString()
+$testClass = 'com.manara.agent.enforcers.HealthTrackerStorageTest'
+$runner = 'com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner'
+try {
+   adb -s $device shell am instrument -w -e class "$testClass#terminateBetweenStateAndEventInsert" -e healthCrashId $crashId -e healthCrashMode kill $runner
+   adb -s $device shell am instrument -w -e class "$testClass#interruptedTransitionRollsBackAndCanRetry" -e healthCrashId $crashId -e healthCrashMode verify $runner
+} finally {
+   adb -s $device shell am start -n com.manara.agent/.MainActivity
+}
+```
+
+The first phase must report `Process crashed`; that alone is not a pass.
+The second must report `OK (1 test)`: it verifies the crash boundary marker,
+rollback, and exactly one event on retry, then removes its test fixtures.
+Never run the full class with crash arguments; select the exact methods above.
+This verifies process death, not physical power loss.
+
+The app database upgrades from v2 to v3 by adding health state alongside the
+existing policy, event, and acknowledgement tables. Health observations and
+events commit together; legacy preference values are read only until a Room
+state row exists. Destructive migration fallback is removed. A v1 database
+does **not** have a supported migration path yet: do not clear data to work
+around this; add and verify a preserving migration before upgrading one.
+
+### Opt-in restriction drift test
+
+`RestrictionsEnforcerDeviceTest` is separate from the isolated storage tests:
+it uses the enrolled database, real backend, and Device Owner privileges on
+an Android 10+ debug test device. Both methods skip without explicit arguments.
+Real syncs can upload queued events and execute pending commands; use a
+controlled test device with no pending commands or concurrent policy edits.
+
+1. Preserve the complete original backend policy. Through the console API,
+   enable only `restrictions.blockPrivateDnsConfig`, retaining all other fields.
+2. Install the test APK in place as above and ensure the backend is reachable
+   from the phone (for local development, `adb -s <serial> reverse tcp:8080 tcp:8080`).
+3. Run the selected test, recording a start time for the parent API query:
+
+```powershell
+$device = '<serial>'
+adb -s $device shell am instrument -w -e class 'com.manara.agent.enforcers.RestrictionsEnforcerDeviceTest#removedPrivateDnsRestrictionIsReappliedByWorker' -e restrictionDriftMode private_dns com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The test syncs the enabled policy, clears the Private DNS configuration
+restriction, verifies its absence, and awaits a real worker's reapplication
+without a policy-version change. Two more workers upload the event and
+exercise healthy reapplication. Its `finally` restores the restriction to
+the currently cached policy, **not the original backend policy**. Query the
+parent events API since the recorded start time and require exactly one
+`enforcement` event with `enforcer=restrictions`, `status=missing`, and
+`detail=disallow_config_private_dns`. Instrumentation success alone does not
+prove API delivery or absence of duplicates.
+
+Always restore the original backend policy via the API in host-side `finally`,
+including on test failure, then sync it to the phone. For an originally disabled
+restriction, verify restoration with the following command; use `true` instead
+if it was originally enabled:
+
+```powershell
+adb -s $device shell am instrument -w -e class 'com.manara.agent.enforcers.RestrictionsEnforcerDeviceTest#syncConfiguredPolicy' -e restrictionDriftMode sync -e expectedPrivateDnsRestriction false com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
+adb -s $device shell am start -n com.manara.agent/.MainActivity
+```
+
+Confirm the visible managed notice afterward. This is privileged fault
+injection, not evidence that a child can remove Device Owner restrictions.
+Verified on SM-A045F/Android 14; other restriction keys and OEMs are not covered.
 
 ## Test on an already-in-use phone (no factory reset)
 

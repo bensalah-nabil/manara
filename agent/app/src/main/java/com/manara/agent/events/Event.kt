@@ -26,9 +26,10 @@ enum class EventKind {
 }
 
 /**
- * A protection that isn't actually in effect: [status] is `failed` (the
- * Android call errored or returned an error code) or `missing` (it was
- * applied earlier but is no longer active). Never carries user content.
+ * A protection that isn't actually in effect, or came back: [status] is
+ * `failed` (the Android call errored or returned an error code), `missing`
+ * (it was in effect earlier but isn't anymore) or `restored`. Never carries
+ * user content.
  */
 fun enforcementEvent(enforcer: String, status: String, detail: String?): Event = Event(
     id = UUID.randomUUID().toString(),

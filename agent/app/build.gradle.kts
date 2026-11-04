@@ -28,6 +28,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0-phase0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "FCM_API_KEY", "\"${fcmProperty("FCM_API_KEY")}\"")
         buildConfigField("String", "FCM_APP_ID", "\"${fcmProperty("FCM_APP_ID")}\"")
@@ -103,4 +104,6 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging:24.1.1")
 
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }

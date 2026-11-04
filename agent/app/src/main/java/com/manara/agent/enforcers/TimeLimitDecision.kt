@@ -11,6 +11,12 @@ import com.manara.agent.policy.Policy
  */
 object TimeLimitDecision {
 
+    fun remainingMinutes(
+        rule: Policy.TimeLimits.Rule,
+        usageMinutesByPackage: Map<String, Long>
+    ): Long = (rule.dailyMinutes.toLong() -
+        rule.packages.sumOf { usageMinutesByPackage[it] ?: 0L }).coerceAtLeast(0L)
+
     data class Result(
         val toSuspend: List<String>,
         val toResume: List<String>,
@@ -42,8 +48,7 @@ object TimeLimitDecision {
         for (rule in rules) {
             // A package with no usage stats entry yet (never opened today) counts
             // as zero, not a lookup failure.
-            val usedMinutes = rule.packages.sumOf { usageMinutesByPackage[it] ?: 0L }
-            val isOverLimit = usedMinutes >= rule.dailyMinutes
+            val isOverLimit = remainingMinutes(rule, usageMinutesByPackage) == 0L
             newState[rule.category] = isOverLimit
 
             if (isOverLimit) {

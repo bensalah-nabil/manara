@@ -4,28 +4,40 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * The agent's one local database — policy cache, event queue, and the
- * command-ack queue share it (architecture.md §2.1), nothing else does.
+ * The policy cache, event queue, command-ack queue, and health state share
+ * one database so health transitions and their events can commit together.
  * `exportSchema = false` for now; revisit once migrations actually matter.
- *
- * Bumped to version 2 for [CommandAckEntity] with a destructive fallback,
- * not a real migration -- there's no installed base with user data to
- * preserve yet (pre-release), so losing an in-flight event/ack queue on
- * upgrade is an acceptable, explicit tradeoff, not an oversight.
  */
 @Database(
-    entities = [PolicyEntity::class, EventEntity::class, CommandAckEntity::class],
-    version = 2,
+     entities = [PolicyEntity::class, EventEntity::class, CommandAckEntity::class, HealthStateEntity::class,
+         LocationObservationEntity::class],
+     version = 4,
     exportSchema = false
 )
 abstract class ManaraDatabase : RoomDatabase() {
     abstract fun policyDao(): PolicyDao
     abstract fun eventDao(): EventDao
     abstract fun commandAckDao(): CommandAckDao
+    abstract fun healthStateDao(): HealthStateDao
+    abstract fun locationObservationDao(): LocationObservationDao
 
     companion object {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `location_observation` (`id` INTEGER NOT NULL, `eventId` TEXT NOT NULL, `sampleAt` INTEGER, `savedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `health_states` (`enforcerId` TEXT NOT NULL, `check` TEXT NOT NULL, `healthy` INTEGER, PRIMARY KEY(`enforcerId`, `check`))")
+            }
+        }
+
         @Volatile private var instance: ManaraDatabase? = null
 
         fun get(context: Context): ManaraDatabase =
@@ -34,7 +46,7 @@ abstract class ManaraDatabase : RoomDatabase() {
                     context.applicationContext,
                     ManaraDatabase::class.java,
                     "manara.db"
-                ).fallbackToDestructiveMigration().build().also { instance = it }
+                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }

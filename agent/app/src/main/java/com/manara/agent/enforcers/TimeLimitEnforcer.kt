@@ -1,7 +1,6 @@
 package com.manara.agent.enforcers
 
 import android.app.admin.DevicePolicyManager
-import android.app.usage.UsageStatsManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
@@ -16,7 +15,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.time.Instant
-import java.util.Calendar
 import java.util.UUID
 
 /**
@@ -29,15 +27,14 @@ import java.util.UUID
  * runtime permission device owner can self-grant via
  * `setPermissionGrantState` (see `OwnerReceiver`) — `PACKAGE_USAGE_STATS` is
  * AppOps-backed with no device-owner silent-grant API. Without it,
- * `queryUsageStats` returns nothing and this enforcer does nothing — fails
- * closed, but this is a real one-time setup step to document, not to gloss
- * over the way `POST_NOTIFICATIONS` almost was.
+ * usage observations are unavailable, so positive time budgets cannot be
+ * enforced reliably. The health event reports that loss; it does not imply
+ * a fail-closed guarantee or automatically resume suspended packages.
  */
 class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     override val id = "time-limit"
 
-    private val usageStatsManager =
-        context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    private val dailyUsage = DailyUsageReader(context)
     private val devicePolicyManager =
         context.getSystemService(DevicePolicyManager::class.java)
     private val admin = ComponentName(context, OwnerReceiver::class.java)
@@ -66,6 +63,7 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         set(value) = prefs.edit().putStringSet(KEY_SUSPENDED, value).apply()
 
     private val pendingEvents = mutableListOf<Event>()
+    private val health = HealthTracker(context, prefs, id)
 
     override fun apply(policy: Policy) {
         currentRules = if (policy.timeLimits.enabled) policy.timeLimits.rules else emptyList()
@@ -73,12 +71,16 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     }
 
     /**
-     * Re-checks usage against the current rules. Called from [apply], and
-     * should also be called periodically (Phase 1 step 5's `WorkManager`
-     * job — not yet built) since usage changes continuously, not just when
-     * the policy itself changes.
+    * Re-checks usage against the current rules. Called from [apply],
+    * including the periodic SyncWorker's cached-policy application.
      */
     fun enforceNow() {
+        if (currentRules.isEmpty()) {
+            health.forget(CHECK_USAGE_ACCESS)
+        } else {
+            // Without Usage Access every limit silently never triggers -- the most likely bypass.
+            health.observe(CHECK_USAGE_ACCESS, dailyUsage.hasAccess())
+        }
         val decision = TimeLimitDecision.decide(
             rules = currentRules,
             usageMinutesByPackage = todaysUsageMinutesByPackage(),
@@ -127,21 +129,7 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     /** Internal (not private) so the Phase 1 test harness can show the exact
      *  number this class is actually working with, rather than inferring it
      *  from `adb shell dumpsys usagestats`'s not-entirely-legible format. */
-    internal fun todaysUsageMinutesByPackage(): Map<String, Long> {
-        val startOfDay = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-
-        // Returns an empty list (not null, not a throw) if Usage Access hasn't
-        // been granted yet -- the "fails closed" behavior this class relies on.
-        val stats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY, startOfDay, System.currentTimeMillis()
-        )
-        return stats.orEmpty().associate { it.packageName to it.totalTimeInForeground / 60_000 }
-    }
+    internal fun todaysUsageMinutesByPackage(): Map<String, Long> = dailyUsage.readMinutes().orEmpty()
 
     private fun limitHitEvent(rule: Policy.TimeLimits.Rule): Event =
         Event(
@@ -161,5 +149,6 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         private const val PREFS_NAME = "time_limit_enforcer"
         private const val KEY_SUSPENDED = "suspended_packages"
         private const val KEY_OVER_LIMIT = "over_limit_state"
+        private const val CHECK_USAGE_ACCESS = "usage_access"
     }
 }
