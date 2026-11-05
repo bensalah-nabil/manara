@@ -50,6 +50,13 @@ func TestAlertForWording(t *testing.T) {
 	}
 }
 
+func TestAlertForUsageReportingWithoutUsageAccess(t *testing.T) {
+	a, ok := AlertFor(&Device{ID: "d", Label: "Sam"}, enforcement("d", "usage-report", "missing", "usage_access", t0))
+	if !ok || a.Title != "Sam: Usage reporting needs attention" || !strings.HasPrefix(a.Message, "Usage Access is turned off, so app usage cannot be measured.") {
+		t.Errorf("got %v: %q / %q", ok, a.Title, a.Message)
+	}
+}
+
 func TestAlertForFallbacks(t *testing.T) {
 	a, _ := AlertFor(&Device{ID: "d"}, enforcement("d", "mystery", "failed", "suspend: SecurityException", t0))
 	if a.Title != "A device: mystery needs attention" || !strings.HasPrefix(a.Message, "suspend: SecurityException ") {

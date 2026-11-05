@@ -15,6 +15,12 @@ type Policy struct {
 	CallLog      CallLog        `json:"callLog"`
 	LockSchedule *LockSchedule  `json:"lockSchedule,omitempty"`
 	Restrictions *Restrictions  `json:"restrictions,omitempty"`
+	UsageReport  *UsageReport   `json:"usageReport,omitempty"`
+}
+
+// UsageReport opts in to the daily per-app minutes report. Absent means off.
+type UsageReport struct {
+	Enabled bool `json:"enabled"`
 }
 
 // Restrictions maps to device-owner UserManager.DISALLOW_* keys on the agent;

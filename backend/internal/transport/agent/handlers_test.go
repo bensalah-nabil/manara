@@ -70,6 +70,9 @@ func (f *fakeEvents) Insert(_ context.Context, events []*domain.Event) (domain.I
 func (f *fakeEvents) ListByDevice(context.Context, string, *domain.EventKind, *time.Time) ([]*domain.Event, error) {
 	return nil, nil
 }
+func (f *fakeEvents) PurgeOlderThan(context.Context, domain.EventKind, time.Time) (int, error) {
+	return 0, nil
+}
 
 type channelNotifier struct{ ch chan domain.Alert }
 

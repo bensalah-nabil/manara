@@ -17,7 +17,13 @@ const (
 	// EventKindEnforcement: a protection on the device is not in effect
 	// (payload: enforcer, status failed|missing, optional detail).
 	EventKindEnforcement EventKind = "enforcement"
+	// EventKindUsageReport: a snapshot of today's minutes per app, sent only
+	// while the policy's usageReport is on (payload: date, totalMinutes, apps).
+	EventKindUsageReport EventKind = "usage_report"
 )
+
+// UsageReportRetention is how long usage_report events are kept (capability-plan G2).
+const UsageReportRetention = 30 * 24 * time.Hour
 
 // Event mirrors api-spec/openapi.yaml's Event schema. ID is generated ON
 // THE DEVICE (architecture.md §2.1/§3.2) -- never assigned here, since
@@ -50,4 +56,7 @@ type EventStore interface {
 	// Insert ignores (does not error on) any id already stored.
 	Insert(ctx context.Context, events []*Event) (InsertResult, error)
 	ListByDevice(ctx context.Context, deviceID string, kind *EventKind, since *time.Time) ([]*Event, error)
+	// PurgeOlderThan deletes events of one kind that occurred before the
+	// cutoff and returns how many it removed.
+	PurgeOlderThan(ctx context.Context, kind EventKind, cutoff time.Time) (int, error)
 }

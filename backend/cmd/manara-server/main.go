@@ -83,6 +83,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
 
 	go runHeartbeatSweep(ctx, commands)
+	go runRetentionSweep(ctx, events)
 
 	addr := os.Getenv("ADDR")
 	if addr == "" {
@@ -186,6 +187,28 @@ func runHeartbeatSweep(ctx context.Context, commands domain.CommandQueue) {
 		if n > 0 {
 			log.Printf("heartbeat sweep: expired %d stale command(s)", n)
 		}
+	}
+}
+
+// runRetentionSweep deletes usage reports older than domain.UsageReportRetention
+// (capability-plan G2: collected data has limited retention). It also runs
+// once at start so a restart does not delay a purge by an hour.
+func runRetentionSweep(ctx context.Context, events domain.EventStore) {
+	purge := func() {
+		n, err := events.PurgeOlderThan(ctx, domain.EventKindUsageReport, time.Now().Add(-domain.UsageReportRetention))
+		if err != nil {
+			log.Printf("retention sweep: %v", err)
+			return
+		}
+		if n > 0 {
+			log.Printf("retention sweep: deleted %d old usage report(s)", n)
+		}
+	}
+	purge()
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		purge()
 	}
 }
 

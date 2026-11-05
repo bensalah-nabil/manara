@@ -496,6 +496,16 @@ components:
             blockAddUser:
               type: boolean
               description: UserManager.DISALLOW_ADD_USER.
+        usageReport:
+          type: object
+          description: >
+            Optional, off when omitted. While `enabled`, the phone sends
+            `usage_report` events with today's minutes per app. This is data
+            leaving the device, so the phone lists it on its own notice and
+            status screen while it is on, and the server keeps those events for
+            30 days.
+          properties:
+            enabled: { type: boolean }
 
     # ---- Commands -------------------------------------------------- #
     CommandType:
@@ -521,7 +531,13 @@ components:
         `enforcement` reports a protection that is not in effect, or that came
         back. Its payload is `{enforcer, status: failed|missing|restored, detail?}`
         and never carries user content.
-      enum: [usage, location, call, lock, boot, heartbeat, enforcement]
+        `usage_report` is a snapshot of today's minutes per app, sent at most
+        about once an hour and only while the policy's `usageReport` is on.
+        Its payload is `{date: "YYYY-MM-DD" (the phone's local day),
+        totalMinutes, apps: [{package, minutes}]}`, the busiest 30 apps with at
+        least one minute. Later snapshots of the same date supersede earlier
+        ones. Package names only, no labels and no content.
+      enum: [usage, location, call, lock, boot, heartbeat, enforcement, usage_report]
 
     Event:
       type: object

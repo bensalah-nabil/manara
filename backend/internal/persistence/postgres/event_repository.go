@@ -47,6 +47,14 @@ func (s *EventStore) Insert(ctx context.Context, events []*domain.Event) (domain
 	return result, nil
 }
 
+func (s *EventStore) PurgeOlderThan(ctx context.Context, kind domain.EventKind, cutoff time.Time) (int, error) {
+	tag, err := s.db.Pool.Exec(ctx, `DELETE FROM events WHERE kind = $1 AND occurred_at < $2`, string(kind), cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("purge events: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}
+
 func (s *EventStore) ListByDevice(ctx context.Context, deviceID string, kind *domain.EventKind, since *time.Time) ([]*domain.Event, error) {
 	query := `SELECT id, device_id, kind, occurred_at, payload_json FROM events WHERE device_id = $1`
 	args := []any{deviceID}
