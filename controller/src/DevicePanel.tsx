@@ -5,6 +5,8 @@ import type { Props } from './Editors.tsx'
 import { errorText, lastSeenText } from './format.ts'
 import { summarizeProtection } from './protection.ts'
 import type { ProtectionReport } from './protection.ts'
+import { limitHitText, summarizeLimitHits } from './usageHistory.ts'
+import type { LimitHit } from './usageHistory.ts'
 
 function ProtectionStatus({ api, device, onSessionExpired }: Props) {
     const [reports, setReports] = useState<ProtectionReport[] | null>(null)
@@ -60,6 +62,59 @@ function ProtectionStatus({ api, device, onSessionExpired }: Props) {
     )
 }
 
+function LimitHistory({ api, device, onSessionExpired }: Props) {
+    const [hits, setHits] = useState<LimitHit[] | null>(null)
+    const [error, setError] = useState('')
+    const [reloads, setReloads] = useState(0)
+
+    useEffect(() => {
+        let current = true
+        api
+            .listEvents(device.deviceId, 'usage')
+            .then((events) => {
+                if (!current) return
+                setHits(summarizeLimitHits(events))
+                setError('')
+            })
+            .catch((caught: unknown) => {
+                if (!current) return
+                if (isSessionError(caught)) onSessionExpired()
+                else setError(errorText(caught))
+            })
+        return () => {
+            current = false
+        }
+    }, [api, device.deviceId, onSessionExpired, reloads])
+
+    return (
+        <div className="stack">
+            <div className="row">
+                <strong>Limit history</strong>
+                <button type="button" className="link" onClick={() => setReloads((count) => count + 1)}>Refresh</button>
+            </div>
+            <p role="alert" className="error">{error}</p>
+            {hits === null ? (
+                !error && <p className="hint">Loading...</p>
+            ) : hits.length === 0 ? (
+                <p className="hint">No daily limit has been reported as reached.</p>
+            ) : (
+                <ul className="reports">
+                    {hits.map((hit) => (
+                        <li key={hit.id}>
+                            <strong>{limitHitText(hit)}</strong>
+                            <span className="hint">Reported {lastSeenText(hit.occurredAt)}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <p className="hint">
+                This lists the times the phone reported a daily limit being reached (the 20 most recent).
+                It does not show how much time was used.
+            </p>
+        </div>
+    )
+}
+
 function LockNow({ api, device, onSessionExpired }: Props) {
     const [busy, setBusy] = useState(false)
     const [message, setMessage] = useState('')
@@ -96,6 +151,7 @@ export function DevicePanel(props: Props) {
     return (
         <div className="stack">
             <ProtectionStatus {...props} />
+            <LimitHistory {...props} />
             <LockNow {...props} />
             <TimeLimitsEditor {...props} />
             <ScheduleEditor {...props} />

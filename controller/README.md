@@ -6,8 +6,9 @@ policy editor, time-limit UI, location view, remote lock, "not reporting" alerts
 Status: **early**. Parent sign-up/sign-in, a device list with its reporting
 status, "Add a device" (shows a single-use enrollment code), editors for time
 limits, the lock schedule, location sharing, the site filter and settings
-restrictions, "Lock now", and a protection-status list (what the phone has
-reported about problems with its protections) work against the real backend.
+restrictions, "Lock now", a protection-status list (what the phone has
+reported about problems with its protections), and a limit history (when the
+phone reported a daily limit being reached) work against the real backend.
 Every policy section the agent enforces is editable; call logging is not (the
 agent does not collect it). "Add a device" shows the single-use code as a QR
 code (for the agent's "Scan QR code") and as text.
