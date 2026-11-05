@@ -268,6 +268,30 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       result RETRY) even though `adb reverse --list` still showed the
       tunnel. Removing and re-creating it fixed it, so a listed tunnel is not
       proof it works; check by running a sync, not by listing.
+- [x] **E4 tamper alerts (2026-11-05).** An `AlertNotifier` port with ntfy and
+      webhook senders, configured by `ALERT_NTFY_URL` / `ALERT_NTFY_TOKEN` /
+      `ALERT_WEBHOOK_URL` (see `backend/README.md`). `EventStore.Insert` now
+      reports which events were newly stored, so a re-sent backlog never
+      alerts twice; repeats of one problem are throttled for 6 hours and a
+      restored report clears the throttle. Verified with Go tests and an end
+      to end run against a second server instance and a local receiver, **on
+      a fake device**. **Not verified:** a real ntfy server or phone app, or an
+      alert from the real Samsung. **Not built:** "not reporting" and child
+      request alerts; a per-parent destination (deliberately not done: a
+      parent-supplied URL would let the server be aimed at any address).
+- [x] **E3, first slice: limit history (2026-11-05).** Each device card lists
+      when the phone reported a daily limit being reached (category, limit,
+      time; 20 most recent), read from the `usage` events the agent already
+      sends. Controller only; no phone or backend change. Verified in a
+      browser against the real backend **on a fake device**: valid reports
+      show newest first, a malformed report and a non-usage event are left
+      out, and a category name containing HTML is shown as text. 74 controller
+      tests pass. **Not built, deliberately:** per-app minutes. The phone
+      never sends them (the only `usage` event is the limit-reached one), so
+      a real E3 needs new collection that must be opt-in per policy and shown
+      to the child (G2), with retention and encryption at rest still open in
+      Phase 4. **Not verified:** the real Samsung's own history in this panel
+      (it needs a console login session, and none is open).
 
 ## Phase 4 — Hardening
 
