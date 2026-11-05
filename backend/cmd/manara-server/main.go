@@ -62,6 +62,7 @@ func main() {
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments,
+		Alerts: newAlertService(devices),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
@@ -109,6 +110,41 @@ func newNotifier(ctx context.Context) domain.PushNotifier {
 	}
 	log.Printf("push notifications enabled via FCM")
 	return n
+}
+
+// newAlertService is additive like newNotifier: no ALERT_NTFY_URL and no
+// ALERT_WEBHOOK_URL (the default) means nil, and nothing alerts. The
+// destinations come from the operator's environment, never from a parent's
+// request, so the server cannot be pointed at an arbitrary address.
+func newAlertService(devices domain.DeviceRepository) *domain.AlertService {
+	var senders notify.Fanout
+	if raw := os.Getenv("ALERT_NTFY_URL"); raw != "" {
+		n, err := notify.NewNtfy(raw, os.Getenv("ALERT_NTFY_TOKEN"))
+		if err != nil {
+			log.Printf("alerts: ALERT_NTFY_URL: %v -- ntfy alerts disabled", err)
+		} else {
+			senders = append(senders, n)
+		}
+	}
+	if raw := os.Getenv("ALERT_WEBHOOK_URL"); raw != "" {
+		w, err := notify.NewWebhook(raw)
+		if err != nil {
+			log.Printf("alerts: ALERT_WEBHOOK_URL: %v -- webhook alerts disabled", err)
+		} else {
+			senders = append(senders, w)
+		}
+	}
+	if len(senders) == 0 {
+		log.Printf("no alert destination configured -- parent alerts disabled")
+		return nil
+	}
+	log.Printf("parent alerts enabled (%d destination(s))", len(senders))
+	return &domain.AlertService{
+		Devices:  devices,
+		Notifier: senders,
+		Throttle: domain.NewAlertThrottle(6 * time.Hour),
+		Now:      time.Now,
+	}
 }
 
 // withCORS exists for the controller (Phase 3): a React dev server on its

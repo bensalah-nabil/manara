@@ -19,27 +19,32 @@ func NewEventStore(db *DB) *EventStore {
 
 // Insert is idempotent on Event.ID (architecture.md §3.2) via ON CONFLICT
 // DO NOTHING -- a re-sent backlog after a dropped connection produces no
-// double-counting. Every id in the input is returned, whether it was
+// double-counting. Every id in the input is accepted, whether it was
 // actually inserted or already existed: either way it's durably stored
 // now, so the agent can safely drop it locally (that's the whole point).
-func (s *EventStore) Insert(ctx context.Context, events []*domain.Event) ([]string, error) {
-	ids := make([]string, 0, len(events))
+// Only the rows this call really added come back as Stored.
+func (s *EventStore) Insert(ctx context.Context, events []*domain.Event) (domain.InsertResult, error) {
+	var result domain.InsertResult
+	result.Accepted = make([]string, 0, len(events))
 	for _, e := range events {
 		raw, err := json.Marshal(e.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("encode event payload: %w", err)
+			return domain.InsertResult{}, fmt.Errorf("encode event payload: %w", err)
 		}
-		_, err = s.db.Pool.Exec(ctx, `
+		tag, err := s.db.Pool.Exec(ctx, `
 			INSERT INTO events (id, device_id, kind, occurred_at, payload_json, received_at)
 			VALUES ($1, $2, $3, $4, $5, now())
 			ON CONFLICT (id) DO NOTHING
 		`, e.ID, e.DeviceID, string(e.Kind), e.OccurredAt, raw)
 		if err != nil {
-			return nil, fmt.Errorf("insert event %s: %w", e.ID, err)
+			return domain.InsertResult{}, fmt.Errorf("insert event %s: %w", e.ID, err)
 		}
-		ids = append(ids, e.ID)
+		result.Accepted = append(result.Accepted, e.ID)
+		if tag.RowsAffected() == 1 {
+			result.Stored = append(result.Stored, e)
+		}
 	}
-	return ids, nil
+	return result, nil
 }
 
 func (s *EventStore) ListByDevice(ctx context.Context, deviceID string, kind *domain.EventKind, since *time.Time) ([]*domain.Event, error) {

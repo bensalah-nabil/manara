@@ -80,6 +80,31 @@ service-account token) rather than the Firebase Admin Go SDK -- that
 package pulls in Firestore, Cloud Monitoring, OpenTelemetry, and gRPC
 transitively for one "send a message" call this project doesn't need.
 
+### Parent alerts (ntfy / webhook)
+
+Optional, additive, like push: with neither variable set (the default) the
+server logs that alerts are off and nothing else changes. When a phone
+newly reports that a protection is missing or failed, the server sends one
+short message (device name, which protection, a plain sentence, the report
+time -- never user content). The same problem is not repeated for 6 hours
+unless it was reported restored in between.
+
+```bash
+# ntfy: the full topic URL. On the public ntfy.sh a topic name works like a
+# password -- use a long random one. A private ntfy server can use a token.
+ALERT_NTFY_URL=https://ntfy.sh/<long-random-topic>
+ALERT_NTFY_TOKEN=tk_...            # optional
+
+# Generic webhook: receives JSON {title, message, deviceId, parentId, occurredAt}
+ALERT_WEBHOOK_URL=https://example.invalid/hook
+```
+
+Both may be set. Install the ntfy app and subscribe to the topic to get the
+notification. The destinations come from this environment only, never from
+a parent's request, so the server cannot be pointed at an arbitrary address.
+A bad URL logs a warning and disables that destination; it does not stop
+the server. Errors never log the URL, since it may hold the topic.
+
 ## Try it
 
 ```bash

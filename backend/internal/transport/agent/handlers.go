@@ -5,14 +5,16 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"manara/backend/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type Handlers struct {
@@ -22,6 +24,8 @@ type Handlers struct {
 	Commands    domain.CommandQueue
 	Events      domain.EventStore
 	Enrollments domain.EnrollmentTokenRepository
+	// Alerts is optional: nil means no parent alerts are configured.
+	Alerts *domain.AlertService
 }
 
 // --- wire types, matching api-spec/openapi.yaml field-for-field ------------
@@ -192,11 +196,16 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 			Payload:    e.Payload,
 		})
 	}
-	acceptedIDs, err := h.Events.Insert(r.Context(), events)
+	stored, err := h.Events.Insert(r.Context(), events)
 	if err != nil {
 		log.Printf("sync: insert events: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
+	}
+	acceptedIDs := stored.Accepted
+	if h.Alerts != nil && len(stored.Stored) > 0 {
+		// Detached: the phone's sync must not wait on, or be cancelled by, a notification server.
+		go h.Alerts.HandleNewEvents(context.WithoutCancel(r.Context()), deviceID, stored.Stored)
 	}
 
 	for _, ack := range req.CommandAcks {
