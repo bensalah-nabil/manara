@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { isSessionError } from './api.ts'
-import { LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor } from './Editors.tsx'
+import { LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
 import type { Props } from './Editors.tsx'
 import { errorText, lastSeenText } from './format.ts'
 import { summarizeProtection } from './protection.ts'
 import type { ProtectionReport } from './protection.ts'
 import { limitHitText, summarizeLimitHits } from './usageHistory.ts'
 import type { LimitHit } from './usageHistory.ts'
+import { minutesText, summarizeDailyUsage } from './dailyUsage.ts'
+import type { DailyUsage } from './dailyUsage.ts'
 
 function ProtectionStatus({ api, device, onSessionExpired }: Props) {
     const [reports, setReports] = useState<ProtectionReport[] | null>(null)
@@ -115,6 +117,67 @@ function LimitHistory({ api, device, onSessionExpired }: Props) {
     )
 }
 
+function DailyUsagePanel({ api, device, onSessionExpired }: Props) {
+    const [days, setDays] = useState<DailyUsage[] | null>(null)
+    const [error, setError] = useState('')
+    const [reloads, setReloads] = useState(0)
+
+    useEffect(() => {
+        let current = true
+        // The panel shows 7 days; ask for a little more so a phone in another time zone still has its 7th day.
+        const since = new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)
+        api
+            .listEvents(device.deviceId, 'usage_report', since)
+            .then((events) => {
+                if (!current) return
+                setDays(summarizeDailyUsage(events))
+                setError('')
+            })
+            .catch((caught: unknown) => {
+                if (!current) return
+                if (isSessionError(caught)) onSessionExpired()
+                else setError(errorText(caught))
+            })
+        return () => {
+            current = false
+        }
+    }, [api, device.deviceId, onSessionExpired, reloads])
+
+    return (
+        <div className="stack">
+            <div className="row">
+                <strong>Daily app usage</strong>
+                <button type="button" className="link" onClick={() => setReloads((count) => count + 1)}>Refresh</button>
+            </div>
+            <p role="alert" className="error">{error}</p>
+            {days === null ? (
+                !error && <p className="hint">Loading...</p>
+            ) : days.length === 0 ? (
+                <p className="hint">No usage report received. Turn on the daily usage report below to receive one.</p>
+            ) : (
+                days.map((day) => (
+                    <div key={day.date} className="stack">
+                        <strong>{day.date}: {minutesText(day.totalMinutes)} in total</strong>
+                        <ul className="reports">
+                            {day.apps.map((usage) => (
+                                <li key={usage.packageName}>
+                                    <strong>{usage.packageName}</strong>
+                                    <span>{minutesText(usage.minutes)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <span className="hint">Last updated {lastSeenText(day.reportedAt)}</span>
+                    </div>
+                ))
+            )}
+            <p className="hint">
+                Minutes in the foreground per app, as the phone counted them when it last reported. A day's figure can be
+                a little behind, since reports are sent about once an hour. Shows the busiest 30 apps per day.
+            </p>
+        </div>
+    )
+}
+
 function LockNow({ api, device, onSessionExpired }: Props) {
     const [busy, setBusy] = useState(false)
     const [message, setMessage] = useState('')
@@ -152,10 +215,12 @@ export function DevicePanel(props: Props) {
         <div className="stack">
             <ProtectionStatus {...props} />
             <LimitHistory {...props} />
+            <DailyUsagePanel {...props} />
             <LockNow {...props} />
             <TimeLimitsEditor {...props} />
             <ScheduleEditor {...props} />
             <LocationEditor {...props} />
+            <UsageReportEditor {...props} />
             <SiteFilterEditor {...props} />
             <RestrictionsEditor {...props} />
         </div>

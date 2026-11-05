@@ -140,8 +140,8 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             await request('POST', devicePath(deviceId, 'commands'), { type: 'lock_now' }, true)
         },
 
-        async listEvents(deviceId: string, kind: string): Promise<EventItem[]> {
-            const query = `?kind=${encodeURIComponent(kind)}`
+        async listEvents(deviceId: string, kind: string, since?: Date): Promise<EventItem[]> {
+            const query = `?kind=${encodeURIComponent(kind)}` + (since ? `&since=${encodeURIComponent(since.toISOString())}` : '')
             const value = await request('GET', devicePath(deviceId, 'events') + query, undefined, true)
             if (!Array.isArray(value)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
             return value as EventItem[]

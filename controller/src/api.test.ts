@@ -114,6 +114,13 @@ test('listEvents filters by kind, encodes both parts, and rejects non-arrays', a
     await assert.rejects(bad.listEvents('d', 'enforcement'), (error: ApiError) => error.code === 'bad_response')
 })
 
+test('listEvents can limit to events since a time, sent as an encoded RFC 3339 instant', async () => {
+    const { calls, fetchImpl } = recorder(() => jsonResponse(200, []))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    await api.listEvents('d', 'usage_report', new Date('2026-11-01T10:20:30.000Z'))
+    assert.equal(calls[0].url, 'http://x/console/devices/d/events?kind=usage_report&since=2026-11-01T10%3A20%3A30.000Z')
+})
+
 test('error bodies map to codes; non-JSON error bodies keep only the status', async () => {
     const withCode = createApi({
         baseUrl: 'http://x',

@@ -21,10 +21,11 @@ const ENFORCERS: Record<string, string> = {
     'time-limit': 'App time limits',
     restrictions: 'Settings restrictions',
     lock: 'Scheduled lock',
+    'usage-report': 'Usage reporting',
 }
 
 const DETAILS: Record<string, string> = {
-    usage_access: 'Usage Access is turned off, so app limits cannot be measured.',
+    usage_access: 'Usage Access is turned off, so app usage cannot be measured.',
     device_location_on: 'The phone\'s Location setting is off.',
     private_dns_host: 'Private DNS is not set to the filtering server.',
     host_not_serving: 'The phone could not use the filtering host (it did not answer as a Private DNS server). Check the host name.',

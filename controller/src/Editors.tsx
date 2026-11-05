@@ -11,6 +11,8 @@ import { applySiteFilter, filterWarning, toDraft as filterDraft, unlockedNote, v
 import type { Draft as FilterDraft, SiteFilter } from './siteFilter.ts'
 import { usePolicyEditor } from './usePolicyEditor.ts'
 import type { Section } from './usePolicyEditor.ts'
+import { applyUsageReport, toDraft as usageReportDraft, USAGE_REPORT_WARNING } from './usageReport.ts'
+import type { Draft as UsageReportDraft, UsageReportPolicy } from './usageReport.ts'
 
 export interface Props {
     api: Api
@@ -71,6 +73,13 @@ const restrictionsSection: Section<RestrictionsDraft, RestrictionsDraft> = {
         const added = RESTRICTIONS.filter(({ key }) => after[key] && !before[key]).map(({ label }) => label)
         return added.length === 0 ? null : `This takes effect on the child's phone: ${added.join('; ')}. Save anyway?`
     },
+}
+
+const usageReportSection: Section<UsageReportDraft, UsageReportPolicy> = {
+    toDraft: usageReportDraft,
+    validate: (draft) => ({ ok: true, value: { enabled: draft.enabled } }),
+    apply: applyUsageReport,
+    confirm: (before, after) => (after.enabled && !before.enabled ? USAGE_REPORT_WARNING : null),
 }
 
 function Closed({ label, loading, error, onOpen }: { label: string; loading: boolean; error: string; onOpen: () => void }) {
@@ -229,6 +238,30 @@ export function LocationEditor(props: Props) {
                 <input inputMode="numeric" value={draft.intervalMinutes} onChange={(event) => setDraft({ ...draft, intervalMinutes: event.target.value })} />
             </label>
             <Footer editor={editor} saveLabel="Save location sharing" />
+        </div>
+    )
+}
+
+export function UsageReportEditor(props: Props) {
+    const editor = usePolicyEditor({ ...props, section: usageReportSection })
+    const { draft, policy, setDraft } = editor
+    if (draft === null || policy === null) {
+        return <Closed label="Edit daily usage report" loading={editor.loading} error={editor.error} onOpen={editor.load} />
+    }
+
+    return (
+        <div className="stack">
+            <strong>Daily usage report</strong>
+            <p className="hint">
+                Current policy version {policy.version}. When on, the phone sends how many minutes each app was used today,
+                about once an hour (the busiest 30 apps, by package name). The phone lists this on its own notice and status
+                screen, and this server keeps the reports for 30 days. It needs Usage Access to be on for Manara.
+            </p>
+            <label className="check">
+                <input type="checkbox" checked={draft.enabled} onChange={(event) => setDraft({ enabled: event.target.checked })} />
+                Send daily app usage
+            </label>
+            <Footer editor={editor} saveLabel="Save usage report" />
         </div>
     )
 }
