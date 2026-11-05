@@ -109,8 +109,10 @@ tests plus two available-usage/read-only-enrollment tests passed; two crash
 phases and the denied-access mode were skipped in that run. Location policy
 and the device toggle stayed disabled, no permissions were changed, and the
 managed notice was confirmed active after reopening. The updated APK is
-installed, but the lock screen blocked visual inspection of the new section.
-Real location callbacks remain deliberately unverified in this increment.
+installed, and the portrait screen was inspected on 2026-11-05: the section
+renders above the configured policy, unclipped, showing usage readable,
+location off by policy, and call logs unsupported. Real location callbacks
+remain deliberately unverified in this increment.
 
 With location disabled by policy and in device settings, and Usage Access
 already granted, run the combined read-only checks after installing both APKs:

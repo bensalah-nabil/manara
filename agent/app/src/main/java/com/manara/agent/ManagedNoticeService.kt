@@ -8,6 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
+import com.manara.agent.policy.NoticeSummary
+import com.manara.agent.policy.PolicyCache
+import com.manara.agent.storage.ManaraDatabase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * A foreground service whose only job is to keep a permanent, non-dismissible
@@ -21,10 +31,28 @@ import android.os.IBinder
  * it, we see the notice vanish — that's a finding, not a bug to hide.
  */
 class ManagedNoticeService : Service() {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
+        scope.launch {
+            try {
+                PolicyCache(ManaraDatabase.get(applicationContext)).observe().collect { policy ->
+                    getSystemService(NotificationManager::class.java)
+                        .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(policy)))
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w("ManaraNotice", "Cannot refresh notice summary", error)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -34,7 +62,7 @@ class ManagedNoticeService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(summary: List<String> = emptyList()): Notification {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
@@ -55,6 +83,11 @@ class ManagedNoticeService : Service() {
             Notification.Builder(this)
         }
 
+        if (summary.isNotEmpty()) {
+            builder.setStyle(
+                Notification.BigTextStyle().bigText(getString(R.string.notice_text) + "\n" + summary.joinToString("\n"))
+            )
+        }
         return builder
             .setContentTitle(getString(R.string.notice_title))
             .setContentText(getString(R.string.notice_text))
