@@ -33,6 +33,16 @@ npm run lint
 The API base URL defaults to `http://localhost:8080/api/v1`; override it with
 `VITE_API_URL` at build/dev time.
 
+### In Docker
+
+`backend/docker-compose.yml` builds this directory into the `caddy` image
+([`Dockerfile`](Dockerfile)): the console is served at `/` and `/api/*` is
+proxied to the server, on the same origin, so the console needs no CORS. The
+image is built with `VITE_API_URL=/api/v1`. After changing the console, run
+`docker compose up -d --build caddy` from `backend/`. Locally that is
+`https://localhost/`, with Caddy's self-signed certificate (the browser warns
+once).
+
 ### Policy edits are whole-document replacements
 
 `PUT /console/devices/{id}/policy` replaces the entire policy. Each editor

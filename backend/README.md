@@ -23,6 +23,10 @@ listens on `:8080` (dev-only direct access, see the comment in
 there automatically) — verified working locally via `curl -k` against
 `DOMAIN=localhost`'s self-signed cert from Caddy's own internal CA.
 
+Caddy also serves the parent console at `/` (built from `../controller` into
+the `caddy` image) and proxies `/api/*` to the server. Rebuild it with
+`docker compose up -d --build caddy` after changing the console.
+
 ## Deploying to a real VPS
 
 The whole point of the `DOMAIN` env var is that this is the only thing

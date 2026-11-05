@@ -1,3 +1,17 @@
 {$DOMAIN} {
-	reverse_proxy server:8080
+	handle /api/* {
+		reverse_proxy server:8080
+	}
+
+	# The parent console: a single-page app, so unknown paths fall back to index.html.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+		header {
+			X-Content-Type-Options nosniff
+			X-Frame-Options DENY
+			Referrer-Policy no-referrer
+		}
+	}
 }

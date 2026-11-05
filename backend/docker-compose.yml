@@ -45,8 +45,11 @@ services:
   # dev. Set DOMAIN to a real hostname once there's a VPS with DNS pointed
   # at it, and Caddy automatically requests a real Let's Encrypt cert
   # instead -- no other change, that's the whole migration.
+  #
+  # Also serves the parent console (controller/) at /, built into this image,
+  # and proxies /api/* to the server. Same origin, so the console needs no CORS.
   caddy:
-    image: caddy:2-alpine
+    build: ../controller
     restart: unless-stopped
     depends_on:
       - server
