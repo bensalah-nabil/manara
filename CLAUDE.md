@@ -202,6 +202,12 @@ works through `adb reverse tcp:8080 tcp:8080`. After the phone reconnects
 logs `Worker result RETRY`, with no error pointing at the cause. Re-run
 `adb reverse` after every reconnect, before triggering a sync.
 
+A tunnel that `adb reverse --list` still shows can also be dead: a sync
+timed out with `SocketTimeoutException` (hang, not refused) while the
+listing looked fine, and `reverse --remove tcp:8080` followed by a fresh
+`reverse tcp:8080 tcp:8080` fixed it. Judge the tunnel by a sync result,
+not by the listing.
+
 ## A new policy field needs a rebuilt server container, not just `go build`
 
 `docker compose up -d` reuses the existing image. A server image built

@@ -167,7 +167,7 @@ an estimate using existing Android daily buckets, not an exact countdown or
 confirmation of suspension. Day/timezone boundaries and live usage growth
 remain device-verification gaps.
 
-**D1 collection-status increment (2026-11-04, visual verification pending):**
+**D1 collection-status increment (2026-11-04, baseline screen verified 2026-11-05):**
 The native screen separates current usage readability, location prerequisites,
 and historical locally saved location samples. It never treats prerequisites
 as proof of active collection or confirms parent delivery. A one-row Room v4
@@ -177,9 +177,23 @@ The preserving v3->v4 and v2->v3->v4 migrations, rollback, and fixture reads
 passed on the SM-A045F. All 50 unit tests and both APK builds pass; 15 device
 tests executed successfully, with three opt-in cases skipped. Location stayed
 disabled by policy and in device settings; no permission changes were made.
-The managed notice is active, but the phone lock blocked inspection of the
-new UI. Live location callbacks, actual delivery, and richer notice content
-are not verified or claimed by this increment.
+The managed notice is active, and the baseline portrait screen was inspected
+after unlocking (usage readable, location off by policy, call logs
+unsupported). Enabled-location layouts, live location callbacks, actual
+delivery, and richer notice content are not verified or claimed here.
+
+**D1 richer managed notice (2026-11-05):** The permanent notice keeps its
+title, text, and ongoing foreground behavior unchanged. Expanding it now also
+lists what the parent has configured, as counts only (app-rule count, site
+filtering, location interval, scheduled-lock windows, restriction count) and
+"Call logs: not collected". It never names apps and says "requested", not
+"active". It is re-posted from the cached policy via the same notification
+id; there is still no way to hide or cancel it. 54 unit tests pass, and the
+posted text was read from the system on the SM-A045F for policy v14. Per-app
+time left is deliberately not in the notice (it would need polling in a
+permanent service and could go stale). Lock-screen visibility of the expanded
+text, other OEMs, and policy changes while the notice is displayed were not
+checked.
 
 | ID  | Capability                                                                        | From                                            | Obtained by | Manara design                                                                                                                                                                                         | Verify                                     |
 | --- | --------------------------------------------------------------------------------- | ----------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |

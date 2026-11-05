@@ -151,11 +151,123 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       already wired on the backend side
       (`CORS_ALLOWED_ORIGIN`/`withCORS` in `cmd/manara-server/main.go`) —
       see `controller/README.md`.
-- [ ] Parent auth UI (signup/login) against the real endpoints above.
-- [ ] Device list, "add device" (generate enrollment token + show it/QR).
-- [ ] Policy editor (time limits first), lock button, "not reporting"
-      indicator — the backend/agent side of all of these already works
-      end to end; this is purely the UI now.
+- [x] Parent auth UI (signup/login) against the real endpoints above, plus a
+      read-only signed-in device list (status and last seen). Verified in a
+      browser against the containerized backend (2026-11-05): signup, login,
+      sign-out, duplicate signup, wrong credentials, session expiry (401 returns
+      to sign-in), reload persistence, all three device statuses, and a
+      narrow-viewport layout. Test accounts and rows were removed afterward.
+      See `controller/README.md` for the session-token trade-offs.
+- [x] "Add a device": generates a single-use enrollment code and shows it once
+      (copy button, instructions for the agent's manual-entry screen).
+      Verified 2026-11-05 against the containerized backend: the code shown in
+      the browser enrolled a device through `/enroll` exactly once and was
+      rejected (401) on reuse; the new device appeared in the list as "Never
+      connected"; an expired session from this button returns to sign-in. Test
+      rows were removed afterward. Backend tokens have no expiry, and are
+      stored only hashed, so a lost code cannot be shown again.
+- [x] QR code for enrollment (2026-11-05). The agent's scanner returns the
+      plain token text, so the QR encodes exactly the token. Added one
+      dependency, **`qrcode-generator` 2.0.4** (MIT, zero dependencies,
+      approved; about +13 kB gzipped). It is drawn as an SVG path from the
+      module matrix, never as injected HTML, dark on white with a 4-module
+      quiet zone so it scans on the dark theme too. Verified: structural unit
+      tests (finder patterns, quiet zone, path covers exactly the dark
+      modules); an independent decoder (jsQR, installed temporarily with
+      `--no-save` and removed) read the production output back to the exact
+      token for 13 tokens at two scales, and failed on a corrupted image; and
+      the QR the live page rendered onto a dark background decoded to the
+      token shown on the page. **Not verified: an actual phone camera scan**
+      with the agent's ML Kit scanner (the Samsung is already enrolled, and
+      scanning needs the camera). The text code remains as a fallback.
+- [x] Policy editor (time limits only so far), lock button, and the "not
+      reporting" indicator (shown on every device card since the list landed).
+      Added an additive `GET /console/devices/{id}/policy` (v1 spec updated;
+      4 Go tests incl. cross-parent 404) because `PUT` replaces the whole
+      policy and the editor must not overwrite what it doesn't show. Verified
+      2026-11-05 in a browser against the rebuilt container, **on a fake
+      device only**: invalid input sends nothing; a 0-minute limit asks for
+      confirmation; saving changed only `timeLimits` (location, site filter,
+      lock schedule and restrictions byte-identical afterward, version 3 to 4);
+      lock asks for confirmation and a cancelled click queues nothing; the new
+      route returns 401 without a session and 404 for another parent. The real
+      Samsung's policy (v14) and command queue were not touched. Not yet
+      covered: a lock that has been delivered (the UI says "sent", not
+      "locked").
+- [x] Lock schedule and location editors (2026-11-05). All three editors now
+      share one save path (`usePolicyEditor`): read the policy, validate, ask
+      for confirmation where it matters, **re-read the latest policy right
+      before saving**, replace only that section, save. Verified in a browser
+      against the real backend **on a fake device**: invalid windows (no
+      day, equal hours) send nothing; a Friday/Saturday 22:00 to 07:00 window
+      is stored as days `[6, 7]` (the agent's Calendar numbering, Sunday = 1);
+      a location save from an editor holding a stale copy did not overwrite a
+      time-limit change made in between (versions 4, 5, 6, all sections
+      intact); turning location on from off, and saving a schedule, each ask
+      for confirmation. The API spec now states the day numbering, 0-23 local
+      hours, overnight windows, and that equal hours never lock. Limits: the
+      5 to 1440 minute location interval is this console's own guard, not
+      enforced by the backend; the console cannot show whether a lock window
+      is active right now (the phone's clock and time zone may differ from the
+      browser's); two parents saving at the same instant can still race. The
+      real Samsung was not touched.
+- [x] Site filter and restrictions editors (2026-11-05), same save path.
+      Verified in a browser against the real backend **on a fake device**: a
+      blank host, a URL, an IP address and a host with a port are each
+      rejected with their own message and send nothing (an enabled filter with
+      a blank host is rejected because the agent would then filter nothing);
+      a host typed as `  Family.AdGuard-DNS.com. ` is stored as
+      `family.adguard-dns.com`; enabling or changing a host asks for
+      confirmation, warning that a wrong host can stop the phone looking up
+      addresses and so stop it receiving a corrected policy; locking VPN and
+      Private DNS settings stored both flags without disturbing the safe-boot
+      flag or any other section; the confirmation lists only what is newly
+      blocked; a `host_not_serving` report reads as a sentence in Protection
+      status. The IP-address rule was checked against AOSP
+      (`NetworkUtilsInternal.isWeaklyValidatedHostname` rejects IP literals);
+      the console is deliberately stricter than Android (dotted name, no
+      underscores). **Finding:** the backend decodes a policy into its own Go
+      struct, so a field the struct does not define is silently dropped on
+      every read and save. Today every field the agent defines survives (pinned
+      by `TestPolicyRoundTrip*`), but a field added to the agent alone would be
+      wiped by any console save, so add it to `domain.Policy` as well. Also,
+      flags set to false are omitted by the server and read as off by the
+      agent. Not verified: that a real phone accepts a given host (only the
+      real Samsung could show that, and it was not touched); the "child could
+      change the filter" note reflects the policy as loaded when that editor
+      opened, so it can be stale until reopened.
+- [x] Protection status: each device card lists what the phone has reported
+      about protections that stopped working (the agent's `enforcement`
+      events), newest report per problem, unresolved ones first. Verified
+      2026-11-05 in a browser against the real backend **on a fake device with
+      seeded events**: a resolved problem shows as restored, one that broke
+      again shows as needing attention, known detail codes read as sentences,
+      unknown text is shown as reported, non-enforcement events are ignored,
+      the empty state and an expired session are handled. **Limits:** only
+      Usage Access, the device Location setting and Private DNS ever report
+      "restored"; other reports (a failed suspend, a removed restriction) are
+      never cleared, so they stay on screen until a newer report replaces
+      them. A phone that is off or offline cannot report, so "no problems" is
+      not proof of health. Still missing: alerts that reach a parent without
+      opening the app (E4).
+- [x] **First console test against the real Samsung (SM-A045F, 2026-11-05).**
+      The console has no login for the seed parent (no email or password), so
+      this used a temporary session created directly in the database, held in
+      one browser tab, and revoked afterward. Through the console UI the
+      Facebook daily limit went 0 to 30 (policy v15), a real one-time
+      `SyncWorker` ran, and Facebook went from `suspended=true` to
+      `suspended=false` in `dumpsys package`; then 30 back to 0 (the
+      zero-minute confirmation dialog appeared; v16), another sync, and
+      Facebook was `suspended=true` again. Only `timeLimits` changed (every
+      other section and the version-14 content were otherwise identical), no
+      commands were queued, and the console showed the phone's real
+      Protection status history. **Not verified:** the console's own login
+      path for this parent, a phone applying a change on its own 15-minute
+      timer, and a lock sent from the console. **Finding:** the first sync
+      attempt of the second step timed out (`SocketTimeoutException`, worker
+      result RETRY) even though `adb reverse --list` still showed the
+      tunnel. Removing and re-creating it fixed it, so a listed tunnel is not
+      proof it works; check by running a sync, not by listing.
 
 ## Phase 4 — Hardening
 

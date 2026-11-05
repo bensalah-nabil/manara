@@ -77,17 +77,34 @@ and status reads leaving the enrolled policy, queue, and observation unchanged.
 
 Location remained disabled by policy and device setting as requested. No
 permissions or parent policy were changed. The managed foreground notice was
-active after reopening, and no location service was listed. The new screen's
-capture showed the lock screen, so portrait inspection, wrapping, and lifecycle
-UI checks remain blocked on owner unlock (last battery check: 2%, unplugged).
-The pure refresh condition covers location-only policy; its 30-second UI timing
-has not been measured. The new denied-access status path has unit coverage and
+active after reopening, and no location service was listed. On 2026-11-05 the
+unlocked phone (policy v14, 2% battery, unplugged) showed the section above the
+configured policy in portrait: `Usage data: readable`, `Location: off by
+policy`, `Call logs: unsupported`, with no clipping and correct wrapping of the
+long call-log line. Logs showed no status or runtime errors.
+Enabled-location layouts, landscape, enlarged fonts, and resume/refresh
+timing were not checked. The pure refresh condition covers location-only
+policy; its 30-second UI timing has not been measured. The new denied-access status path has unit coverage and
 an updated opt-in device test, but was not rerun with a permission toggle.
 
 Real callback-to-status location verification remains deliberately pending:
 fixture events are isolated from the enrolled database and no location
 collection was enabled. This does not complete D1's live-location verification,
 richer notification, or parent-console parity work.
+
+### D1 richer managed notice (2026-11-05)
+
+The notice now carries an expandable, counts-only summary of the cached policy
+(`NoticeSummary`, four unit tests; 54 pass in total). On the SM-A045F the system
+notification dump showed the unchanged title and text, `BigTextStyle`, and
+the expanded text `App time limits configured: 1 rule` / `Call logs: not
+collected` for policy v14, with the same ongoing foreground flags as before and
+no logged errors. Not checked: lock-screen rendering, policy changes arriving
+while it is shown, and other OEMs.
+
+Observation: the device Location toggle read `true` on 2026-11-05 after reading
+`false` the previous evening. Nothing in these tests changes it; policy
+location remains disabled, so no location service ran. This was left as found.
 
 ## Resolved
 
