@@ -221,6 +221,31 @@ func (h *Handlers) ListDevices(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, summaries)
 }
 
+// GetPolicy exists so the controller can edit one part of a policy without
+// overwriting the rest: SetPolicy replaces the whole document.
+func (h *Handlers) GetPolicy(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	policy, err := h.Policies.Get(r.Context(), deviceID)
+	if err != nil {
+		log.Printf("console: get policy: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	if policy == nil {
+		inert := domain.DefaultPolicy()
+		inert.Version = 0
+		policy = &inert
+	}
+	writeJSON(w, http.StatusOK, policy)
+}
+
 func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {
 	parentID, ok := h.requireParent(w, r)
 	if !ok {

@@ -12,13 +12,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
 	"manara/backend/internal/domain"
 	"manara/backend/internal/notify"
 	"manara/backend/internal/notify/fcm"
 	"manara/backend/internal/persistence/postgres"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -75,6 +76,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/auth/login", consoleHandlers.Login)
 	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
 	mux.HandleFunc("GET /api/v1/console/devices", consoleHandlers.ListDevices)
+	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/policy", consoleHandlers.GetPolicy)
 	mux.HandleFunc("PUT /api/v1/console/devices/{deviceId}/policy", consoleHandlers.SetPolicy)
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.CreateCommand)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)

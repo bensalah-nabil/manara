@@ -239,6 +239,29 @@ paths:
                 items: { $ref: '#/components/schemas/DeviceSummary' }
 
   /console/devices/{deviceId}/policy:
+    get:
+      tags: [console]
+      summary: Read a device's current policy
+      description: >
+        Needed to edit one part of a policy without overwriting the rest,
+        since `PUT` replaces the whole document. A device with no stored
+        policy returns an inert policy at version 0. A device that belongs
+        to another parent is `404`, the same as an unknown id.
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '200':
+          description: The current policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
     put:
       tags: [console]
       summary: Set a device's policy
@@ -402,11 +425,19 @@ components:
                   dailyMinutes: { type: integer, example: 60 }
         siteFilter:
           type: object
+          description: >
+            Pins the device's Private DNS to `dnsHost` while `enabled` is true.
+            With `enabled` false, or a blank `dnsHost`, the agent hands DNS back
+            to the automatic mode and filters nothing. A wrong or unreachable
+            host can break the phone's name lookups, which may also stop it
+            reaching the server for a corrected policy.
           properties:
             enabled: { type: boolean }
             dnsHost:
               type: string
-              description: Private DNS host used to enforce filtering.
+              description: >
+                Private DNS host used to enforce filtering. A bare host name,
+                not a URL, port or IP address.
               example: "family.adguard-dns.com"
         location:
           type: object
@@ -422,7 +453,11 @@ components:
             enabled: { type: boolean }
         lockSchedule:
           type: object
-          description: Optional recurring lock windows (e.g. bedtime).
+          description: >
+            Optional recurring lock windows (e.g. bedtime). Hours are 0-23 in
+            the device's own local time. A window whose `toHour` is earlier than
+            its `fromHour` runs past midnight and belongs to the day it starts
+            on. A window with equal hours never locks the device.
           properties:
             enabled: { type: boolean }
             windows:
@@ -430,9 +465,15 @@ components:
               items:
                 type: object
                 properties:
-                  days: { type: array, items: { type: integer }, example: [1,2,3,4,5] }
-                  fromHour: { type: integer, example: 22 }
-                  toHour: { type: integer, example: 7 }
+                  days:
+                    type: array
+                    description: >
+                      Day numbers follow java.util.Calendar: Sunday is 1 and
+                      Saturday is 7.
+                    items: { type: integer, minimum: 1, maximum: 7 }
+                    example: [2,3,4,5,6]
+                  fromHour: { type: integer, minimum: 0, maximum: 23, example: 22 }
+                  toHour: { type: integer, minimum: 0, maximum: 23, example: 7 }
         restrictions:
           type: object
           description: >
