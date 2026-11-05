@@ -16,6 +16,23 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 8   | **A3 physical power-loss coverage**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Before claiming power-loss durability                                                              | Process death at the state-write/event-insert boundary, rollback, concurrent observers, reopen, and offline replay after a committed transition are verified below. Physical power loss and every possible crash boundary were not injected. | Process-death checks passed; power-loss testing remains open                                                |
 | 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper alerts built; verified on fake devices only (see below). Not-reporting and request alerts still open |
 
+### E3 per-app minutes on the real Samsung (2026-11-05)
+
+Updated agent installed in place (device owner, Usage Access and the existing
+Facebook suspension survived); server rebuilt. Turning the report on (v17)
+produced one real `usage_report`: 2026-11-05, 179 minutes, 4 apps. Per app it
+matched `dumpsys usagestats` daily `totalTimeUsed` rounded down
+(settings 122 vs 2:02:36, launcher 22 vs 22:19, Manara 17 vs 17:47). The managed
+notice read "Daily app usage is reported to your parent" and the status screen
+"Daily app usage report: sent to your parent". Off (v18): no new report after a
+sync, both lines gone, all other sections identical to v16.
+
+**Found on the way:** Usage Access for Manara had been switched to `ignore`
+about six hours earlier (cause not established; the phone itself reported it
+at 16:12). The parent re-enabled it in Settings. **Not verified:** the
+unattended hourly cadence across a whole day, a day boundary, the 30-app cap
+on a busy phone, other OEMs.
+
 ### E4 tamper alerts (2026-11-05)
 
 The backend now sends a message to the operator's ntfy topic and/or webhook

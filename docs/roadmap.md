@@ -292,6 +292,27 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       to the child (G2), with retention and encryption at rest still open in
       Phase 4. **Not verified:** the real Samsung's own history in this panel
       (it needs a console login session, and none is open).
+- [x] **E3 per-app minutes, opt-in (2026-11-05).** New policy section
+      `usageReport: {enabled}` (off when absent). While on, the agent's
+      `UsageReportEnforcer` sends a `usage_report` event with today's minutes
+      per app (busiest 30, at least one minute, package names only), at most
+      about hourly and only when the total changed; the decision logic is
+      pure and unit-tested (`UsageReportDecision`). The child sees it on the
+      managed notice ("Daily app usage is reported to your parent") and the
+      status screen while it is on. Missing Usage Access is reported as an
+      `enforcement` problem instead of silently sending nothing. The server
+      deletes `usage_report` events older than 30 days (hourly sweep, and at
+      start). The console has a toggle (confirmation when turning it on) and
+      a "Daily app usage" panel (latest snapshot per phone-local day, 7 days).
+      **Verified on the real Samsung:** on (v17), a real report arrived, its
+      per-app minutes matched Android's own daily stats (rounded down), the
+      notice and status screen showed the disclosure, and the console panel
+      showed it; off (v18), no further report, both disclosures gone, every
+      other policy section equal to v16, Facebook still suspended. Retention
+      and the round trip were verified against a second server instance on a
+      fake device. **Not done:** encryption at rest (Phase 4); app labels
+      instead of package names; an exact end-of-day figure (snapshots are
+      about hourly, so a day's last minutes can be missing).
 
 ## Phase 4 — Hardening
 

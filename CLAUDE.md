@@ -216,6 +216,16 @@ before a new `Policy` field existed silently drops that field on
 After changing `backend/internal/domain`, run
 `docker compose up -d --build server` before testing against the stack.
 
+## After an instrumented sync, check that the managed notice came back
+
+The opt-in device test that runs a real `SyncWorker` ends by killing the app
+process, which takes the managed notice down with it. A plain `am start` then
+only brought the task's top screen forward. That screen was Settings' Usage
+access page, opened from Manara earlier, so Manara never ran. Start it with a
+cleared task (`am start -f 0x10008000 -n com.manara.agent/.MainActivity`,
+not a force-stop, which would cancel its scheduled work). Then confirm
+`ManagedNoticeService` is `isForeground=true` before calling the test done.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
