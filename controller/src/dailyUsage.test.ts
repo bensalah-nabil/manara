@@ -38,7 +38,7 @@ test('apps are busiest first, ties by name, and bad entries are dropped', () => 
     const [day] = summarizeDailyUsage([report({
         date: '2026-11-05', totalMinutes: 70,
         apps: [app('zeta', 5), app('alpha', 5), app('big', 60), { package: '', minutes: 4 }, { package: 'neg', minutes: -1 },
-            { package: 'str', minutes: '9' }, null, 'x', { minutes: 3 }, app('  padded  ', 1)],
+        { package: 'str', minutes: '9' }, null, 'x', { minutes: 3 }, app('  padded  ', 1)],
     }, '2026-11-05T12:00:00Z')])
     assert.deepEqual(day.apps.map((a) => [a.packageName, a.minutes]), [['big', 60], ['alpha', 5], ['zeta', 5], ['padded', 1]])
 })
