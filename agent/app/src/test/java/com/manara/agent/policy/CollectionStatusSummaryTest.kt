@@ -25,6 +25,18 @@ class CollectionStatusSummaryTest {
     }
 
     @Test
+    fun usageReportAloneCountsAsNeedingUsageData() {
+        val reportOnly = Policy(14, usageReport = Policy.UsageReport(true))
+        assertTrue(CollectionStatusSummary.needsRefresh(reportOnly))
+        assertTrue(CollectionStatusSummary.usageDataNeeded(reportOnly))
+        assertFalse(CollectionStatusSummary.usageDataNeeded(Policy(14, usageReport = Policy.UsageReport(false))))
+        assertFalse(CollectionStatusSummary.usageDataNeeded(null))
+        val unreadable = CollectionStatusSummary.describe(reportOnly, CollectionStatusSummary.Usage.ACCESS_MISSING, now = now)
+        assertTrue(unreadable.contains("Usage data: unavailable (Usage Access missing)"))
+        assertTrue(CollectionStatusSummary.describe(reportOnly, CollectionStatusSummary.Usage.READABLE, now = now).contains("Usage data: readable"))
+    }
+
+    @Test
     fun noPolicyAndDisabledPolicyDoNotClaimCollection() {
         assertTrue(CollectionStatusSummary.describe(null).contains("Location: unknown (no policy)"))
         val summary = CollectionStatusSummary.describe(Policy(14), location = historical, now = now)

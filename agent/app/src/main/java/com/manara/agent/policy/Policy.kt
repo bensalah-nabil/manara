@@ -18,7 +18,8 @@ data class Policy(
     val location: Location = Location(),
     val callLog: CallLog = CallLog(),
     val lockSchedule: LockSchedule? = null,
-    val restrictions: Restrictions = Restrictions()
+    val restrictions: Restrictions = Restrictions(),
+    val usageReport: UsageReport = UsageReport()
 ) {
     @Serializable
     data class TimeLimits(
@@ -47,6 +48,12 @@ data class Policy(
 
     @Serializable
     data class CallLog(
+        val enabled: Boolean = false
+    )
+
+    /** Opt-in daily per-app minutes. Data leaves the phone, so it is shown on the notice and status screen while on. */
+    @Serializable
+    data class UsageReport(
         val enabled: Boolean = false
     )
 

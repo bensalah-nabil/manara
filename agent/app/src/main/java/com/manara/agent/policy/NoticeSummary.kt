@@ -11,6 +11,7 @@ object NoticeSummary {
         }
         if (policy.siteFilter.enabled) lines += "Site filtering requested"
         if (policy.location.enabled) lines += "Location sharing requested, every ${policy.location.intervalMinutes} min"
+        if (policy.usageReport.enabled) lines += "Daily app usage is reported to your parent"
         val windows = policy.lockSchedule?.takeIf { it.enabled }?.windows?.size ?: 0
         if (windows > 0) lines += "Scheduled lock: $windows ${if (windows == 1) "window" else "windows"}"
         with(policy.restrictions) {

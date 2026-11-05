@@ -63,6 +63,14 @@ class PolicySummaryTest {
     }
 
     @Test
+    fun usageReportIsShownOnTheStatusScreen() {
+        assertTrue(PolicySummary.describe(Policy(version = 11)).contains("Daily app usage report: off"))
+        val on = PolicySummary.describe(Policy(version = 11, usageReport = Policy.UsageReport(true)))
+        assertTrue(on.contains("Daily app usage report: sent to your parent"))
+        assertFalse(on.contains("usage report: off"))
+    }
+
+    @Test
     fun requestedCollectionIsNotPresentedAsWorking() {
         val summary = PolicySummary.describe(Policy(
             version = 1,

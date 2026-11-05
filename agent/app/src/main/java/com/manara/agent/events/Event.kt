@@ -22,7 +22,10 @@ data class Event(
 
 @Serializable
 enum class EventKind {
-    usage, location, call, lock, boot, heartbeat, enforcement
+    usage, location, call, lock, boot, heartbeat, enforcement,
+
+    /** Wire name matches the API's `usage_report`; Kotlin serialization uses the entry name. */
+    usage_report
 }
 
 /**

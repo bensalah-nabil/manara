@@ -18,13 +18,11 @@ internal class CollectionStatusReader(private val context: Context, private val 
 
     suspend fun read(policy: Policy?): Snapshot {
         val usageReader = DailyUsageReader(context)
-        val hasAppLimits = policy?.timeLimits?.let { limits ->
-            limits.enabled && limits.rules.any { it.packages.isNotEmpty() }
-        } == true
-        val minutes = if (hasAppLimits) attempt("usage data") { usageReader.readMinutes() } else null
+        val usageNeeded = CollectionStatusSummary.usageDataNeeded(policy)
+        val minutes = if (usageNeeded) attempt("usage data") { usageReader.readMinutes() } else null
         val usage = when {
             minutes != null -> CollectionStatusSummary.Usage.READABLE
-            hasAppLimits && attempt("Usage Access") { usageReader.hasAccess() } == false ->
+            usageNeeded && attempt("Usage Access") { usageReader.hasAccess() } == false ->
                 CollectionStatusSummary.Usage.ACCESS_MISSING
             else -> CollectionStatusSummary.Usage.UNAVAILABLE
         }

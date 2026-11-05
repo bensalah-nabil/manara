@@ -39,6 +39,11 @@ object PolicySummary {
         } else {
             "Location collection: off"
         }
+        lines += if (policy.usageReport.enabled) {
+            "Daily app usage report: sent to your parent (minutes per app, about hourly)"
+        } else {
+            "Daily app usage report: off"
+        }
         lines += if (policy.callLog.enabled) {
             "Call logs: not collected (unsupported, requested by policy)"
         } else {

@@ -4,8 +4,12 @@ import java.time.Instant
 
 object CollectionStatusSummary {
     fun needsRefresh(policy: Policy?): Boolean = policy?.let {
-        it.location.enabled || (it.timeLimits.enabled && it.timeLimits.rules.any { rule -> rule.packages.isNotEmpty() })
+        it.location.enabled || usageDataNeeded(it)
     } == true
+
+    /** Usage data is read for app time limits that name apps, and for the opt-in usage report. */
+    fun usageDataNeeded(policy: Policy?): Boolean = policy != null &&
+        (policy.usageReport.enabled || (policy.timeLimits.enabled && policy.timeLimits.rules.any { it.packages.isNotEmpty() }))
 
     enum class Usage { READABLE, ACCESS_MISSING, UNAVAILABLE }
 
@@ -27,7 +31,7 @@ object CollectionStatusSummary {
         val lines = mutableListOf<String>()
         lines += when {
             policy == null -> "Usage data: unknown (no policy)"
-            !policy.timeLimits.enabled || policy.timeLimits.rules.none { it.packages.isNotEmpty() } ->
+            !usageDataNeeded(policy) ->
                 "Usage data: inactive"
             usage == Usage.READABLE -> "Usage data: readable"
             usage == Usage.ACCESS_MISSING -> "Usage data: unavailable (Usage Access missing)"

@@ -41,6 +41,15 @@ class NoticeSummaryTest {
     }
 
     @Test
+    fun usageReportIsDisclosedToTheChildOnlyWhileItIsOn() {
+        val on = NoticeSummary.lines(Policy(version = 1, usageReport = Policy.UsageReport(true)))
+        assertTrue(on.contains("Daily app usage is reported to your parent"))
+        assertFalse(on.contains("No limits or collection configured"))
+        val off = NoticeSummary.lines(Policy(version = 1, usageReport = Policy.UsageReport(false)))
+        assertFalse(off.any { it.contains("usage is reported") })
+    }
+
+    @Test
     fun disabledFeaturesAndCallLogRequestsAreNotListedAsActive() {
         val lines = NoticeSummary.lines(Policy(
             version = 1,
