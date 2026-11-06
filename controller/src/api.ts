@@ -36,6 +36,12 @@ export interface ApiOptions {
     fetchImpl?: typeof fetch
 }
 
+export interface EnrollmentRequest {
+    attestation: { parentOrGuardian: boolean; minorChild: boolean; childInformed: boolean }
+    version: string
+    phoneBrand: string
+}
+
 export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) {
     const root = baseUrl.replace(/\/+$/, '')
 
@@ -117,8 +123,12 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             return value as DeviceSummary[]
         },
 
-        async createEnrollmentToken(): Promise<string> {
-            const value = (await request('POST', '/console/enrollment-tokens', undefined, true)) as {
+        async createEnrollmentToken(input: EnrollmentRequest): Promise<string> {
+            const body = {
+                attestation: { ...input.attestation, version: input.version },
+                phoneBrand: input.phoneBrand,
+            }
+            const value = (await request('POST', '/console/enrollment-tokens', body, true)) as {
                 enrollmentToken?: unknown
             } | null
             if (!value || typeof value.enrollmentToken !== 'string' || value.enrollmentToken === '') {

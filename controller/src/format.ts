@@ -26,6 +26,12 @@ export function authErrorText(code: string): string {
             return 'That email is already registered.'
         case 'network':
             return 'Cannot reach the server. Check your connection and try again.'
+        case 'attestation_required':
+            return 'Please confirm all three statements about your child\'s phone.'
+        case 'attestation_outdated':
+            return 'The statements were updated. Reload the page and confirm them again.'
+        case 'unknown_phone_brand':
+            return 'Please choose the phone brand again.'
         default:
             return 'Something went wrong. Please try again.'
     }

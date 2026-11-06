@@ -42,20 +42,29 @@ test('listDevices sends the bearer token, and never calls out without one', asyn
     assert.equal(calls.length, 1)
 })
 
-test('createEnrollmentToken posts with the bearer token and returns the token', async () => {
+const ENROLL = {
+    attestation: { parentOrGuardian: true, minorChild: true, childInformed: true },
+    version: '2026-11-06',
+    phoneBrand: 'samsung',
+}
+
+test('createEnrollmentToken posts the attestation with the bearer token and returns the token', async () => {
     const { calls, fetchImpl } = recorder(() => jsonResponse(200, { enrollmentToken: 'abc123' }))
     const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
-    assert.equal(await api.createEnrollmentToken(), 'abc123')
+    assert.equal(await api.createEnrollmentToken(ENROLL), 'abc123')
     assert.equal(calls[0].url, 'http://x/console/enrollment-tokens')
     assert.equal(calls[0].init.method, 'POST')
-    assert.equal(calls[0].init.body, undefined)
+    assert.deepEqual(JSON.parse(String(calls[0].init.body)), {
+        attestation: { parentOrGuardian: true, minorChild: true, childInformed: true, version: '2026-11-06' },
+        phoneBrand: 'samsung',
+    })
     assert.equal((calls[0].init.headers as Record<string, string>).Authorization, 'Bearer tok')
 })
 
 test('createEnrollmentToken rejects a missing session and malformed responses', async () => {
     const none = recorder(() => jsonResponse(200, { enrollmentToken: 'x' }))
     await assert.rejects(
-        createApi({ baseUrl: 'http://x', getToken: () => null, fetchImpl: none.fetchImpl }).createEnrollmentToken(),
+        createApi({ baseUrl: 'http://x', getToken: () => null, fetchImpl: none.fetchImpl }).createEnrollmentToken(ENROLL),
         (error: ApiError) => error.code === 'no_session',
     )
     assert.equal(none.calls.length, 0)
@@ -66,7 +75,7 @@ test('createEnrollmentToken rejects a missing session and malformed responses', 
             getToken: () => 't',
             fetchImpl: recorder(() => jsonResponse(200, body)).fetchImpl,
         })
-        await assert.rejects(api.createEnrollmentToken(), (error: ApiError) => error.code === 'bad_response')
+        await assert.rejects(api.createEnrollmentToken(ENROLL), (error: ApiError) => error.code === 'bad_response')
     }
 })
 

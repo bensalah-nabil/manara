@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ApiError, createApi, isSessionError } from './api.ts'
 import type { Api, DeviceSummary } from './api.ts'
+import { AddDevice } from './AddDevice.tsx'
 import { DevicePanel } from './DevicePanel.tsx'
 import { authErrorText, lastSeenText, statusText } from './format.ts'
-import { QrCode } from './QrCode.tsx'
 import { createSessionStore } from './session.ts'
 import './console.css'
 
@@ -81,7 +81,7 @@ function AuthForm({
 
 function DeviceList({ devices, api, onSessionExpired }: { devices: DeviceSummary[]; api: Api; onSessionExpired: () => void }) {
   if (devices.length === 0) {
-    return <p className="hint">No devices yet. Use "Add a device" to enroll one.</p>
+    return <p className="hint">No phones yet. Use "Add your child's phone" to connect one.</p>
   }
   return (
     <ul className="devices">
@@ -98,67 +98,6 @@ function DeviceList({ devices, api, onSessionExpired }: { devices: DeviceSummary
 }
 
 const EXPIRED = 'Your session has expired. Please sign in again.'
-
-function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpired: () => void }) {
-  const [token, setToken] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [copyNote, setCopyNote] = useState('')
-
-  async function generate() {
-    setBusy(true)
-    setError('')
-    setCopyNote('')
-    try {
-      setToken(await api.createEnrollmentToken())
-    } catch (caught) {
-      if (isSessionError(caught)) onSessionExpired()
-      else setError(authErrorText(caught instanceof ApiError ? caught.code : 'unknown'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function copy() {
-    if (token === null) return
-    try {
-      await navigator.clipboard.writeText(token)
-      setCopyNote('Copied.')
-    } catch {
-      setCopyNote('Could not copy automatically. Select the code and copy it.')
-    }
-  }
-
-  if (token === null) {
-    return (
-      <div className="card">
-        <button type="button" onClick={generate} disabled={busy}>
-          {busy ? 'Please wait...' : 'Add a device'}
-        </button>
-        <p role="alert" className="error">{error}</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="card">
-      <strong>Enrollment code</strong>
-      <QrCode value={token} label="Enrollment code as a QR code" />
-      <code className="token">{token}</code>
-      <p className="hint">
-        On the child's phone, open Manara, choose "Enroll this device", then "Scan QR code" and scan the
-        square above, or type the code instead. It works
-        once and is shown only now, so generate a new one if it is lost. Enrolled phones always show a
-        permanent notice that they are managed.
-      </p>
-      <div className="row">
-        <button type="button" onClick={copy}>Copy</button>
-        <button type="button" className="link" onClick={() => setToken(null)}>Done</button>
-      </div>
-      <p role="status" className="hint">{copyNote}</p>
-    </div>
-  )
-}
 
 function App() {
   const session = useMemo(() => createSessionStore(window.sessionStorage), [])
