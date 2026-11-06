@@ -130,6 +130,27 @@ test('listEvents can limit to events since a time, sent as an encoded RFC 3339 i
     assert.equal(calls[0].url, 'http://x/console/devices/d/events?kind=usage_report&since=2026-11-01T10%3A20%3A30.000Z')
 })
 
+test('getSetup returns null before any report and fills in missing account lists', async () => {
+    const none = recorder(() => jsonResponse(200, null))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl: none.fetchImpl })
+    assert.equal(await api.getSetup('a/b'), null)
+    assert.equal(none.calls[0].url, 'http://x/console/devices/a%2Fb/setup')
+
+    const partial = recorder(() => jsonResponse(200, { deviceId: 'd', step: 'linked', status: 'in_progress' }))
+    const setup = await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl: partial.fetchImpl }).getSetup('d')
+    assert.deepEqual([setup?.message, setup?.initialAccounts, setup?.currentAccounts], ['', [], []])
+
+    const bad = createApi({ baseUrl: 'http://x', getToken: () => 't', fetchImpl: recorder(() => jsonResponse(200, { step: 3 })).fetchImpl })
+    await assert.rejects(bad.getSetup('d'), (error: ApiError) => error.code === 'bad_response')
+})
+
+test('clearSetupAccounts deletes the saved account lists for that device', async () => {
+    const { calls, fetchImpl } = recorder(() => jsonResponse(200, { cleared: true }))
+    await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl }).clearSetupAccounts('d1')
+    assert.equal(calls[0].url, 'http://x/console/devices/d1/setup/accounts')
+    assert.equal(calls[0].init.method, 'DELETE')
+})
+
 test('error bodies map to codes; non-JSON error bodies keep only the status', async () => {
     const withCode = createApi({
         baseUrl: 'http://x',

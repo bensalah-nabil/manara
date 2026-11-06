@@ -9,6 +9,7 @@ import { limitHitText, summarizeLimitHits } from './usageHistory.ts'
 import type { LimitHit } from './usageHistory.ts'
 import { minutesText, summarizeDailyUsage } from './dailyUsage.ts'
 import type { DailyUsage } from './dailyUsage.ts'
+import { SetupProgress } from './SetupProgress.tsx'
 
 function ProtectionStatus({ api, device, onSessionExpired }: Props) {
     const [reports, setReports] = useState<ProtectionReport[] | null>(null)
@@ -213,6 +214,7 @@ function LockNow({ api, device, onSessionExpired }: Props) {
 export function DevicePanel(props: Props) {
     return (
         <div className="stack">
+            <SetupProgress {...props} />
             <ProtectionStatus {...props} />
             <LimitHistory {...props} />
             <DailyUsagePanel {...props} />

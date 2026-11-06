@@ -1,6 +1,7 @@
 export type DeviceStatus = 'reporting' | 'not_reporting' | 'never_connected'
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
+import type { DeviceSetup } from './setup.ts'
 
 export interface DeviceSummary {
     deviceId: string
@@ -155,6 +156,26 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             const value = await request('GET', devicePath(deviceId, 'events') + query, undefined, true)
             if (!Array.isArray(value)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
             return value as EventItem[]
+        },
+
+        /** Null until the phone reports its first setup step. */
+        async getSetup(deviceId: string): Promise<DeviceSetup | null> {
+            const value = await request('GET', devicePath(deviceId, 'setup'), undefined, true)
+            if (value === null) return null
+            const setup = value as Partial<DeviceSetup>
+            if (typeof setup.step !== 'string' || typeof setup.status !== 'string') {
+                throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            }
+            return {
+                ...(setup as DeviceSetup),
+                message: typeof setup.message === 'string' ? setup.message : '',
+                initialAccounts: Array.isArray(setup.initialAccounts) ? setup.initialAccounts : [],
+                currentAccounts: Array.isArray(setup.currentAccounts) ? setup.currentAccounts : [],
+            }
+        },
+
+        async clearSetupAccounts(deviceId: string): Promise<void> {
+            await request('DELETE', devicePath(deviceId, 'setup/accounts'), undefined, true)
         },
     }
 }

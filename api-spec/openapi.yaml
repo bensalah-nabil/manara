@@ -144,6 +144,53 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /agent/setup:
+    post:
+      tags: [agent-sync]
+      summary: Report progress through guided setup
+      description: >
+        The phone runs a fixed list of setup actions itself and reports each
+        step here so the parent can follow along in the console. The server
+        only records what the phone says; nothing in the response tells the
+        phone what to run. `accounts`, when sent, is the full list of
+        accounts now on the phone (types and names only, never passwords).
+        The first non-empty list is kept as the starting list for the
+        parent's reconnect checklist. Omitting `accounts` leaves both stored
+        lists unchanged; an empty array means no accounts are left. Saved
+        lists are deleted after 7 days.
+      security: [{ deviceToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [step, status]
+              properties:
+                step: { $ref: '#/components/schemas/SetupStep' }
+                status: { $ref: '#/components/schemas/SetupStatus' }
+                message: { type: string, maxLength: 300 }
+                accounts:
+                  type: array
+                  maxItems: 100
+                  items: { $ref: '#/components/schemas/SetupAccount' }
+      responses:
+        '200':
+          description: Stored. The device's setup state after this report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceSetup' }
+        '400':
+          description: >
+            `bad_request` (unreadable body, over 64 KB) or
+            `invalid_setup_report` (unknown step or status, `done` step
+            without `done` status or the reverse, or a field over its limit).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ------------------------------------------------------------------ #
   #  CONSOLE (parent web app)                                           #
   # ------------------------------------------------------------------ #
@@ -360,6 +407,57 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Event' }
+
+  /console/devices/{deviceId}/setup:
+    get:
+      tags: [console]
+      summary: Read a device's guided-setup progress
+      description: >
+        `null` if the phone never reported a setup step (for example, a
+        phone set up before guided setup existed). The console polls this
+        while setup is in progress.
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '200':
+          description: The latest setup state, or null.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/DeviceSetup' }
+                  - { type: 'null' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/devices/{deviceId}/setup/accounts:
+    delete:
+      tags: [console]
+      summary: Delete the saved account lists now instead of after 7 days
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '200':
+          description: Both account lists are now empty. The step and status are kept.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cleared]
+                properties:
+                  cleared: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
 # ==================================================================== #
 components:
@@ -587,3 +685,43 @@ components:
           type: object
           additionalProperties: true
           description: Shape depends on `kind` (usage sample, lat/lng, call entry...).
+
+    SetupStep:
+      type: string
+      description: Guided-setup steps, in the order the phone runs them.
+      enum: [linked, pairing, checking_accounts, removing_app_accounts, waiting_for_accounts,
+             device_owner, restoring_apps, reconnecting, done]
+
+    SetupStatus:
+      type: string
+      description: >
+        `waiting_for_parent` means the phone needs the parent to do something
+        by hand (remove or re-add accounts). `done` goes only with step `done`.
+      enum: [in_progress, waiting_for_parent, failed, done]
+
+    SetupAccount:
+      type: object
+      description: An account on the phone. Never includes a password.
+      required: [type, name]
+      properties:
+        type: { type: string, minLength: 1, maxLength: 200, example: com.google }
+        name: { type: string, maxLength: 200 }
+
+    DeviceSetup:
+      type: object
+      required: [deviceId, step, status, message, initialAccounts, currentAccounts, startedAt, updatedAt]
+      properties:
+        deviceId: { type: string, format: uuid }
+        step: { $ref: '#/components/schemas/SetupStep' }
+        status: { $ref: '#/components/schemas/SetupStatus' }
+        message: { type: string }
+        initialAccounts:
+          type: array
+          description: The first account list the phone reported; the reconnect checklist.
+          items: { $ref: '#/components/schemas/SetupAccount' }
+        currentAccounts:
+          type: array
+          description: The latest account list the phone reported.
+          items: { $ref: '#/components/schemas/SetupAccount' }
+        startedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
