@@ -26,6 +26,14 @@ abstract class ManaraDatabase : RoomDatabase() {
     abstract fun locationObservationDao(): LocationObservationDao
 
     companion object {
+        // Version 2 originally shipped with a destructive fallback; once that was removed, a phone still on
+        // version 1 crashed on every database access (found on an SM-A528B upgraded from the 11-02 build).
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `command_acks` (`commandId` TEXT NOT NULL, `status` TEXT NOT NULL, `detail` TEXT, `enqueuedAt` INTEGER NOT NULL, PRIMARY KEY(`commandId`))")
+            }
+        }
+
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `location_observation` (`id` INTEGER NOT NULL, `eventId` TEXT NOT NULL, `sampleAt` INTEGER, `savedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
@@ -46,7 +54,7 @@ abstract class ManaraDatabase : RoomDatabase() {
                     context.applicationContext,
                     ManaraDatabase::class.java,
                     "manara.db"
-                ).addMigrations(MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }
