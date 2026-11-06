@@ -16,6 +16,23 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 8   | **A3 physical power-loss coverage**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Before claiming power-loss durability                                                              | Process death at the state-write/event-insert boundary, rollback, concurrent observers, reopen, and offline replay after a committed transition are verified below. Physical power loss and every possible crash boundary were not injected. | Process-death checks passed; power-loss testing remains open                                                |
 | 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper alerts built; verified on fake devices only (see below). Not-reporting and request alerts still open |
 
+### Upgrade from database version 1 and E3 on SM-A528B (2026-11-06)
+
+The A52 (Android 14, One UI 6.1, device owner since 2026-11-02) had not
+synced since 11-03. Installing the current build in place exposed a missing
+Room migration 1-2 (see roadmap); the fixed build upgraded its version-1
+database with no error, synced, and kept device owner and the managed notice.
+Usage report on (v8): one report, 2026-11-06, 145 minutes, 13 apps; top three
+matched `dumpsys usagestats` (Messenger 37 vs 37:02, Facebook 23 vs 23:42,
+WhatsApp 20 vs 20:16); notice and status screen disclosed it. Off (v9): no new
+report after two syncs, both disclosures gone, all other sections equal to v7.
+
+**Not verified:** that the cached policy row itself survived the upgrade (the
+sync re-delivered the same version, so the status screen cannot tell the two
+apart; the migration only adds a table). **Open:** no Room schema export or
+migration test exists, so the next schema change can repeat this; the A52
+belongs to a seed parent with no login.
+
 ### E3 per-app minutes on the real Samsung (2026-11-05)
 
 Updated agent installed in place (device owner, Usage Access and the existing

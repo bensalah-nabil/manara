@@ -313,6 +313,21 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       fake device. **Not done:** encryption at rest (Phase 4); app labels
       instead of package names; an exact end-of-day figure (snapshots are
       about hourly, so a day's last minutes can be missing).
+      **Second phone (SM-A528B, Android 14 / One UI 6.1, 2026-11-06):** same
+      on/off test passed (v8 on: 145 min, 13 apps, top three equal to
+      Android's own stats rounded down; v9 off: no report, disclosures gone,
+      everything else equal to v7). Still Samsung only.
+- [x] **Fixed: upgrading from the first build broke the agent (2026-11-06).**
+      The A52 still had the 11-02 build (database version 1). Installing
+      the current build made every database access fail with "A migration
+      from 1 to 4 was required but not found": version 2 had shipped with a
+      destructive fallback, and adding real 2-3 and 3-4 migrations removed
+      it, leaving no path from 1. Every `SyncWorker` run crashed, which also
+      stopped the periodic policy re-apply, so enforcement on that phone had
+      silently stopped. Added `MIGRATION_1_2` (creates `command_acks`, the
+      statement Room generates), which keeps the stored policy and queued
+      events. Verified on that phone: upgrade from version 1, sync succeeded,
+      no migration error, managed notice running.
 
 ## Phase 4 — Hardening
 

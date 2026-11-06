@@ -226,6 +226,17 @@ cleared task (`am start -f 0x10008000 -n com.manara.agent/.MainActivity`,
 not a force-stop, which would cancel its scheduled work). Then confirm
 `ManagedNoticeService` is `isForeground=true` before calling the test done.
 
+## A Room version bump needs a migration from every version that ever shipped
+
+Version 2 shipped with `fallbackToDestructiveMigration()`. Later commits added
+real 2-3 and 3-4 migrations and dropped that fallback, leaving nothing for
+version 1. A phone still on the first build (the A52) then crashed on every
+database access after an in-place upgrade. Every `SyncWorker` run failed, so
+enforcement silently stopped, while the phone that had stepped through each
+version never showed it. Before removing a fallback or bumping `version`,
+check `addMigrations` covers 1 to current. Test an upgrade on a phone that
+still has the oldest build, not just the one updated every day.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
