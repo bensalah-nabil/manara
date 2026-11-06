@@ -328,6 +328,34 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       statement Room generates), which keeps the stored policy and queued
       events. Verified on that phone: upgrade from version 1, sync succeeded,
       no migration error, managed notice running.
+- [x] **Guided "Add your child's phone", part 1 (2026-11-06).** The old
+      one-click "Add a device" is now four steps in the console:
+      1. **Confirm** (a prominent notice; the parent ticks that they are the
+         parent or guardian, the phone is their minor child's, and the child
+         will be told). The server refuses a code without all three and
+         records the date, the wording version and the brand with the code
+         (`enrollment_tokens.attested_at`, `attestation_version`,
+         `phone_brand`). Recorded as stated, not verified.
+      2. **Phone type**: how to turn on USB debugging for Samsung (tested),
+         Pixel, Xiaomi/Redmi/POCO, Oppo/Realme, OnePlus, Motorola and other
+         brands; untested brands carry a clear warning.
+      3. **Prepare**: charge, back up chats, have every account password,
+         a computer with Chrome or Edge and a cable, USB debugging on. Manara
+         never sees or stores passwords.
+      4. **Connect**: the code, as before.
+      Verified in a browser against the rebuilt server with a throwaway
+      parent; a request without the confirmation gets 400 and no code.
+- [ ] **Part 2: live connection from the console.** WebUSB through Tango
+      (`@yume-chan/adb`, MIT, approved; API marked unstable, so pin the
+      version): check what blocks setup, save the account list (names and
+      types only, in the database, deleted once all are reconnected or
+      after 7 days), remove app-tied accounts, watch Google/Samsung removal
+      live, install, set device owner, link to the parent, restore apps,
+      reconnect checklist, final checks. USB only at first: a web page cannot
+      reach wireless debugging without a small helper program on the
+      computer (Tango docs). Hosting plan: console and server on a VPS,
+      parent accounts created by the operator on request, so public signup
+      is to be closed.
 
 ## Phase 4 — Hardening
 
