@@ -16,6 +16,21 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 8   | **A3 physical power-loss coverage**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Before claiming power-loss durability                                                              | Process death at the state-write/event-insert boundary, rollback, concurrent observers, reopen, and offline replay after a committed transition are verified below. Physical power loss and every possible crash boundary were not injected. | Process-death checks passed; power-loss testing remains open                                                |
 | 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper alerts built; verified on fake devices only (see below). Not-reporting and request alerts still open |
 
+### Manara using the phone's own wireless debugging (SM-A528B, 2026-11-06)
+
+`SelfAdbProbeTest` (opt-in, test build only) paired through Kadb 2.1.5 with the
+phone's wireless debugging at its Wi-Fi IP, using a pairing code the parent
+typed on the computer, then ran `id`, an account count and `dpm list-owners`:
+`uid=2000(shell)`, 13 accounts, Manara as device owner, SDK 34. Its key was
+deleted afterwards; the phone keeps a now-useless "Paired devices" entry until
+forgotten in Settings. First attempt failed before pairing with
+`NoSuchMethodError` in kotlinx-coroutines: on-device tests load shared classes
+from the app APK, which had 1.8.1 while Kadb needs 1.11.0; fixed by pinning the
+app to 1.11.0.
+
+**Not verified:** `dpm set-device-owner` over this channel, connecting to
+`127.0.0.1`, pairing entered from a notification (the real flow), other brands.
+
 ### Upgrade from database version 1 and E3 on SM-A528B (2026-11-06)
 
 The A52 (Android 14, One UI 6.1, device owner since 2026-11-02) had not

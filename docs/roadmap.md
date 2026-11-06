@@ -345,17 +345,31 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       4. **Connect**: the code, as before.
       Verified in a browser against the rebuilt server with a throwaway
       parent; a request without the confirmation gets 400 and no code.
-- [ ] **Part 2: live connection from the console.** WebUSB through Tango
-      (`@yume-chan/adb`, MIT, approved; API marked unstable, so pin the
-      version): check what blocks setup, save the account list (names and
-      types only, in the database, deleted once all are reconnected or
-      after 7 days), remove app-tied accounts, watch Google/Samsung removal
-      live, install, set device owner, link to the parent, restore apps,
-      reconnect checklist, final checks. USB only at first: a web page cannot
-      reach wireless debugging without a small helper program on the
-      computer (Tango docs). Hosting plan: console and server on a VPS,
-      parent accounts created by the operator on request, so public signup
-      is to be closed.
+- [ ] **Part 2: live setup, steered by the server, executed on the phone.**
+      Chosen over WebUSB (needs a cable and a computer; a web page cannot use
+      wireless debugging without a helper program) and over adb from the VPS
+      through a VPN (one VPN slot on the phone, an unverified path, and one
+      server holding shell access to every phone in setup). Manara on the
+      child's phone pairs with the phone's own wireless debugging (Android
+      11+, Wi-Fi) through Kadb (Apache-2.0) and runs only a fixed list of
+      setup actions; the server holds the setup state, shows every step live
+      in the console and says which step comes next, but never sends raw
+      commands. Account list (names and types only) kept in the database,
+      deleted once all are reconnected or after 7 days. After setup:
+      wireless debugging off and debugging blocked by device-owner policy.
+      Hosting plan: console and server on a VPS, parent accounts created by
+      the operator on request, so public signup is to be closed.
+      - [x] Toolchain upgrade for Kadb (AGP 9.5, built-in Kotlin 2.4.20,
+            compileSdk 37; targetSdk still 34). Coroutines pinned to 1.11.0.
+      - [x] **Proof on SM-A528B (2026-11-06):** a test running inside Manara
+            paired with the phone's own wireless debugging (code typed by the
+            parent) and got `uid=2000(shell)`, read 13 accounts and saw
+            Manara as device owner. Read-only commands only; its key was
+            deleted afterwards. Kadb is in the test build only so far.
+      - [ ] Not yet: running `dpm set-device-owner` this way (expected to
+            behave like adb from a computer, not verified), `127.0.0.1`
+            instead of the Wi-Fi IP, other brands (Shizuku notes Xiaomi and
+            Oppo/OnePlus need extra developer switches), and the flow itself.
 
 ## Phase 4 — Hardening
 

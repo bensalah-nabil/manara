@@ -240,6 +240,15 @@ still has the oldest build, not just the one updated every day.
 When adding a version, add its tables to `DatabaseUpgradeTest` and commit the
 new `app/schemas/` JSON.
 
+## A test-only dependency still runs against the app's copy of shared libraries
+
+On-device tests load classes the app also has from the app APK, not the test
+APK. Kadb (test-only) was built against kotlinx-coroutines 1.11, the app
+resolved 1.8.1, and the test died with `NoSuchMethodError` on a real phone
+even though it compiled cleanly. Check `dependencyInsight` for shared
+libraries (coroutines, okio, BouncyCastle) when adding a test dependency, and
+pin the app to the newer version.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
