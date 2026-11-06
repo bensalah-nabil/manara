@@ -1,0 +1,20 @@
+# Render Blueprint for the Manara API (free plan, for the recette).
+# The database is on Neon, and the console on Netlify (controller/netlify.toml).
+services:
+  - type: web
+    name: manara-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      # Neon connection string, asked for when the Blueprint is created.
+      - key: DATABASE_URL
+        sync: false
+      # The console's Netlify address, e.g. https://manara-console.netlify.app
+      - key: CORS_ALLOWED_ORIGIN
+        sync: false

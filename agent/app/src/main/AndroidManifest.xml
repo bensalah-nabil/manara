@@ -29,16 +29,15 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
-    <!-- usesCleartextTraffic is a DEV-ONLY concession for stub-backend, which
-         is plain HTTP on a LAN. architecture.md §6 requires TLS in transit;
-         remove this once the agent points at a real HTTPS backend, don't
-         carry it into anything resembling a release build. -->
+    <!-- usesCleartextTraffic is set by the build: true only when MANARA_API_URL is a plain
+         http:// dev server (adb reverse to localhost). Any https:// server builds with false,
+         as architecture.md §6 requires TLS in transit. -->
     <application
         android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="${usesCleartextTraffic}">
 
         <activity
             android:name=".MainActivity"

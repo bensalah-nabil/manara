@@ -28,9 +28,8 @@ import kotlinx.coroutines.withContext
  * directly in `MainActivity`'s test harness.
  *
  * QR payload is the plain enrollment token as text, not a JSON blob with a
- * server host (`phase1-plan.md` §8's call: hardcoded host for Phase 1,
- * `ManaraApiFactory.DEV_BASE_URL`, revisit before anything resembling a
- * real multi-deployment rollout).
+ * server host: the server is fixed per build (`ManaraApiFactory.BASE_URL`,
+ * from MANARA_API_URL in local.properties).
  */
 class EnrollmentActivity : Activity() {
 

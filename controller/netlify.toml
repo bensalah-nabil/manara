@@ -1,0 +1,16 @@
+# Netlify build for the parent console. Set the site's base directory to "controller".
+# VITE_API_URL is set in the Netlify site settings to the Render API, e.g.
+# https://manara-api.onrender.com/api/v1 (it is baked in at build time).
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

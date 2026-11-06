@@ -90,6 +90,10 @@ func main() {
 	go runRetentionSweep(ctx, events, setups)
 
 	addr := os.Getenv("ADDR")
+	if addr == "" && os.Getenv("PORT") != "" {
+		// Hosts such as Render tell the server which port to use through PORT.
+		addr = ":" + os.Getenv("PORT")
+	}
 	if addr == "" {
 		addr = ":8080"
 	}

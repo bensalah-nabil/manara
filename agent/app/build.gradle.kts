@@ -17,6 +17,12 @@ val localProperties = Properties().apply {
 }
 fun fcmProperty(key: String): String = localProperties.getProperty(key, "")
 
+// The server the phone talks to: -PMANARA_API_URL=... or MANARA_API_URL in local.properties for a
+// deployed server; without either the build keeps the dev default (adb reverse to localhost).
+val manaraApiUrl: String = ((findProperty("MANARA_API_URL") as String?)
+    ?: localProperties.getProperty("MANARA_API_URL", "http://localhost:8080/api/v1/"))
+    .let { if (it.endsWith("/")) it else "$it/" }
+
 android {
     namespace = "com.manara.agent"
     // Kadb requires compileSdk 37. targetSdk stays 34 on purpose: raising it changes runtime behaviour.
@@ -34,6 +40,9 @@ android {
         buildConfigField("String", "FCM_APP_ID", "\"${fcmProperty("FCM_APP_ID")}\"")
         buildConfigField("String", "FCM_PROJECT_ID", "\"${fcmProperty("FCM_PROJECT_ID")}\"")
         buildConfigField("String", "FCM_SENDER_ID", "\"${fcmProperty("FCM_SENDER_ID")}\"")
+        buildConfigField("String", "API_BASE_URL", "\"$manaraApiUrl\"")
+        // Plain HTTP is only allowed when the configured server itself is plain HTTP (local dev).
+        manifestPlaceholders["usesCleartextTraffic"] = manaraApiUrl.startsWith("http://").toString()
     }
 
     buildTypes {
