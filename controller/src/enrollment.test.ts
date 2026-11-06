@@ -34,10 +34,10 @@ test('brands match the server list, and only Samsung is marked tested', () => {
     assert.deepEqual(PHONE_GUIDES.filter((g) => g.tested).map((g) => g.brand), ['samsung'])
 })
 
-test('every guide has steps that mention USB debugging and the Settings search fallback', () => {
+test('every guide turns on wireless debugging and ends with the Settings search fallback', () => {
     for (const guide of PHONE_GUIDES) {
         assert.ok(guide.developerOptions.length >= 3, guide.brand)
-        assert.ok(guide.developerOptions.some((step) => step.includes('USB debugging')), guide.brand)
+        assert.ok(guide.developerOptions.some((step) => step.includes('Wireless debugging')), guide.brand)
         assert.ok(guide.developerOptions.at(-1)?.includes('search'), guide.brand)
     }
     assert.equal(guideFor('samsung')?.name, 'Samsung')
@@ -52,8 +52,9 @@ test('setup cannot continue until every preparation item is ticked', () => {
     assert.equal(preparedComplete({ ...prepared, passwordsNoted: false }), false)
 })
 
-test('the preparation list warns about passwords and chat backups', () => {
+test('the preparation list warns about passwords and chat backups, and needs no cable', () => {
     const text = PREPARE_ITEMS.map((item) => item.text).join(' ')
     assert.match(text, /never sees or stores passwords/)
     assert.match(text, /WhatsApp/)
+    assert.doesNotMatch(text, /USB/)
 })

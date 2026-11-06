@@ -32,7 +32,7 @@ export interface PhoneGuide {
 }
 
 /** Menu names vary by phone model and Android version; every guide ends with the Settings search fallback. */
-const SEARCH_TIP = 'If a menu name differs on this phone, use the search box at the top of Settings: search "Build number", then "USB debugging".'
+const SEARCH_TIP = 'If a menu name differs on this phone, use the search box at the top of Settings: search "Build number", then "Wireless debugging".'
 
 export const PHONE_GUIDES: PhoneGuide[] = [
     {
@@ -42,7 +42,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings, then About phone, then Software information.',
             'Tap "Build number" seven times, then enter the phone\'s PIN when asked.',
-            'Go back to Settings. Open Developer options at the bottom and turn on "USB debugging".',
+            'Go back to Settings. Open Developer options at the bottom and turn on "Wireless debugging".',
             SEARCH_TIP,
         ],
         notes: [
@@ -57,7 +57,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings, then About phone.',
             'Tap "Build number" seven times, then enter the phone\'s PIN when asked.',
-            'Open Settings, then System, then Developer options, and turn on "USB debugging".',
+            'Open Settings, then System, then Developer options, and turn on "Wireless debugging".',
             SEARCH_TIP,
         ],
         notes: [],
@@ -69,7 +69,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings, then About phone.',
             'Tap "OS version" (or "MIUI version") seven times.',
-            'Open Settings, then Additional settings, then Developer options, and turn on "USB debugging".',
+            'Open Settings, then Additional settings, then Developer options, and turn on "Wireless debugging".',
             'Also turn on "Install via USB" and "USB debugging (Security settings)". These need a signed-in Xiaomi account and may need a SIM card.',
             SEARCH_TIP,
         ],
@@ -82,7 +82,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings, then About device, then Version.',
             'Tap "Build number" seven times.',
-            'Open Settings, then Additional settings, then Developer options, and turn on "USB debugging".',
+            'Open Settings, then Additional settings, then Developer options, and turn on "Wireless debugging".',
             SEARCH_TIP,
         ],
         notes: [],
@@ -94,7 +94,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings, then About device, then Version.',
             'Tap "Build number" seven times.',
-            'Open Settings, then System, then Developer options, and turn on "USB debugging".',
+            'Open Settings, then System, then Developer options, and turn on "Wireless debugging".',
             SEARCH_TIP,
         ],
         notes: [],
@@ -106,7 +106,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings, then About phone.',
             'Tap "Build number" seven times.',
-            'Open Settings, then System, then Developer options, and turn on "USB debugging".',
+            'Open Settings, then System, then Developer options, and turn on "Wireless debugging".',
             SEARCH_TIP,
         ],
         notes: [],
@@ -118,7 +118,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         developerOptions: [
             'Open Settings and find "About phone" (sometimes under "System" or "Software information").',
             'Tap "Build number" seven times.',
-            'Find "Developer options" (often under "System" or "Additional settings") and turn on "USB debugging".',
+            'Find "Developer options" (often under "System" or "Additional settings") and turn on "Wireless debugging".',
             SEARCH_TIP,
         ],
         notes: [],
@@ -129,7 +129,7 @@ export function guideFor(brand: string): PhoneGuide | undefined {
     return PHONE_GUIDES.find((guide) => guide.brand === brand)
 }
 
-export type PrepareKey = 'charged' | 'chatsBackedUp' | 'passwordsNoted' | 'computerReady' | 'debuggingOn'
+export type PrepareKey = 'charged' | 'chatsBackedUp' | 'passwordsNoted' | 'wifiReady' | 'debuggingOn'
 
 export const PREPARE_ITEMS: { key: PrepareKey; text: string }[] = [
     { key: 'charged', text: 'The phone is charged above 50% and can stay plugged in.' },
@@ -141,14 +141,14 @@ export const PREPARE_ITEMS: { key: PrepareKey; text: string }[] = [
         key: 'passwordsNoted',
         text: 'I know the password of every account on the phone (Google, Samsung or Xiaomi, and each app) or have them written down safely. All accounts are removed during setup and must be signed back in afterwards. Manara never sees or stores passwords.',
     },
-    { key: 'computerReady', text: 'I have a computer with Chrome or Edge, and a USB cable for the phone.' },
-    { key: 'debuggingOn', text: 'USB debugging is on, following the steps for this phone.' },
+    { key: 'wifiReady', text: 'The phone runs Android 11 or newer and is connected to Wi-Fi. No computer or cable is needed.' },
+    { key: 'debuggingOn', text: 'Wireless debugging is on, following the steps for this phone.' },
 ]
 
 export type Prepared = Record<PrepareKey, boolean>
 
 export function nothingPrepared(): Prepared {
-    return { charged: false, chatsBackedUp: false, passwordsNoted: false, computerReady: false, debuggingOn: false }
+    return { charged: false, chatsBackedUp: false, passwordsNoted: false, wifiReady: false, debuggingOn: false }
 }
 
 export function preparedComplete(prepared: Prepared): boolean {

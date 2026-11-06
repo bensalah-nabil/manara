@@ -17,6 +17,8 @@
 
     <!-- Phase 1 step 5: the sync loop talks to the backend over HTTP. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Guided setup finds the phone's own Wi-Fi address for wireless debugging. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- LocationEnforcer (architecture.md §2.2). ACCESS_FINE_LOCATION is
          self-granted by OwnerReceiver (ordinary dangerous-level permission,
@@ -89,6 +91,19 @@
             android:name=".location.LocationNoticeService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Guided setup: visible while it runs, asks for the pairing code in its notification. -->
+        <service
+            android:name=".setup.SetupService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Shows guided setup progress and takes the wireless debugging pairing code." />
+        </service>
+        <receiver
+            android:name=".setup.SetupService$SetupInputReceiver"
+            android:exported="false" />
 
         <!-- Only ever instantiated by the OS when Firebase is actually
              initialized (PushConfig.isConfigured); harmless to declare

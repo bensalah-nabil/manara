@@ -125,6 +125,15 @@ class MainActivity : Activity() {
                 gravity = Gravity.CENTER
                 setPadding(0, 32, 0, 0)
             })
+            if (com.manara.agent.setup.SetupService.canStart(this)) {
+                root.addView(Button(this).apply {
+                    text = "Start guided setup"
+                    setOnClickListener {
+                        com.manara.agent.setup.SetupService.start(this@MainActivity)
+                        Toast.makeText(this@MainActivity, "Follow the Manara setup notification.", Toast.LENGTH_LONG).show()
+                    }
+                })
+            }
         }
 
         root.addView(TextView(this).apply {

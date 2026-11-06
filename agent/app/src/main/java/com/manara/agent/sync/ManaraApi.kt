@@ -4,12 +4,13 @@ import com.manara.agent.events.Event
 import com.manara.agent.policy.Policy
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
 
-/** Mirrors `api-spec/openapi.yaml`'s `/enroll` and `/agent/sync` exactly. */
+/** Mirrors `api-spec/openapi.yaml`'s `/enroll`, `/agent/sync` and `/agent/setup` exactly. */
 interface ManaraApi {
     @POST("enroll")
     suspend fun enroll(@Body request: EnrollRequest): Response<EnrollResponse>
@@ -19,7 +20,25 @@ interface ManaraApi {
         @Header("Authorization") bearerToken: String,
         @Body request: SyncRequest
     ): Response<SyncResponse>
+
+    @POST("agent/setup")
+    suspend fun reportSetup(
+        @Header("Authorization") bearerToken: String,
+        @Body request: SetupReportRequest
+    ): Response<ResponseBody>
 }
+
+/** `accounts` null leaves the server's stored lists unchanged. */
+@Serializable
+data class SetupReportRequest(
+    val step: String,
+    val status: String,
+    val message: String,
+    val accounts: List<SetupAccountDto>? = null
+)
+
+@Serializable
+data class SetupAccountDto(val type: String, val name: String)
 
 @Serializable
 data class DeviceInfo(

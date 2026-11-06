@@ -137,7 +137,7 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                     </label>
                     {guide && (
                         <div className="stack">
-                            <strong>Turn on USB debugging on the {guide.name} phone</strong>
+                            <strong>Turn on wireless debugging on the {guide.name} phone</strong>
                             {!guide.tested && (
                                 <p className="hint untested">
                                     Manara has not been tested on this brand yet. These steps are the usual ones, but menu names can
@@ -186,8 +186,9 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                     <QrCode value={token} label="Connection code as a QR code" />
                     <code className="token">{token}</code>
                     <p className="hint">
-                        The code works once and is shown only now. Guided connection from this page, with each step shown live, is
-                        coming next. Until then, Manara support finishes the connection with you using this code.
+                        The code works once and is shown only now. On the phone, open Manara and scan it. Then tap "Start guided
+                        setup" in Manara and follow the Manara notification on the phone. Each step then shows on this phone's page
+                        here, including which accounts to remove and, at the end, which to sign back in to.
                     </p>
                     <div className="row">
                         <button type="button" onClick={copy}>Copy</button>

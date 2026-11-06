@@ -113,9 +113,10 @@ dependencies {
     // Firebase project to exist just to compile.
     implementation("com.google.firebase:firebase-messaging:24.1.1")
 
+    // Guided setup talks to this phone's own wireless debugging; only fixed commands (setup/AdbSetupDevice).
+    implementation("com.flyfishxu:kadb:2.1.5")
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    // Test-only until the guided setup ships: the proof must not give the release app an adb client.
-    androidTestImplementation("com.flyfishxu:kadb:2.1.5")
 }
