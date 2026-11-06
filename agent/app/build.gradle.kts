@@ -50,6 +50,13 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    // BouncyCastle (via Kadb) ships identical copies of these in several jars; keep one, don't drop the license.
+    packaging {
+        resources {
+            pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+        }
+    }
 }
 
 // One JSON file per Room schema version, committed, so a later change can be checked against what shipped.
@@ -67,6 +74,8 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.5")
     ksp("androidx.room:room-compiler:2.8.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
+    // Pinned to Kadb's version: on-device tests load shared classes from the app, and Kadb calls 1.11 APIs.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // Phase 1 step 5: the sync loop (architecture.md §3) needs a client for
     // the v1 API and a periodic job to drive it. Retrofit + the
@@ -107,4 +116,6 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    // Test-only until the guided setup ships: the proof must not give the release app an adb client.
+    androidTestImplementation("com.flyfishxu:kadb:2.1.5")
 }
