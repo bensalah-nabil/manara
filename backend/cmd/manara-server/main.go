@@ -221,7 +221,7 @@ func runSeed(ctx context.Context, parents domain.ParentRepository, sessions doma
 	if err != nil {
 		log.Fatalf("seed: issue session: %v", err)
 	}
-	enrollmentToken, err := enrollments.Create(ctx, parent.ID)
+	enrollmentToken, err := enrollments.Create(ctx, parent.ID, nil)
 	if err != nil {
 		log.Fatalf("seed: issue enrollment token: %v", err)
 	}

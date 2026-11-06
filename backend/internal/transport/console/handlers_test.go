@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,4 +123,79 @@ func containsKey(body, key string) bool {
 	}
 	_, ok := m[key]
 	return ok
+}
+
+type fakeEnrollments struct {
+	created []*domain.GuardianAttestation
+}
+
+func (f *fakeEnrollments) Create(_ context.Context, _ string, a *domain.GuardianAttestation) (string, error) {
+	f.created = append(f.created, a)
+	return "token-1", nil
+}
+func (f *fakeEnrollments) Consume(context.Context, string) (string, bool, error) {
+	return "", false, nil
+}
+
+func newEnrollmentRequest(token, body string) *http.Request {
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/console/enrollment-tokens", strings.NewReader(body))
+	if token != "" {
+		r.Header.Set("Authorization", "Bearer "+token)
+	}
+	return r
+}
+
+const fullAttestation = `{"attestation":{"parentOrGuardian":true,"minorChild":true,"childInformed":true,"version":"` + domain.AttestationVersion + `"},"phoneBrand":"samsung"}`
+
+func TestEnrollmentTokenRequiresTheFullAttestation(t *testing.T) {
+	cases := map[string]struct{ body, code string }{
+		"no body":       {"", "attestation_required"},
+		"not json":      {"hello", "attestation_required"},
+		"empty":         {`{}`, "attestation_required"},
+		"one unchecked": {strings.Replace(fullAttestation, `"childInformed":true`, `"childInformed":false`, 1), "attestation_required"},
+		"old wording":   {strings.Replace(fullAttestation, domain.AttestationVersion, "2020-01-01", 1), "attestation_outdated"},
+		"bad brand":     {strings.Replace(fullAttestation, `"samsung"`, `"nokia"`, 1), "unknown_phone_brand"},
+	}
+	for name, c := range cases {
+		enrollments := &fakeEnrollments{}
+		h := testHandlers(nil)
+		h.Enrollments = enrollments
+		w := httptest.NewRecorder()
+		h.CreateEnrollmentToken(w, newEnrollmentRequest("mine", c.body))
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), c.code) {
+			t.Errorf("%s: status %d body %s, want 400 %s", name, w.Code, w.Body.String(), c.code)
+		}
+		if len(enrollments.created) != 0 {
+			t.Errorf("%s: a token was issued without a valid attestation", name)
+		}
+	}
+}
+
+func TestEnrollmentTokenRecordsTheAttestation(t *testing.T) {
+	enrollments := &fakeEnrollments{}
+	h := testHandlers(nil)
+	h.Enrollments = enrollments
+	w := httptest.NewRecorder()
+	h.CreateEnrollmentToken(w, newEnrollmentRequest("mine", fullAttestation))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "token-1") {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	if len(enrollments.created) != 1 {
+		t.Fatalf("created %d tokens", len(enrollments.created))
+	}
+	a := enrollments.created[0]
+	if a == nil || !a.ParentOrGuardian || !a.MinorChild || !a.ChildInformed || a.Version != domain.AttestationVersion || a.PhoneBrand != "samsung" {
+		t.Fatalf("recorded %+v", a)
+	}
+}
+
+func TestEnrollmentTokenRequiresASession(t *testing.T) {
+	enrollments := &fakeEnrollments{}
+	h := testHandlers(nil)
+	h.Enrollments = enrollments
+	w := httptest.NewRecorder()
+	h.CreateEnrollmentToken(w, newEnrollmentRequest("", fullAttestation))
+	if w.Code != http.StatusUnauthorized || len(enrollments.created) != 0 {
+		t.Fatalf("status %d, created %d", w.Code, len(enrollments.created))
+	}
 }

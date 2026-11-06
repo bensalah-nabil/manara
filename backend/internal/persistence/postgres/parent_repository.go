@@ -144,13 +144,19 @@ func NewEnrollmentTokenRepository(db *DB) *EnrollmentTokenRepository {
 	return &EnrollmentTokenRepository{db: db}
 }
 
-func (r *EnrollmentTokenRepository) Create(ctx context.Context, parentID string) (string, error) {
+func (r *EnrollmentTokenRepository) Create(ctx context.Context, parentID string, a *domain.GuardianAttestation) (string, error) {
 	token, hash, err := randomTokenAndHash()
 	if err != nil {
 		return "", err
 	}
-	_, err = r.db.Pool.Exec(ctx,
-		`INSERT INTO enrollment_tokens (token_hash, parent_id) VALUES ($1, $2)`, hash, parentID)
+	if a == nil {
+		_, err = r.db.Pool.Exec(ctx,
+			`INSERT INTO enrollment_tokens (token_hash, parent_id) VALUES ($1, $2)`, hash, parentID)
+	} else {
+		_, err = r.db.Pool.Exec(ctx, `
+			INSERT INTO enrollment_tokens (token_hash, parent_id, attested_at, attestation_version, phone_brand)
+			VALUES ($1, $2, now(), $3, $4)`, hash, parentID, a.Version, a.PhoneBrand)
+	}
 	if err != nil {
 		return "", fmt.Errorf("store enrollment token: %w", err)
 	}

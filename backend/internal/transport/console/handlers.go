@@ -7,6 +7,7 @@ package console
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -71,6 +72,16 @@ type loginRequest struct {
 type authResponse struct {
 	ParentID      string `json:"parentId"`
 	ParentSession string `json:"parentSession"`
+}
+
+type enrollmentTokenRequest struct {
+	Attestation struct {
+		ParentOrGuardian bool   `json:"parentOrGuardian"`
+		MinorChild       bool   `json:"minorChild"`
+		ChildInformed    bool   `json:"childInformed"`
+		Version          string `json:"version"`
+	} `json:"attestation"`
+	PhoneBrand string `json:"phoneBrand"`
 }
 
 type enrollmentTokenResponse struct {
@@ -184,7 +195,30 @@ func (h *Handlers) CreateEnrollmentToken(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	token, err := h.Enrollments.Create(r.Context(), parentID)
+	var req enrollmentTokenRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "attestation_required", "confirm the statements about your child's phone first")
+		return
+	}
+	attestation := domain.GuardianAttestation{
+		ParentOrGuardian: req.Attestation.ParentOrGuardian,
+		MinorChild:       req.Attestation.MinorChild,
+		ChildInformed:    req.Attestation.ChildInformed,
+		Version:          req.Attestation.Version,
+		PhoneBrand:       req.PhoneBrand,
+	}
+	if err := attestation.Validate(); err != nil {
+		code := "attestation_required"
+		switch {
+		case errors.Is(err, domain.ErrAttestationOutdated):
+			code = "attestation_outdated"
+		case errors.Is(err, domain.ErrUnknownPhoneBrand):
+			code = "unknown_phone_brand"
+		}
+		writeError(w, http.StatusBadRequest, code, err.Error())
+		return
+	}
+	token, err := h.Enrollments.Create(r.Context(), parentID, &attestation)
 	if err != nil {
 		log.Printf("console: create enrollment token: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")

@@ -211,6 +211,35 @@ paths:
         the child's phone via the agent's QR scan or manual-entry
         enrollment screen, then redeemed once at `/enroll`.
       security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        description: >
+          The parent's confirmation that the phone is their own minor child's
+          and that the child will be told it is managed (legal-and-ethics.md),
+          plus the phone brand chosen for the setup guide. Recorded with the
+          token as stated, not verified.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attestation, phoneBrand]
+              properties:
+                attestation:
+                  type: object
+                  required: [parentOrGuardian, minorChild, childInformed, version]
+                  properties:
+                    parentOrGuardian: { type: boolean, description: Must be true. }
+                    minorChild: { type: boolean, description: Must be true. }
+                    childInformed: { type: boolean, description: Must be true. }
+                    version:
+                      type: string
+                      description: >
+                        The wording the parent saw. Must equal the server's
+                        current version, otherwise `attestation_outdated`.
+                      example: "2026-11-06"
+                phoneBrand:
+                  type: string
+                  enum: [samsung, google, xiaomi, oppo-realme, oneplus, motorola, other]
       responses:
         '200':
           description: A fresh, single-use enrollment token.
@@ -221,6 +250,10 @@ paths:
                 required: [enrollmentToken]
                 properties:
                   enrollmentToken: { type: string }
+        '400':
+          description: >
+            `attestation_required` (missing body or a statement not confirmed),
+            `attestation_outdated`, or `unknown_phone_brand`. No token is issued.
         '401':
           $ref: '#/components/responses/Unauthorized'
 

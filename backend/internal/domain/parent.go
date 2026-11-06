@@ -60,8 +60,47 @@ type ParentSessionRepository interface {
 // invalidates it in the same call, so a token can't be replayed if a
 // response is somehow intercepted or retried.
 type EnrollmentTokenRepository interface {
-	Create(ctx context.Context, parentID string) (token string, err error)
+	// Create stores the attestation with the token; nil is only for the -seed dev shortcut.
+	Create(ctx context.Context, parentID string, attestation *GuardianAttestation) (token string, err error)
 	// Consume returns the parent id the token belonged to and marks it
 	// used; ok is false for an unknown or already-used token.
 	Consume(ctx context.Context, token string) (parentID string, ok bool, err error)
+}
+
+// AttestationVersion names the wording the parent confirmed. The console sends
+// the version it showed; a mismatch means the text changed and must be re-read.
+const AttestationVersion = "2026-11-06"
+
+// GuardianAttestation is what a parent confirms before getting an enrollment
+// code (legal-and-ethics.md: own minor child's device, visible to the child).
+// Recorded as stated, not verified; verification is future work.
+type GuardianAttestation struct {
+	ParentOrGuardian bool
+	MinorChild       bool
+	ChildInformed    bool
+	Version          string
+	PhoneBrand       string
+}
+
+var ErrAttestationIncomplete = errors.New("all three statements must be confirmed")
+var ErrAttestationOutdated = errors.New("the statement text has changed; reload and confirm again")
+var ErrUnknownPhoneBrand = errors.New("unknown phone brand")
+
+// PhoneBrands are the how-to guides the console offers; "other" covers the rest.
+var PhoneBrands = map[string]bool{
+	"samsung": true, "google": true, "xiaomi": true, "oppo-realme": true,
+	"oneplus": true, "motorola": true, "other": true,
+}
+
+func (a GuardianAttestation) Validate() error {
+	if !a.ParentOrGuardian || !a.MinorChild || !a.ChildInformed {
+		return ErrAttestationIncomplete
+	}
+	if a.Version != AttestationVersion {
+		return ErrAttestationOutdated
+	}
+	if !PhoneBrands[a.PhoneBrand] {
+		return ErrUnknownPhoneBrand
+	}
+	return nil
 }
