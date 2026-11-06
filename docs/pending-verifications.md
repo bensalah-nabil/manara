@@ -31,6 +31,25 @@ app to 1.11.0.
 **Not verified:** `dpm set-device-owner` over this channel, connecting to
 `127.0.0.1`, pairing entered from a notification (the real flow), other brands.
 
+### Guided setup's real phone I/O, read-only (SM-A528B, 2026-11-06)
+
+`SelfAdbProbeTest` now drives the app's own `AdbSetupDevice` (commit
+`98edd37`), stopping after the read-only steps. With a pairing code and port
+typed by the parent it paired, found the phone's own `_adb-tls-connect._tcp`
+port through `NsdManager` (no port typed for that), connected as the shell
+user, and read the accounts: 13 accounts, all 13 matched to the app that
+registered them, 7 held by apps the user installed (these setup would save
+and uninstall), 6 left for the parent (Google, Samsung, Duo), no second
+user, 126 user-installed apps. Key deleted afterwards.
+
+**Not verified:** anything that changes the phone (saving and uninstalling
+apps, `dpm set-device-owner`, reinstalling, turning wireless debugging off),
+the notification reply, and reports reaching the server from the service.
+These need a phone Manara does not manage. Open question from this run: Duo's
+account (`com.google.android.apps.tachyon`) belongs to a preinstalled app
+here, so setup leaves it to the parent; whether Settings, Accounts can remove
+it is unchecked (phase 0 removed Duo with `pm uninstall --user 0` instead).
+
 ### Upgrade from database version 1 and E3 on SM-A528B (2026-11-06)
 
 The A52 (Android 14, One UI 6.1, device owner since 2026-11-02) had not
