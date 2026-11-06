@@ -24,6 +24,7 @@ type Handlers struct {
 	Sessions    domain.ParentSessionRepository
 	Auth        domain.AuthRepository
 	Enrollments domain.EnrollmentTokenRepository
+	Setup       domain.SetupRepository
 	// Notifier wakes a device immediately for CommandType.IsUrgent()
 	// commands (e.g. lock_now), instead of relying solely on the next
 	// /agent/sync poll. notify.Noop{} when Firebase isn't configured --
@@ -278,6 +279,43 @@ func (h *Handlers) GetPolicy(w http.ResponseWriter, r *http.Request) {
 		policy = &inert
 	}
 	writeJSON(w, http.StatusOK, policy)
+}
+
+// GetSetup returns the phone's guided-setup progress, or null if it never reported any.
+func (h *Handlers) GetSetup(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	setup, err := h.Setup.Get(r.Context(), deviceID)
+	if err != nil {
+		log.Printf("console: get setup: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, setup)
+}
+
+// ClearSetupAccounts lets the parent delete the saved account lists early.
+func (h *Handlers) ClearSetupAccounts(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	if err := h.Setup.ClearAccounts(r.Context(), deviceID); err != nil {
+		log.Printf("console: clear setup accounts: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"cleared": true})
 }
 
 func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {

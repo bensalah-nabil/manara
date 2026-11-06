@@ -57,22 +57,24 @@ func main() {
 	commands := postgres.NewCommandQueue(db)
 	events := postgres.NewEventStore(db)
 	auth := postgres.NewAuthRepository(db)
+	setups := postgres.NewSetupRepository(db)
 	notifier := newNotifier(ctx)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
-		Commands: commands, Events: events, Enrollments: enrollments,
+		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups,
 		Alerts: newAlertService(devices),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
-		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments,
+		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups,
 		Notifier: notifier,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/enroll", agentHandlers.Enroll)
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
+	mux.HandleFunc("POST /api/v1/agent/setup", agentHandlers.ReportSetup)
 	mux.HandleFunc("POST /api/v1/console/auth/signup", consoleHandlers.SignUp)
 	mux.HandleFunc("POST /api/v1/console/auth/login", consoleHandlers.Login)
 	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
@@ -81,9 +83,11 @@ func main() {
 	mux.HandleFunc("PUT /api/v1/console/devices/{deviceId}/policy", consoleHandlers.SetPolicy)
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.CreateCommand)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
+	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup", consoleHandlers.GetSetup)
+	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.ClearSetupAccounts)
 
 	go runHeartbeatSweep(ctx, commands)
-	go runRetentionSweep(ctx, events)
+	go runRetentionSweep(ctx, events, setups)
 
 	addr := os.Getenv("ADDR")
 	if addr == "" {
@@ -191,17 +195,22 @@ func runHeartbeatSweep(ctx context.Context, commands domain.CommandQueue) {
 }
 
 // runRetentionSweep deletes usage reports older than domain.UsageReportRetention
+// and empties setup account lists after domain.SetupAccountRetention
 // (capability-plan G2: collected data has limited retention). It also runs
 // once at start so a restart does not delay a purge by an hour.
-func runRetentionSweep(ctx context.Context, events domain.EventStore) {
+func runRetentionSweep(ctx context.Context, events domain.EventStore, setups domain.SetupRepository) {
 	purge := func() {
 		n, err := events.PurgeOlderThan(ctx, domain.EventKindUsageReport, time.Now().Add(-domain.UsageReportRetention))
 		if err != nil {
 			log.Printf("retention sweep: %v", err)
-			return
-		}
-		if n > 0 {
+		} else if n > 0 {
 			log.Printf("retention sweep: deleted %d old usage report(s)", n)
+		}
+		m, err := setups.ClearAccountsOlderThan(ctx, time.Now().Add(-domain.SetupAccountRetention))
+		if err != nil {
+			log.Printf("retention sweep: %v", err)
+		} else if m > 0 {
+			log.Printf("retention sweep: cleared %d old setup account list(s)", m)
 		}
 	}
 	purge()

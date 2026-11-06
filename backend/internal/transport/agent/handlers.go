@@ -7,6 +7,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -24,6 +25,7 @@ type Handlers struct {
 	Commands    domain.CommandQueue
 	Events      domain.EventStore
 	Enrollments domain.EnrollmentTokenRepository
+	Setup       domain.SetupRepository
 	// Alerts is optional: nil means no parent alerts are configured.
 	Alerts *domain.AlertService
 }
@@ -245,6 +247,48 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 
 func bearerToken(r *http.Request) string {
 	return strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+}
+
+type setupReportDTO struct {
+	Step     string                `json:"step"`
+	Status   string                `json:"status"`
+	Message  string                `json:"message"`
+	Accounts []domain.SetupAccount `json:"accounts"`
+}
+
+// ReportSetup records the phone's progress through guided setup. The phone
+// only reports what it did; nothing here tells it what to run.
+func (h *Handlers) ReportSetup(w http.ResponseWriter, r *http.Request) {
+	deviceID, ok, err := h.Tokens.Resolve(r.Context(), bearerToken(r))
+	if err != nil {
+		log.Printf("setup: resolve token: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "invalid_token", "")
+		return
+	}
+	var req setupReportDTO
+	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+	report := domain.SetupReport{
+		Step: domain.SetupStep(req.Step), Status: domain.SetupStatus(req.Status),
+		Message: req.Message, Accounts: req.Accounts,
+	}
+	if err := report.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_setup_report", "")
+		return
+	}
+	setup, err := h.Setup.Report(r.Context(), deviceID, report)
+	if err != nil {
+		log.Printf("setup: store report: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, setup)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
