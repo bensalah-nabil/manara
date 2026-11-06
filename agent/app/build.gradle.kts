@@ -2,7 +2,6 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
 }
@@ -20,7 +19,8 @@ fun fcmProperty(key: String): String = localProperties.getProperty(key, "")
 
 android {
     namespace = "com.manara.agent"
-    compileSdk = 34
+    // Kadb requires compileSdk 37. targetSdk stays 34 on purpose: raising it changes runtime behaviour.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.manara.agent"
@@ -47,10 +47,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         buildConfig = true
     }
@@ -67,10 +63,10 @@ dependencies {
     // needs local persistence, so that ends here: Room is AndroidX (Google's
     // own library, not a third-party risk) and kotlinx.serialization is
     // Kotlin-first with no reflection.
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
 
     // Phase 1 step 5: the sync loop (architecture.md §3) needs a client for
     // the v1 API and a periodic job to drive it. Retrofit + the
