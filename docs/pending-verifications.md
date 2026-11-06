@@ -29,9 +29,14 @@ report after two syncs, both disclosures gone, all other sections equal to v7.
 
 **Not verified:** that the cached policy row itself survived the upgrade (the
 sync re-delivered the same version, so the status screen cannot tell the two
-apart; the migration only adds a table). **Open:** no Room schema export or
-migration test exists, so the next schema change can repeat this; the A52
-belongs to a seed parent with no login.
+apart; the migration only adds a table). Since then, `DatabaseUpgradeTest`
+builds a database exactly as versions 1, 2 and 3 created it and opens it with
+the current code: all three pass on this phone, and each checks that the
+cached policy and a queued event survive. `ManaraDatabaseMigrationsTest` (unit,
+no device) fails the build if any earlier version has no path to the current
+one; a mutation check (dropping 1-2) made it fail. Room schemas are now
+exported to `agent/app/schemas/` from version 4 on. The A52 now belongs to the
+main parent login.
 
 ### E3 per-app minutes on the real Samsung (2026-11-05)
 

@@ -56,6 +56,11 @@ android {
     }
 }
 
+// One JSON file per Room schema version, committed, so a later change can be checked against what shipped.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     // Phase 0 kept this empty on purpose, to keep the Play Protect surface
     // small. Phase 1's offline-first core (architecture.md §2.1) genuinely

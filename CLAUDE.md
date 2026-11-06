@@ -236,6 +236,9 @@ enforcement silently stopped, while the phone that had stepped through each
 version never showed it. Before removing a fallback or bumping `version`,
 check `addMigrations` covers 1 to current. Test an upgrade on a phone that
 still has the oldest build, not just the one updated every day.
+`ManaraDatabaseMigrationsTest` now fails the build when a step is missing.
+When adding a version, add its tables to `DatabaseUpgradeTest` and commit the
+new `app/schemas/` JSON.
 
 ## Don't do silently
 

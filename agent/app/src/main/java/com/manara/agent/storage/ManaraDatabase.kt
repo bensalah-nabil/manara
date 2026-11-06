@@ -7,16 +7,19 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/** Bump together with a migration from the previous version; ManaraDatabaseMigrationsTest checks the chain. */
+const val MANARA_DB_VERSION = 4
+
 /**
  * The policy cache, event queue, command-ack queue, and health state share
  * one database so health transitions and their events can commit together.
- * `exportSchema = false` for now; revisit once migrations actually matter.
+ * Schemas are exported to `app/schemas/` so each shipped version is on record.
  */
 @Database(
      entities = [PolicyEntity::class, EventEntity::class, CommandAckEntity::class, HealthStateEntity::class,
          LocationObservationEntity::class],
-     version = 4,
-    exportSchema = false
+     version = MANARA_DB_VERSION,
+    exportSchema = true
 )
 abstract class ManaraDatabase : RoomDatabase() {
     abstract fun policyDao(): PolicyDao
@@ -46,6 +49,9 @@ abstract class ManaraDatabase : RoomDatabase() {
             }
         }
 
+        /** Every shipped version must be able to reach [MANARA_DB_VERSION] through these. */
+        val MIGRATIONS: Array<Migration> by lazy { arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4) }
+
         @Volatile private var instance: ManaraDatabase? = null
 
         fun get(context: Context): ManaraDatabase =
@@ -54,7 +60,7 @@ abstract class ManaraDatabase : RoomDatabase() {
                     context.applicationContext,
                     ManaraDatabase::class.java,
                     "manara.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(*MIGRATIONS).build().also { instance = it }
             }
     }
 }
