@@ -10,12 +10,15 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.manara.agent.events.EventQueue
 import com.manara.agent.events.Event
 import com.manara.agent.events.EventKind
+import com.manara.agent.enroll.PreviousAccountData
 import com.manara.agent.location.LocationObservationStore
 import com.manara.agent.policy.CollectionStatusReader
 import com.manara.agent.policy.CollectionStatusSummary
 import com.manara.agent.policy.Policy
 import com.manara.agent.storage.PolicyEntity
 import com.manara.agent.storage.ManaraDatabase
+import com.manara.agent.sync.CommandAck
+import com.manara.agent.sync.CommandAckQueue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -290,6 +293,26 @@ class HealthTrackerStorageTest {
         LocationObservationStore(db) { 300L }.record(locationEvent(), 100L)
         assertEquals(first.id, db.locationObservationDao().get()?.eventId)
         assertEquals(listOf(first), EventQueue(db).drainBatch())
+    }
+
+    @Test
+    fun movingToAnotherAccountDiscardsUnsentDataAndReReportsBrokenProtections() = runBlocking {
+        LocationObservationStore(db).record(locationEvent(), 100L)
+        CommandAckQueue(db).enqueue(CommandAck("old-account-command", "acked"))
+        tracker().observe("usage_access", false)
+        assertTrue(EventQueue(db).size() > 0)
+
+        PreviousAccountData(db).discard()
+
+        assertEquals(0, EventQueue(db).size())
+        assertTrue(CommandAckQueue(db).pending().isEmpty())
+        assertNull(db.locationObservationDao().get())
+        assertNull(db.healthStateDao().get("time-limit", "usage_access")?.healthy)
+
+        tracker().observe("usage_access", false)
+        val reported = EventQueue(db).drainBatch()
+        assertEquals(1, reported.size)
+        assertEquals(EventKind.enforcement, reported.single().kind)
     }
 
     @Test

@@ -12,4 +12,7 @@ interface LocationObservationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(observation: LocationObservationEntity)
+
+    @Query("DELETE FROM location_observation")
+    suspend fun clear()
 }

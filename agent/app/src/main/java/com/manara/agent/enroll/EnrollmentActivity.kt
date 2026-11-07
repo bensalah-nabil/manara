@@ -47,12 +47,25 @@ class EnrollmentActivity : Activity() {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
+        val alreadyEnrolled = DeviceTokenStore(this).deviceId() != null
+
         root.addView(TextView(this).apply {
-            text = "Enroll this device"
+            text = if (alreadyEnrolled) "Move this phone to another parent account" else "Enroll this device"
             textSize = 22f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
         })
+
+        if (alreadyEnrolled) {
+            root.addView(TextView(this).apply {
+                text = "This phone is already connected to a parent account. A code from another " +
+                    "account moves it there: that account's rules replace the current ones, and " +
+                    "anything not yet sent to the current account is deleted, not passed on."
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setPadding(0, 16, 0, 0)
+            })
+        }
 
         root.addView(Button(this).apply {
             text = "Scan QR code"
@@ -74,7 +87,7 @@ class EnrollmentActivity : Activity() {
         root.addView(tokenField)
 
         root.addView(Button(this).apply {
-            text = "Enroll"
+            text = if (alreadyEnrolled) "Move to this account" else "Enroll"
             setPadding(0, 16, 0, 0)
             setOnClickListener { enroll(tokenField.text.toString()) }
         })
@@ -116,7 +129,8 @@ class EnrollmentActivity : Activity() {
                 api = ManaraApiFactory.create(),
                 tokenStore = DeviceTokenStore(this@EnrollmentActivity),
                 policyCache = PolicyCache(db),
-                enforcerRegistry = defaultEnforcerRegistry(this@EnrollmentActivity)
+                enforcerRegistry = defaultEnforcerRegistry(this@EnrollmentActivity),
+                previousAccountData = PreviousAccountData(db)
             )
             val result = withContext(Dispatchers.IO) { repository.enroll(token) }
             status.text = when (result) {

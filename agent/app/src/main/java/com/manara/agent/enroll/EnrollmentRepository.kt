@@ -13,12 +13,17 @@ import com.manara.agent.sync.ManaraApi
  * `DeviceTokenStore`/`SecureTokenCipher`), caches the initial policy, and
  * applies it immediately — so a child's device starts enforcing without
  * waiting for the first scheduled sync.
+ *
+ * A phone that was already enrolled moves to the new account: once the new
+ * server has accepted it (not before, so a failed attempt loses nothing),
+ * [previousAccountData] is discarded before the new token is saved.
  */
 class EnrollmentRepository(
     private val api: ManaraApi,
     private val tokenStore: DeviceTokenStore,
     private val policyCache: PolicyCache,
-    private val enforcerRegistry: EnforcerRegistry
+    private val enforcerRegistry: EnforcerRegistry,
+    private val previousAccountData: PreviousAccountData
 ) {
     sealed class Result {
         data object Success : Result()
@@ -47,6 +52,7 @@ class EnrollmentRepository(
                 return Result.Rejected(response.code())
             }
 
+            if (tokenStore.deviceId() != null) previousAccountData.discard()
             tokenStore.save(body.deviceId, body.deviceToken)
             policyCache.replace(body.policy)
             enforcerRegistry.applyAll(body.policy)

@@ -12,4 +12,8 @@ interface HealthStateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(state: HealthStateEntity)
+
+    /** Unknown, not deleted: a deleted row would fall back to the legacy SharedPreferences value. */
+    @Query("UPDATE health_states SET healthy = NULL")
+    suspend fun forgetAll()
 }

@@ -15,4 +15,7 @@ interface CommandAckDao {
 
     @Query("DELETE FROM command_acks WHERE commandId IN (:ids)")
     suspend fun deleteByIds(ids: List<String>)
+
+    @Query("DELETE FROM command_acks")
+    suspend fun deleteAll()
 }
