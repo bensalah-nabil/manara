@@ -146,6 +146,12 @@ fieldset.group {
 fieldset.group legend { padding: 0 6px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
+.actions.start { justify-content: flex-start; }
+.release-code {
+  justify-self: start; padding: 10px 16px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  font: 600 1.8rem/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace; letter-spacing: 0.08em;
+}
 
 .banner {
   padding: 10px 12px; border-radius: 9px;

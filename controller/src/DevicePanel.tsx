@@ -12,6 +12,7 @@ import type { LimitHit } from './usageHistory.ts'
 import { minutesText, summarizeDailyUsage } from './dailyUsage.ts'
 import type { DailyUsage } from './dailyUsage.ts'
 import { SetupProgress } from './SetupProgress.tsx'
+import { ReleasePanel } from './ReleasePanel.tsx'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
 function useEvents<T>(
@@ -191,15 +192,16 @@ function LockNow({ api, device, onSessionExpired }: Props) {
     )
 }
 
-type Tab = 'activity' | 'rules' | 'sharing'
+type Tab = 'activity' | 'rules' | 'sharing' | 'phone'
 
 const TABS: { key: Tab; label: string }[] = [
     { key: 'activity', label: 'Activity' },
     { key: 'rules', label: 'Rules' },
     { key: 'sharing', label: 'Sharing' },
+    { key: 'phone', label: 'Phone' },
 ]
 
-export function DevicePanel(props: Props) {
+export function DevicePanel(props: Props & { onRemoved: () => void }) {
     const { device } = props
     const [tab, setTab] = useState<Tab>('activity')
 
@@ -251,6 +253,7 @@ export function DevicePanel(props: Props) {
                         <RestrictionsEditor {...props} />
                     </>
                 )}
+                {tab === 'phone' && <ReleasePanel {...props} />}
                 {tab === 'sharing' && (
                     <>
                         <LocationEditor {...props} />

@@ -8,6 +8,7 @@ export const RESTRICTIONS = [
     { key: 'blockFactoryReset', label: 'Block factory reset from Settings', help: 'Covers the Settings reset only, not necessarily recovery mode.' },
     { key: 'blockSafeBoot', label: 'Block safe mode', help: '' },
     { key: 'blockAddUser', label: 'Block adding users', help: '' },
+    { key: 'blockDebugging', label: 'Block developer options and debugging', help: 'Stops a computer being used to undo these rules. Waits until guided setup has finished.' },
 ] as const
 
 export type RestrictionKey = (typeof RESTRICTIONS)[number]['key']

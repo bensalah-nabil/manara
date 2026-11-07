@@ -11,6 +11,15 @@ export interface DeviceSummary {
     policyVersion?: number
 }
 
+export type ReleaseMode = 'transfer' | 'remove'
+
+export interface ReleaseCode {
+    code: string
+    validUntil: string
+    /** False until the phone has received the key that checks the code. */
+    phoneReady: boolean
+}
+
 export interface AuthResponse {
     parentId: string
     parentSession: string
@@ -172,6 +181,25 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
                 initialAccounts: Array.isArray(setup.initialAccounts) ? setup.initialAccounts : [],
                 currentAccounts: Array.isArray(setup.currentAccounts) ? setup.currentAccounts : [],
             }
+        },
+
+        /** Asks the phone to leave this account: `transfer` keeps it set up for another account, `remove` ends management. */
+        async release(deviceId: string, mode: ReleaseMode): Promise<void> {
+            await request('POST', devicePath(deviceId, 'commands'), { type: 'release', params: { mode } }, true)
+        },
+
+        /** The code a parent types on a phone that can't be reached. */
+        async getReleaseCode(deviceId: string): Promise<ReleaseCode> {
+            const value = (await request('GET', devicePath(deviceId, 'release-code'), undefined, true)) as Partial<ReleaseCode> | null
+            if (!value || typeof value.code !== 'string' || typeof value.validUntil !== 'string' || typeof value.phoneReady !== 'boolean') {
+                throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            }
+            return { code: value.code, validUntil: value.validUntil, phoneReady: value.phoneReady }
+        },
+
+        /** Removes the phone from the account. It stays managed until it has been released. */
+        async deleteDevice(deviceId: string): Promise<void> {
+            await request('DELETE', `/console/devices/${encodeURIComponent(deviceId)}`, undefined, true)
         },
 
         async clearSetupAccounts(deviceId: string): Promise<void> {

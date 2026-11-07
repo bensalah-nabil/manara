@@ -197,7 +197,7 @@ function Console({ api, onSignOut, onExpired }: { api: Api; onSignOut: () => voi
         detail = <AddDevice api={api} onSessionExpired={onExpired} onDone={() => { refresh(); go('') }} />
     } else if (route.view === 'phone') {
         detail = selected ? (
-            <DevicePanel key={selected.deviceId} api={api} device={selected} onSessionExpired={onExpired} />
+            <DevicePanel key={selected.deviceId} api={api} device={selected} onSessionExpired={onExpired} onRemoved={() => { refresh(); go('') }} />
         ) : devices === null ? (
             <p class="muted">Loading…</p>
         ) : (

@@ -35,6 +35,7 @@ const DETAILS: Record<string, string> = {
     disallow_factory_reset: 'Factory reset is no longer blocked.',
     disallow_safe_boot: 'Safe boot is no longer blocked.',
     disallow_add_user: 'Adding users is no longer blocked.',
+    disallow_debugging_features: 'Developer options are no longer blocked.',
 }
 
 const RESTORED_TEXT = 'Back in effect.'

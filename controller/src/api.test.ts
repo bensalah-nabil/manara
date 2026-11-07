@@ -113,6 +113,31 @@ test('lockNow posts only a lock_now command for that device', async () => {
     assert.equal(calls[0].init.body, JSON.stringify({ type: 'lock_now' }))
 })
 
+test('release posts a release command with its mode', async () => {
+    const { calls, fetchImpl } = recorder(() => jsonResponse(202, { commandId: 'c', type: 'release', status: 'pending' }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    await api.release('d 1', 'transfer')
+    assert.equal(calls[0].url, 'http://x/console/devices/d%201/commands')
+    assert.equal(calls[0].init.body, JSON.stringify({ type: 'release', params: { mode: 'transfer' } }))
+})
+
+test('getReleaseCode returns the code and rejects malformed responses', async () => {
+    const good = recorder(() => jsonResponse(200, { code: '12345678', validUntil: '2026-11-07T10:00:00Z', phoneReady: true }))
+    const code = await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl: good.fetchImpl }).getReleaseCode('d1')
+    assert.deepEqual(code, { code: '12345678', validUntil: '2026-11-07T10:00:00Z', phoneReady: true })
+    assert.equal(good.calls[0].url, 'http://x/console/devices/d1/release-code')
+    const bad = recorder(() => jsonResponse(200, { code: 12345678 }))
+    await assert.rejects(createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl: bad.fetchImpl }).getReleaseCode('d1'),
+        (e: unknown) => e instanceof ApiError && e.code === 'bad_response')
+})
+
+test('deleteDevice deletes the device itself', async () => {
+    const { calls, fetchImpl } = recorder(() => jsonResponse(200, { deleted: true }))
+    await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl }).deleteDevice('d1')
+    assert.equal(calls[0].url, 'http://x/console/devices/d1')
+    assert.equal(calls[0].init.method, 'DELETE')
+})
+
 test('listEvents filters by kind, encodes both parts, and rejects non-arrays', async () => {
     const { calls, fetchImpl } = recorder(() => jsonResponse(200, [{ id: 'e', kind: 'enforcement', occurredAt: 't' }]))
     const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
