@@ -25,6 +25,32 @@ const (
 // UsageReportRetention is how long usage_report events are kept (capability-plan G2).
 const UsageReportRetention = 30 * 24 * time.Hour
 
+// LocationRetention is how long location fixes are kept.
+const LocationRetention = 30 * 24 * time.Hour
+
+// EventRetention is how long every other kind of event is kept: limit hits,
+// protection reports, locks.
+const EventRetention = 90 * 24 * time.Hour
+
+// AllEventKinds lists every kind, so retention can't miss one.
+var AllEventKinds = []EventKind{
+	EventKindUsage, EventKindLocation, EventKindCall, EventKindLock, EventKindBoot,
+	EventKindHeartbeat, EventKindEnforcement, EventKindUsageReport,
+}
+
+// RetentionFor is how long events of a kind are kept before the sweep deletes them.
+// Nothing collected is kept indefinitely (capability-plan G2; the privacy policy states these).
+func RetentionFor(kind EventKind) time.Duration {
+	switch kind {
+	case EventKindUsageReport:
+		return UsageReportRetention
+	case EventKindLocation:
+		return LocationRetention
+	default:
+		return EventRetention
+	}
+}
+
 // Event mirrors api-spec/openapi.yaml's Event schema. ID is generated ON
 // THE DEVICE (architecture.md §2.1/§3.2) -- never assigned here, since
 // that's exactly what makes re-sync after a dropped connection safe: the

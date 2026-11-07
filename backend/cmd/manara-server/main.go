@@ -201,17 +201,19 @@ func runHeartbeatSweep(ctx context.Context, commands domain.CommandQueue) {
 	}
 }
 
-// runRetentionSweep deletes usage reports older than domain.UsageReportRetention
+// runRetentionSweep deletes each kind of event after domain.RetentionFor(kind)
 // and empties setup account lists after domain.SetupAccountRetention
 // (capability-plan G2: collected data has limited retention). It also runs
 // once at start so a restart does not delay a purge by an hour.
 func runRetentionSweep(ctx context.Context, events domain.EventStore, setups domain.SetupRepository) {
 	purge := func() {
-		n, err := events.PurgeOlderThan(ctx, domain.EventKindUsageReport, time.Now().Add(-domain.UsageReportRetention))
-		if err != nil {
-			log.Printf("retention sweep: %v", err)
-		} else if n > 0 {
-			log.Printf("retention sweep: deleted %d old usage report(s)", n)
+		for _, kind := range domain.AllEventKinds {
+			n, err := events.PurgeOlderThan(ctx, kind, time.Now().Add(-domain.RetentionFor(kind)))
+			if err != nil {
+				log.Printf("retention sweep %s: %v", kind, err)
+			} else if n > 0 {
+				log.Printf("retention sweep: deleted %d old %s event(s)", n, kind)
+			}
 		}
 		m, err := setups.ClearAccountsOlderThan(ctx, time.Now().Add(-domain.SetupAccountRetention))
 		if err != nil {
