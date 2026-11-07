@@ -20,21 +20,33 @@ fun fcmProperty(key: String): String = localProperties.getProperty(key, "")
 
 // The server the phone talks to: -PMANARA_API_URL=... or MANARA_API_URL in local.properties for a
 // deployed server; without either the build keeps the dev default (adb reverse to localhost).
+// Release signing: the upload key stays outside the repository. Set in local.properties
+// (or -P): MANARA_KEYSTORE (path), MANARA_KEYSTORE_PASSWORD, MANARA_KEY_ALIAS, MANARA_KEY_PASSWORD.
+fun buildSetting(key: String): String? = (findProperty(key) as String?) ?: localProperties.getProperty(key)
+
+// Play needs a higher versionCode for every upload: -PMANARA_VERSION_CODE=N.
+val manaraVersionCode: Int = buildSetting("MANARA_VERSION_CODE")?.toInt() ?: 1
+val manaraVersionName: String = buildSetting("MANARA_VERSION_NAME") ?: "1.0.0"
+
 val manaraApiUrl: String = ((findProperty("MANARA_API_URL") as String?)
     ?: localProperties.getProperty("MANARA_API_URL", "http://localhost:8080/api/v1/"))
     .let { if (it.endsWith("/")) it else "$it/" }
 
 android {
     namespace = "com.manara.agent"
-    // Kadb requires compileSdk 37. targetSdk stays 34 on purpose: raising it changes runtime behaviour.
+    // Kadb requires compileSdk 37.
     compileSdk = 37
 
     defaultConfig {
         applicationId = "com.manara.agent"
-        minSdk = 26          // Android 8.0 — needed for notification channels
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0-phase0"
+        // Guided setup (wireless debugging) needs Android 11; Play only offers the app where it can be set up.
+        minSdk = 30
+        // Google Play requires 36 for new apps since 2026-08-31. Checked against the Android 15
+        // and 16 behaviour changes: no boot-restricted FGS types, Compose handles edge-to-edge
+        // and predictive back. docs/play-store.md lists what is still to watch.
+        targetSdk = 36
+        versionCode = manaraVersionCode
+        versionName = manaraVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "FCM_API_KEY", "\"${fcmProperty("FCM_API_KEY")}\"")
@@ -42,13 +54,36 @@ android {
         buildConfigField("String", "FCM_PROJECT_ID", "\"${fcmProperty("FCM_PROJECT_ID")}\"")
         buildConfigField("String", "FCM_SENDER_ID", "\"${fcmProperty("FCM_SENDER_ID")}\"")
         buildConfigField("String", "API_BASE_URL", "\"$manaraApiUrl\"")
+        buildConfigField("String", "PRIVACY_URL", "\"${buildSetting("MANARA_PRIVACY_URL") ?: "https://manara-front.netlify.app/privacy.html"}\"")
         // Plain HTTP is only allowed when the configured server itself is plain HTTP (local dev).
         manifestPlaceholders["usesCleartextTraffic"] = manaraApiUrl.startsWith("http://").toString()
     }
 
+    signingConfigs {
+        create("release") {
+            buildSetting("MANARA_KEYSTORE")?.let { path ->
+                storeFile = file(path)
+                storePassword = buildSetting("MANARA_KEYSTORE_PASSWORD")
+                keyAlias = buildSetting("MANARA_KEY_ALIAS")
+                keyPassword = buildSetting("MANARA_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Unsigned when no key is configured, so a release build never silently uses a debug key.
+            signingConfigs.getByName("release").takeIf { it.storeFile != null }?.let { signingConfig = it }
+        }
+        // The release build (R8, no debugging) signed with the debug key, so it installs as an
+        // update over a debug build on a phone Manara already manages. For testing; Play rejects it.
+        create("qa") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
 
