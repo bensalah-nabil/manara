@@ -301,6 +301,7 @@ type setupReportDTO struct {
 	Status   string                `json:"status"`
 	Message  string                `json:"message"`
 	Accounts []domain.SetupAccount `json:"accounts"`
+	Pairing  *domain.QRPairing     `json:"pairing"`
 }
 
 // ReportSetup records the phone's progress through guided setup. The phone
@@ -323,7 +324,7 @@ func (h *Handlers) ReportSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	report := domain.SetupReport{
 		Step: domain.SetupStep(req.Step), Status: domain.SetupStatus(req.Status),
-		Message: req.Message, Accounts: req.Accounts,
+		Message: req.Message, Accounts: req.Accounts, Pairing: req.Pairing,
 	}
 	if err := report.Validate(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_setup_report", "")
@@ -336,6 +337,28 @@ func (h *Handlers) ReportSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, setup)
+}
+
+// GetSetupInput returns what the parent typed in the console for the step the
+// phone is waiting at: a pairing code, or Finish. Polled during setup only.
+func (h *Handlers) GetSetupInput(w http.ResponseWriter, r *http.Request) {
+	deviceID, ok, err := h.Tokens.Resolve(r.Context(), bearerToken(r))
+	if err != nil {
+		log.Printf("setup input: resolve token: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "invalid_token", "")
+		return
+	}
+	input, err := h.Setup.Input(r.Context(), deviceID)
+	if err != nil {
+		log.Printf("setup input: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, input)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

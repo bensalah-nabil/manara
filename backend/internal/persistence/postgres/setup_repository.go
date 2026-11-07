@@ -27,20 +27,42 @@ func (r *SetupRepository) Report(ctx context.Context, deviceID string, rep domai
 		}
 		current = raw
 	}
+	var name, password *string
+	if rep.Pairing != nil {
+		name, password = &rep.Pairing.Name, &rep.Pairing.Password
+	}
 	// A NULL $5 keeps the stored lists; initial_accounts is filled only while it is still empty.
+	// A non-NULL $6 (the phone's new QR name) starts a new setup: fresh lists and inputs.
+	// Leaving the pairing step clears everything pairing needed.
 	_, err := r.db.Pool.Exec(ctx, `
-		INSERT INTO device_setup (device_id, step, status, message, initial_accounts, current_accounts)
-		VALUES ($1, $2, $3, $4, COALESCE($5::jsonb, '[]'), COALESCE($5::jsonb, '[]'))
+		INSERT INTO device_setup (device_id, step, status, message, initial_accounts, current_accounts, pairing_name, pairing_password)
+		VALUES ($1, $2, $3, $4, COALESCE($5::jsonb, '[]'), COALESCE($5::jsonb, '[]'), $6, $7)
 		ON CONFLICT (device_id) DO UPDATE SET
 			step = EXCLUDED.step,
 			status = EXCLUDED.status,
 			message = EXCLUDED.message,
-			current_accounts = COALESCE($5::jsonb, device_setup.current_accounts),
+			current_accounts = CASE
+				WHEN $6::text IS NOT NULL THEN COALESCE($5::jsonb, '[]')
+				ELSE COALESCE($5::jsonb, device_setup.current_accounts) END,
 			initial_accounts = CASE
+				WHEN $6::text IS NOT NULL THEN COALESCE($5::jsonb, '[]')
 				WHEN device_setup.initial_accounts = '[]'::jsonb AND $5::jsonb IS NOT NULL THEN $5::jsonb
 				ELSE device_setup.initial_accounts END,
+			pairing_name = CASE
+				WHEN EXCLUDED.step <> 'pairing' THEN NULL
+				ELSE COALESCE($6::text, device_setup.pairing_name) END,
+			pairing_password = CASE
+				WHEN EXCLUDED.step <> 'pairing' THEN NULL
+				ELSE COALESCE($7::text, device_setup.pairing_password) END,
+			pairing_code = CASE
+				WHEN EXCLUDED.step <> 'pairing' OR $6::text IS NOT NULL THEN NULL
+				ELSE device_setup.pairing_code END,
+			finish_requested = CASE
+				WHEN $6::text IS NOT NULL THEN false
+				ELSE device_setup.finish_requested END,
+			started_at = CASE WHEN $6::text IS NOT NULL THEN now() ELSE device_setup.started_at END,
 			updated_at = now()
-	`, deviceID, string(rep.Step), string(rep.Status), rep.Message, current)
+	`, deviceID, string(rep.Step), string(rep.Status), rep.Message, current, name, password)
 	if err != nil {
 		return nil, fmt.Errorf("store setup report: %w", err)
 	}
@@ -51,10 +73,13 @@ func (r *SetupRepository) Get(ctx context.Context, deviceID string) (*domain.Dev
 	var s domain.DeviceSetup
 	var step, status string
 	var initial, current []byte
+	var name, password *string
 	err := r.db.Pool.QueryRow(ctx, `
-		SELECT device_id, step, status, message, initial_accounts, current_accounts, started_at, updated_at
+		SELECT device_id, step, status, message, initial_accounts, current_accounts, started_at, updated_at,
+			pairing_name, pairing_password, finish_requested
 		FROM device_setup WHERE device_id = $1
-	`, deviceID).Scan(&s.DeviceID, &step, &status, &s.Message, &initial, &current, &s.StartedAt, &s.UpdatedAt)
+	`, deviceID).Scan(&s.DeviceID, &step, &status, &s.Message, &initial, &current, &s.StartedAt, &s.UpdatedAt,
+		&name, &password, &s.FinishRequested)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -68,7 +93,56 @@ func (r *SetupRepository) Get(ctx context.Context, deviceID string) (*domain.Dev
 	if err := json.Unmarshal(current, &s.CurrentAccounts); err != nil {
 		return nil, fmt.Errorf("decode current accounts: %w", err)
 	}
+	if s.Step == domain.SetupPairing && s.Status != domain.SetupFailed && name != nil && password != nil {
+		s.PairingQR = domain.QRPairing{Name: *name, Password: *password}.QRText()
+	}
 	return &s, nil
+}
+
+func (r *SetupRepository) Input(ctx context.Context, deviceID string) (domain.SetupInput, error) {
+	var in domain.SetupInput
+	var code *string
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT pairing_code, pairing_code_seq, finish_requested FROM device_setup WHERE device_id = $1`, deviceID,
+	).Scan(&code, &in.PairingCodeSeq, &in.Finish)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return in, nil
+	}
+	if err != nil {
+		return in, fmt.Errorf("get setup input: %w", err)
+	}
+	if code != nil {
+		in.PairingCode = *code
+	}
+	return in, nil
+}
+
+func (r *SetupRepository) SendPairingCode(ctx context.Context, deviceID, code string) error {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE device_setup SET pairing_code = $2, pairing_code_seq = pairing_code_seq + 1, updated_at = now()
+		WHERE device_id = $1 AND step = 'pairing' AND status <> 'failed'
+	`, deviceID, code)
+	if err != nil {
+		return fmt.Errorf("store pairing code: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrSetupNotWaiting
+	}
+	return nil
+}
+
+func (r *SetupRepository) RequestFinish(ctx context.Context, deviceID string) error {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE device_setup SET finish_requested = true, updated_at = now()
+		WHERE device_id = $1 AND step = 'reconnecting' AND status <> 'failed'
+	`, deviceID)
+	if err != nil {
+		return fmt.Errorf("request setup finish: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrSetupNotWaiting
+	}
+	return nil
 }
 
 func (r *SetupRepository) ClearAccounts(ctx context.Context, deviceID string) error {

@@ -301,6 +301,60 @@ func (h *Handlers) GetSetup(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, setup)
 }
 
+type pairingCodeRequest struct {
+	Code string `json:"code"`
+}
+
+// SendPairingCode passes the code the phone's "Pair device with pairing code"
+// screen shows to the phone, which reads it while it waits to pair.
+func (h *Handlers) SendPairingCode(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	var req pairingCodeRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+	code := strings.TrimSpace(req.Code)
+	if !domain.ValidPairingCode(code) {
+		writeError(w, http.StatusBadRequest, "invalid_pairing_code", "The pairing code is 6 digits.")
+		return
+	}
+	h.setupInput(w, h.Setup.SendPairingCode(r.Context(), deviceID, code), "pairing code")
+}
+
+// FinishSetup ends guided setup's last step: the parent signs back in only to
+// the accounts they want, then finishes here.
+func (h *Handlers) FinishSetup(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	h.setupInput(w, h.Setup.RequestFinish(r.Context(), deviceID), "finish")
+}
+
+func (h *Handlers) setupInput(w http.ResponseWriter, err error, what string) {
+	switch {
+	case errors.Is(err, domain.ErrSetupNotWaiting):
+		writeError(w, http.StatusConflict, "setup_not_waiting", "The phone isn't waiting for this right now.")
+	case err != nil:
+		log.Printf("console: setup %s: %v", what, err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+	default:
+		writeJSON(w, http.StatusAccepted, map[string]bool{"sent": true})
+	}
+}
+
 // ClearSetupAccounts lets the parent delete the saved account lists early.
 func (h *Handlers) ClearSetupAccounts(w http.ResponseWriter, r *http.Request) {
 	parentID, ok := h.requireParent(w, r)

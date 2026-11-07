@@ -14,6 +14,7 @@ import (
 
 type fakeSetup struct {
 	reports []domain.SetupReport
+	input   domain.SetupInput
 }
 
 func (f *fakeSetup) Report(_ context.Context, deviceID string, r domain.SetupReport) (*domain.DeviceSetup, error) {
@@ -22,6 +23,9 @@ func (f *fakeSetup) Report(_ context.Context, deviceID string, r domain.SetupRep
 }
 func (f *fakeSetup) Get(context.Context, string) (*domain.DeviceSetup, error) { return nil, nil }
 func (f *fakeSetup) ClearAccounts(context.Context, string) error              { return nil }
+func (f *fakeSetup) Input(context.Context, string) (domain.SetupInput, error) { return f.input, nil }
+func (f *fakeSetup) SendPairingCode(context.Context, string, string) error    { return nil }
+func (f *fakeSetup) RequestFinish(context.Context, string) error              { return nil }
 func (f *fakeSetup) ClearAccountsOlderThan(context.Context, time.Time) (int, error) {
 	return 0, nil
 }
@@ -70,5 +74,61 @@ func TestReportSetupRejectsBadInputAndUnknownPhones(t *testing.T) {
 		if len(setup.reports) != 0 {
 			t.Errorf("%s: a report was stored", name)
 		}
+	}
+}
+
+func TestReportSetupKeepsAValidQRPairing(t *testing.T) {
+	setup := &fakeSetup{}
+	h := newHandlers(nil)
+	h.Setup = setup
+	w := postSetup(h, "good", `{"step":"pairing","status":"waiting_for_parent","pairing":{"name":"manara-ab12","password":"Xy7kQ2mP9z"}}`)
+	if w.Code != http.StatusOK || len(setup.reports) != 1 || setup.reports[0].Pairing == nil {
+		t.Fatalf("status %d: %s", w.Code, w.Body.String())
+	}
+	if got := setup.reports[0].Pairing.QRText(); got != "WIFI:T:ADB;S:manara-ab12;P:Xy7kQ2mP9z;;" {
+		t.Fatalf("QR text %q", got)
+	}
+}
+
+func TestReportSetupRejectsAPairingThatWouldBreakTheQRCode(t *testing.T) {
+	for _, pairing := range []string{
+		`{"name":"manara-ab12","password":"has;semicolon"}`,
+		`{"name":"other-ab12","password":"Xy7kQ2mP9z"}`,
+		`{"name":"manara-ab12","password":"short"}`,
+	} {
+		setup := &fakeSetup{}
+		h := newHandlers(nil)
+		h.Setup = setup
+		if w := postSetup(h, "good", `{"step":"pairing","status":"waiting_for_parent","pairing":`+pairing+`}`); w.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d", pairing, w.Code)
+		}
+	}
+	// Only the pairing step may carry one.
+	setup := &fakeSetup{}
+	h := newHandlers(nil)
+	h.Setup = setup
+	if w := postSetup(h, "good", `{"step":"checking_accounts","status":"in_progress","pairing":{"name":"manara-ab12","password":"Xy7kQ2mP9z"}}`); w.Code != http.StatusBadRequest {
+		t.Errorf("pairing outside the pairing step: status %d", w.Code)
+	}
+}
+
+func TestSetupInputGoesOnlyToThePhone(t *testing.T) {
+	setup := &fakeSetup{input: domain.SetupInput{PairingCode: "123456", PairingCodeSeq: 2}}
+	h := newHandlers(nil)
+	h.Setup = setup
+	get := func(token string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "/api/v1/agent/setup/input", nil)
+		if token != "" {
+			r.Header.Set("Authorization", "Bearer "+token)
+		}
+		w := httptest.NewRecorder()
+		h.GetSetupInput(w, r)
+		return w
+	}
+	if w := get("good"); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"pairingCode":"123456"`) || !strings.Contains(w.Body.String(), `"pairingCodeSeq":2`) {
+		t.Fatalf("phone: %d %s", w.Code, w.Body.String())
+	}
+	if w := get("bad"); w.Code != http.StatusUnauthorized || strings.Contains(w.Body.String(), "123456") {
+		t.Fatalf("unknown token: %d %s", w.Code, w.Body.String())
 	}
 }

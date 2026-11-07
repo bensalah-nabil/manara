@@ -3,11 +3,14 @@ package domain
 import (
 	"context"
 	"errors"
+	"regexp"
 	"time"
 )
 
 // SetupStep is where a phone is in the guided setup. The phone runs a fixed
 // list of actions and reports each step; the server never sends commands.
+// The only thing the phone reads back is the input it is waiting for, typed
+// by the parent in the console (SetupInput, ADR-0005).
 type SetupStep string
 
 const (
@@ -44,6 +47,34 @@ type SetupAccount struct {
 	Name string `json:"name"`
 }
 
+// QRPairing is the one-time name and password the phone puts in the
+// console's QR code. Android's "Pair device with QR code" reads
+// WIFI:T:ADB;S:<name>;P:<password>;; and pairs with that password
+// (AOSP Settings AdbQrcodeScannerFragment, AdbDebuggingManager).
+type QRPairing struct {
+	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
+// QRText is what the console's QR code holds.
+func (p QRPairing) QRText() string {
+	return "WIFI:T:ADB;S:" + p.Name + ";P:" + p.Password + ";;"
+}
+
+// Letters and digits only: ';', ':' and ',' have meanings in the QR format.
+var (
+	pairingName     = regexp.MustCompile(`^manara-[a-z0-9]{4,16}$`)
+	pairingPassword = regexp.MustCompile(`^[A-Za-z0-9]{8,32}$`)
+	pairingCode     = regexp.MustCompile(`^[0-9]{6}$`)
+)
+
+func (p QRPairing) valid() bool {
+	return pairingName.MatchString(p.Name) && pairingPassword.MatchString(p.Password)
+}
+
+// ValidPairingCode: the six digits Android's "Pair device with pairing code" shows.
+func ValidPairingCode(code string) bool { return pairingCode.MatchString(code) }
+
 // SetupReport is what the phone sends after each action.
 type SetupReport struct {
 	Step    SetupStep
@@ -51,7 +82,22 @@ type SetupReport struct {
 	Message string
 	// Accounts is nil when this report does not include a fresh account list.
 	Accounts []SetupAccount
+	// Pairing is set only on a pairing-step report, when the phone starts waiting.
+	Pairing *QRPairing
 }
+
+// SetupInput is what the parent typed in the console for the phone to read.
+type SetupInput struct {
+	// PairingCode is the latest code the parent sent; PairingCodeSeq grows with
+	// every one, so the phone tries each exactly once.
+	PairingCode    string `json:"pairingCode,omitempty"`
+	PairingCodeSeq int    `json:"pairingCodeSeq"`
+	// Finish: the parent is done signing back in to accounts.
+	Finish bool `json:"finish"`
+}
+
+// ErrSetupNotWaiting: the phone isn't at the step this input is for.
+var ErrSetupNotWaiting = errors.New("setup is not waiting for this input")
 
 type DeviceSetup struct {
 	DeviceID string      `json:"deviceId"`
@@ -64,6 +110,10 @@ type DeviceSetup struct {
 	CurrentAccounts []SetupAccount `json:"currentAccounts"`
 	StartedAt       time.Time      `json:"startedAt"`
 	UpdatedAt       time.Time      `json:"updatedAt"`
+	// PairingQR is set only while the phone waits to pair.
+	PairingQR string `json:"pairingQr,omitempty"`
+	// FinishRequested: the parent chose Finish setup and the phone hasn't ended yet.
+	FinishRequested bool `json:"finishRequested"`
 }
 
 // SetupAccountRetention: the account lists are personal data needed only to
@@ -107,13 +157,24 @@ func (r SetupReport) Validate() error {
 			return ErrInvalidSetupReport
 		}
 	}
+	if r.Pairing != nil && (r.Step != SetupPairing || !r.Pairing.valid()) {
+		return ErrInvalidSetupReport
+	}
 	return nil
 }
 
 type SetupRepository interface {
 	// Report stores the latest step. The first non-nil account list becomes
-	// InitialAccounts and is never overwritten by later reports.
+	// InitialAccounts and is never overwritten by later reports. A report
+	// outside the pairing step clears the pairing name, password and code; a
+	// report carrying Pairing starts a new setup's inputs.
 	Report(ctx context.Context, deviceID string, report SetupReport) (*DeviceSetup, error)
+	// Input returns the parent's input for the phone's current step.
+	Input(ctx context.Context, deviceID string) (SetupInput, error)
+	// SendPairingCode stores a code for a phone in the pairing step, else ErrSetupNotWaiting.
+	SendPairingCode(ctx context.Context, deviceID, code string) error
+	// RequestFinish ends the reconnect step, else ErrSetupNotWaiting.
+	RequestFinish(ctx context.Context, deviceID string) error
 	// Get returns nil when the device has never reported a setup step.
 	Get(ctx context.Context, deviceID string) (*DeviceSetup, error)
 	ClearAccounts(ctx context.Context, deviceID string) error

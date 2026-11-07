@@ -76,6 +76,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/enroll", agentHandlers.Enroll)
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
 	mux.HandleFunc("POST /api/v1/agent/setup", agentHandlers.ReportSetup)
+	mux.HandleFunc("GET /api/v1/agent/setup/input", agentHandlers.GetSetupInput)
 	mux.HandleFunc("POST /api/v1/console/auth/signup", consoleHandlers.SignUp)
 	mux.HandleFunc("POST /api/v1/console/auth/login", consoleHandlers.Login)
 	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
@@ -86,6 +87,8 @@ func main() {
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup", consoleHandlers.GetSetup)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.ClearSetupAccounts)
+	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/pairing-code", consoleHandlers.SendPairingCode)
+	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/finish", consoleHandlers.FinishSetup)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/release-code", consoleHandlers.GetReleaseCode)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.DeleteDevice)
 
