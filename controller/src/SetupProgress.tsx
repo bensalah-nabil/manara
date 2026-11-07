@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'preact/hooks'
 import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { errorText, lastSeenText } from './format.ts'
@@ -63,40 +63,40 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
     }
 
     // Phones set up before the guided flow never report, so they show nothing here.
-    if (!setup) return error ? <p role="alert" className="error">{error}</p> : null
+    if (!setup) return error ? <p role="alert" class="error">{error}</p> : null
 
     const checklist = reconnectChecklist(setup)
     const removing = setup.step === 'waiting_for_accounts' || setup.step === 'removing_app_accounts'
 
     return (
-        <div className="stack">
-            <div className="consent">
+        <div class="stack">
+            <div class="consent">
                 <h3>This is your child's phone: {device.label || 'Unnamed device'}</h3>
                 <p>Everything below is happening on that phone. Make sure it is your child's phone, not your own.</p>
             </div>
             <strong>Setup progress</strong>
-            <ol className="guide">
+            <ol class="guide">
                 {stepStates(setup).map((step) => (
                     <li key={step.key} aria-current={step.state === 'current' || step.state === 'waiting' ? 'step' : undefined}>
                         {step.label}
-                        {STATE_TEXT[step.state] && <span className="hint"> ({STATE_TEXT[step.state]})</span>}
+                        {STATE_TEXT[step.state] && <span class="hint"> ({STATE_TEXT[step.state]})</span>}
                     </li>
                 ))}
             </ol>
-            {setup.message && <p role="status" className="notice">Phone says: {setup.message}</p>}
-            <p className="hint">Last update from the phone {lastSeenText(setup.updatedAt)}.</p>
-            <p role="alert" className="error">{error}</p>
+            {setup.message && <p role="status" class="notice">Phone says: {setup.message}</p>}
+            <p class="hint">Last update from the phone {lastSeenText(setup.updatedAt)}.</p>
+            <p role="alert" class="error">{error}</p>
 
             {removing && setup.currentAccounts.length > 0 && (
-                <div className="stack">
+                <div class="stack">
                     <strong>Still on the phone ({setup.currentAccounts.length})</strong>
                     {setup.status === 'waiting_for_parent' && (
-                        <p className="untested">
+                        <p class="untested">
                             On the phone, open Settings, then Accounts, and remove each account below. Before you do, write
                             down the password of each one: you need it to sign back in after setup.
                         </p>
                     )}
-                    <ul className="reports">
+                    <ul class="reports">
                         {setup.currentAccounts.map((account) => (
                             <li key={`${account.type}\n${account.name}`}>
                                 <strong>{accountTypeName(account.type)}</strong>
@@ -104,16 +104,16 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
                             </li>
                         ))}
                     </ul>
-                    <p className="hint">This list updates by itself as accounts are removed.</p>
+                    <p class="hint">This list updates by itself as accounts are removed.</p>
                 </div>
             )}
 
             {AFTER_REMOVAL.has(setup.step) && checklist.length > 0 && (
-                <div className="stack">
+                <div class="stack">
                     <strong>Sign back in to these accounts</strong>
-                    <ul className="reports">
+                    <ul class="reports">
                         {checklist.map((account) => (
-                            <li key={`${account.type}\n${account.name}`} className={account.back ? 'restored' : undefined}>
+                            <li key={`${account.type}\n${account.name}`} class={account.back ? 'restored' : undefined}>
                                 <strong>{account.back ? 'Back on the phone' : 'Not yet'}: {accountTypeName(account.type)}</strong>
                                 <span>{account.name}</span>
                             </li>
@@ -123,8 +123,8 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
             )}
 
             {setup.initialAccounts.length > 0 && (
-                <div className="stack">
-                    <p className="hint">
+                <div class="stack">
+                    <p class="hint">
                         Manara keeps the account names and types (never passwords) for 7 days, so you can see what to sign
                         back in to. You can delete them sooner.
                     </p>

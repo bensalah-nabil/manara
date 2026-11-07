@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'preact/hooks'
 import { ApiError, isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import {
@@ -27,7 +27,7 @@ const STEP_TITLES: Record<Step, string> = {
 
 function Steps({ current }: { current: Step }) {
     return (
-        <ol className="steps" aria-label="Setup steps">
+        <ol class="steps" aria-label="Setup steps">
             {(Object.keys(STEP_TITLES) as Step[]).map((step) => (
                 <li key={step} aria-current={step === current ? 'step' : undefined}>{STEP_TITLES[step]}</li>
             ))}
@@ -35,25 +35,19 @@ function Steps({ current }: { current: Step }) {
     )
 }
 
-export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpired: () => void }) {
-    const [step, setStep] = useState<Step | null>(null)
+export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessionExpired: () => void; onDone: () => void }) {
+    const [step, setStep] = useState<Step>('consent')
     const [attestation, setAttestation] = useState<Attestation>(noAttestation)
     const [brand, setBrand] = useState('')
+    // A phone already managed by Manara (moving it from another account) skips the setup guide and checklist.
+    const [alreadySetUp, setAlreadySetUp] = useState<boolean | null>(null)
     const [prepared, setPrepared] = useState<Prepared>(nothingPrepared)
     const [token, setToken] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
     const [copyNote, setCopyNote] = useState('')
 
-    function reset() {
-        setStep(null)
-        setAttestation(noAttestation())
-        setBrand('')
-        setPrepared(nothingPrepared())
-        setToken(null)
-        setError('')
-        setCopyNote('')
-    }
+    const reset = onDone
 
     async function createCode() {
         setBusy(true)
@@ -79,27 +73,20 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
         }
     }
 
-    if (step === null) {
-        return (
-            <div className="card">
-                <button type="button" onClick={() => setStep('consent')}>Add your child's phone</button>
-            </div>
-        )
-    }
-
     const guide = guideFor(brand)
 
     return (
-        <div className="card">
-            <div className="row">
-                <strong>Add your child's phone</strong>
-                <button type="button" className="link" onClick={reset}>Cancel</button>
+        <div class="wizard">
+            <div class="device-head">
+                <h1>Add your child's phone</h1>
+                <button type="button" class="ghost" onClick={reset}>Cancel</button>
             </div>
             <Steps current={step} />
+            <div class="card stack">
 
             {step === 'consent' && (
                 <>
-                    <div className="consent" role="group" aria-labelledby="consent-title">
+                    <div class="consent" role="group" aria-labelledby="consent-title">
                         <h3 id="consent-title">Only for your own child's phone</h3>
                         <p>
                             Manara gives you control over the phone you connect. Use it only on a phone used by your own child,
@@ -107,18 +94,21 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                             illegal in many countries and is not allowed here.
                         </p>
                         {STATEMENTS.map(({ key, text }) => (
-                            <label key={key} className="check">
+                            <label key={key} class="check">
                                 <input
                                     type="checkbox"
                                     checked={attestation[key]}
-                                    onChange={(event) => setAttestation({ ...attestation, [key]: event.target.checked })}
+                                    onChange={(event) => {
+                                        const on = event.currentTarget.checked
+                                        setAttestation((current) => ({ ...current, [key]: on }))
+                                    }}
                                 />
                                 {text}
                             </label>
                         ))}
-                        <p className="hint">Your confirmation is recorded with the date, together with this phone's setup.</p>
+                        <p class="hint">Your confirmation is recorded with the date, together with this phone's setup.</p>
                     </div>
-                    <button type="button" disabled={!attestationComplete(attestation)} onClick={() => setStep('brand')}>
+                    <button type="button" class="primary" disabled={!attestationComplete(attestation)} onClick={() => setStep('brand')}>
                         Continue
                     </button>
                 </>
@@ -128,7 +118,7 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                 <>
                     <label>
                         Which brand is your child's phone?
-                        <select value={brand} onChange={(event) => setBrand(event.target.value)}>
+                        <select value={brand} onChange={(event) => setBrand(event.currentTarget.value)}>
                             <option value="">Choose a brand</option>
                             {PHONE_GUIDES.map((g) => (
                                 <option key={g.brand} value={g.brand}>{g.name}</option>
@@ -136,23 +126,47 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                         </select>
                     </label>
                     {guide && (
-                        <div className="stack">
+                        <fieldset class="group">
+                            <legend>Is Manara already set up on this phone?</legend>
+                            <label class="check">
+                                <input type="radio" name="already" checked={alreadySetUp === false} onChange={() => setAlreadySetUp(false)} />
+                                <span>No, set it up now</span>
+                            </label>
+                            <label class="check">
+                                <input type="radio" name="already" checked={alreadySetUp === true} onChange={() => setAlreadySetUp(true)} />
+                                <span>
+                                    Yes, it already shows Manara's "managed" notice
+                                    <span class="muted small"> Moving it from another account. Its setup stays; it just joins this account.</span>
+                                </span>
+                            </label>
+                        </fieldset>
+                    )}
+                    {guide && alreadySetUp === false && (
+                        <div class="stack">
                             <strong>Turn on wireless debugging on the {guide.name} phone</strong>
                             {!guide.tested && (
-                                <p className="hint untested">
+                                <p class="hint untested">
                                     Manara has not been tested on this brand yet. These steps are the usual ones, but menu names can
                                     differ, and setup may not finish on this phone.
                                 </p>
                             )}
-                            <ol className="guide">
+                            <ol class="guide">
                                 {guide.developerOptions.map((line) => <li key={line}>{line}</li>)}
                             </ol>
-                            {guide.notes.map((note) => <p key={note} className="hint">{note}</p>)}
+                            {guide.notes.map((note) => <p key={note} class="hint">{note}</p>)}
                         </div>
                     )}
-                    <div className="row">
-                        <button type="button" className="link" onClick={() => setStep('consent')}>Back</button>
-                        <button type="button" disabled={!guide} onClick={() => setStep('prepare')}>Continue</button>
+                    {alreadySetUp && <p role="alert" class="error">{error}</p>}
+                    <div class="actions">
+                        <button type="button" class="ghost" onClick={() => setStep('consent')}>Back</button>
+                        <button
+                            type="button"
+                            class="primary"
+                            disabled={!guide || alreadySetUp === null || busy}
+                            onClick={alreadySetUp ? createCode : () => setStep('prepare')}
+                        >
+                            {busy ? 'Please wait…' : 'Continue'}
+                        </button>
                     </div>
                 </>
             )}
@@ -161,20 +175,23 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                 <>
                     <p>Before connecting, make sure of each of these. Setup removes every account from the phone for a few minutes.</p>
                     {PREPARE_ITEMS.map(({ key, text }) => (
-                        <label key={key} className="check">
+                        <label key={key} class="check">
                             <input
                                 type="checkbox"
                                 checked={prepared[key]}
-                                onChange={(event) => setPrepared({ ...prepared, [key]: event.target.checked })}
+                                onChange={(event) => {
+                                const on = event.currentTarget.checked
+                                setPrepared((current) => ({ ...current, [key]: on }))
+                            }}
                             />
                             {text}
                         </label>
                     ))}
-                    <p role="alert" className="error">{error}</p>
-                    <div className="row">
-                        <button type="button" className="link" onClick={() => setStep('brand')}>Back</button>
-                        <button type="button" disabled={!preparedComplete(prepared) || busy} onClick={createCode}>
-                            {busy ? 'Please wait...' : 'Continue'}
+                    <p role="alert" class="error">{error}</p>
+                    <div class="actions">
+                        <button type="button" class="ghost" onClick={() => setStep('brand')}>Back</button>
+                        <button type="button" class="primary" disabled={!preparedComplete(prepared) || busy} onClick={createCode}>
+                            {busy ? 'Please wait…' : 'Continue'}
                         </button>
                     </div>
                 </>
@@ -184,19 +201,28 @@ export function AddDevice({ api, onSessionExpired }: { api: Api; onSessionExpire
                 <>
                     <strong>Connection code for this phone</strong>
                     <QrCode value={token} label="Connection code as a QR code" />
-                    <code className="token">{token}</code>
-                    <p className="hint">
-                        The code works once and is shown only now. On the phone, open Manara and scan it. Then tap "Start guided
-                        setup" in Manara and follow the Manara notification on the phone. Each step then shows on this phone's page
-                        here, including which accounts to remove and, at the end, which to sign back in to.
-                    </p>
-                    <div className="row">
-                        <button type="button" onClick={copy}>Copy</button>
-                        <button type="button" className="link" onClick={reset}>Done</button>
+                    <code class="token">{token}</code>
+                    {alreadySetUp ? (
+                        <p class="hint">
+                            The code works once and is shown only now. On the phone, open Manara, tap "Enroll this device", then
+                            scan it and tap "Move to this account". The phone keeps its setup, takes this account's rules, and
+                            deletes anything it had not yet sent to the previous account. It then appears in your list of phones.
+                        </p>
+                    ) : (
+                        <p class="hint">
+                            The code works once and is shown only now. On the phone, open Manara and scan it. Then tap "Start guided
+                            setup" in Manara and follow the Manara notification on the phone. Each step then shows on this phone's page
+                            here, including which accounts to remove and, at the end, which to sign back in to.
+                        </p>
+                    )}
+                    <div class="actions">
+                        <button type="button" class="ghost" onClick={copy}>Copy code</button>
+                        <button type="button" class="primary" onClick={reset}>Done</button>
                     </div>
-                    <p role="status" className="hint">{copyNote}</p>
+                    <p role="status" class="hint">{copyNote}</p>
                 </>
             )}
+            </div>
         </div>
     )
 }

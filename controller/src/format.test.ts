@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { authErrorText, errorText, lastSeenText, statusText } from './format.ts'
+import { agoText, authErrorText, errorText, lastSeenText, statusText } from './format.ts'
 import { ApiError } from './api.ts'
 
 test('errorText reports a missing device specifically and everything else generically', () => {
@@ -28,4 +28,14 @@ test('auth errors give generic, non-leaking messages', () => {
     assert.equal(authErrorText('email_taken'), 'That email is already registered.')
     assert.match(authErrorText('network'), /Cannot reach the server/)
     assert.equal(authErrorText('internal'), 'Something went wrong. Please try again.')
+})
+
+test('agoText is relative for recent times and a date after two days', () => {
+    const now = Date.parse('2026-11-07T12:00:00Z')
+    assert.equal(agoText('2026-11-07T11:59:40Z', now), 'just now')
+    assert.equal(agoText('2026-11-07T11:55:00Z', now), '5 min ago')
+    assert.equal(agoText('2026-11-07T09:00:00Z', now), '3 h ago')
+    assert.equal(agoText('2026-11-06T06:00:00Z', now), 'yesterday')
+    assert.equal(agoText('2026-11-01T12:00:00Z', now, 'en-GB'), '01/11/2026')
+    assert.equal(agoText('0001-01-01T00:00:00Z', now), 'never')
 })

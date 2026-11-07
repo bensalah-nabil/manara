@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'preact/hooks'
 import type { Api, DeviceSummary } from './api.ts'
 import { isSessionError } from './api.ts'
 import { errorText } from './format.ts'

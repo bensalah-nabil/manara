@@ -1,7 +1,8 @@
-import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// https://vite.dev/config/
+// Preact's JSX runtime directly: no React, no compat layer, no framework plugin.
 export default defineConfig({
-  plugins: [react()],
+  oxc: {
+    jsx: { runtime: 'automatic', importSource: 'preact' },
+  },
 })

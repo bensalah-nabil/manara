@@ -18,6 +18,19 @@ export function lastSeenText(iso: string, locale?: string): string {
     return new Date(time).toLocaleString(locale)
 }
 
+/** "just now", "5 min ago", "3 h ago", "yesterday", then the date. Exact time stays in [lastSeenText]. */
+export function agoText(iso: string, now: number = Date.now(), locale?: string): string {
+    const time = Date.parse(iso)
+    if (Number.isNaN(time) || time < Date.UTC(2000, 0, 1)) return 'never'
+    const minutes = Math.floor((now - time) / 60000)
+    if (minutes < 1) return 'just now'
+    if (minutes < 60) return `${minutes} min ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours} h ago`
+    if (hours < 48) return 'yesterday'
+    return new Date(time).toLocaleDateString(locale)
+}
+
 export function authErrorText(code: string): string {
     switch (code) {
         case 'invalid_credentials':
