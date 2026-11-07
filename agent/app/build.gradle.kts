@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
 
@@ -58,6 +59,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     // BouncyCastle (via Kadb) ships identical copies of these in several jars; keep one, don't drop the license.
@@ -124,6 +126,16 @@ dependencies {
 
     // Guided setup talks to this phone's own wireless debugging; only fixed commands (setup/AdbSetupDevice).
     implementation("com.flyfishxu:kadb:2.1.5")
+
+    // The app's few screens: Compose with Material 3 (Google's current UI toolkit).
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
+    implementation(composeBom)
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:runner:1.5.2")

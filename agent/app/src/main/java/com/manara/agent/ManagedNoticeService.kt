@@ -91,7 +91,7 @@ class ManagedNoticeService : Service() {
         return builder
             .setContentTitle(getString(R.string.notice_title))
             .setContentText(getString(R.string.notice_text))
-            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setSmallIcon(R.drawable.ic_stat_manara)
             .setOngoing(true)          // cannot be swiped away
             .build()
     }
@@ -99,6 +99,10 @@ class ManagedNoticeService : Service() {
     companion object {
         private const val CHANNEL_ID = "manara_managed_notice"
         private const val NOTIFICATION_ID = 1001
+
+        fun stop(context: Context) {
+            context.stopService(Intent(context, ManagedNoticeService::class.java))
+        }
 
         /** Start the notice service in a way that works from any context. */
         fun start(context: Context) {

@@ -25,11 +25,22 @@ class DeviceTokenStore(context: Context) {
             .apply()
     }
 
-    fun clear() = prefs.edit().clear().apply()
+    /** The secret a parent's offline release code is checked against; encrypted like the token. */
+    fun releaseSecret(): ByteArray? =
+        prefs.getString(KEY_RELEASE_SECRET, null)?.let { SecureTokenCipher.decrypt(it) }
+            ?.let { android.util.Base64.decode(it, android.util.Base64.NO_WRAP) }
+
+    /** [base64] exactly as the server sent it. */
+    fun saveReleaseSecret(base64: String) {
+        prefs.edit().putString(KEY_RELEASE_SECRET, SecureTokenCipher.encrypt(base64)).apply()
+    }
+
+    fun clear() = prefs.edit().clear().commit()
 
     companion object {
         private const val PREFS_NAME = "device_token_store"
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_TOKEN = "device_token"
+        private const val KEY_RELEASE_SECRET = "release_secret"
     }
 }

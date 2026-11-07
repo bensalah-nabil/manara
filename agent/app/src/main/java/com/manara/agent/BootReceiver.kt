@@ -17,6 +17,9 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            // A released phone is an ordinary app: no managed notice, no syncing.
+            val dpm = context.getSystemService(android.app.admin.DevicePolicyManager::class.java)
+            if (!dpm.isDeviceOwnerApp(context.packageName)) return
             ManagedNoticeService.start(context)
             PushManager.ensureRegistered(context)
             // Belt-and-suspenders: WorkManager persists periodic work across

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Manara's lighthouse, inside the adaptive icon's 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F2A93B" android:fillAlpha="0.55"
+        android:pathData="M62.8,41.24 L78.2,36.4 L78.2,48.5 L62.8,43.66 Z M45.2,41.24 L29.8,36.4 L29.8,48.5 L45.2,43.66 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M47.4,47.4 L60.6,47.4 L64.12,78.2 L43.88,78.2 Z" />
+    <path android:fillColor="#F2A93B" android:pathData="M46.3,39.7 L61.7,39.7 L61.7,47.4 L46.3,47.4 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M54,29.8 L62.8,39.7 L45.2,39.7 Z" />
+</vector>

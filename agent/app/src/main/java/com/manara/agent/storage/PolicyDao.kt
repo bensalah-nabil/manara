@@ -18,4 +18,7 @@ interface PolicyDao {
 
     @Query("SELECT version FROM policy WHERE id = :id LIMIT 1")
     suspend fun currentVersion(id: String = PolicyEntity.CURRENT): Int?
+
+    @Query("DELETE FROM policy")
+    suspend fun clear()
 }

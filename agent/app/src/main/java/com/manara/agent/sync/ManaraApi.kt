@@ -52,7 +52,13 @@ data class DeviceInfo(
 data class EnrollRequest(val enrollmentToken: String, val deviceInfo: DeviceInfo)
 
 @Serializable
-data class EnrollResponse(val deviceId: String, val deviceToken: String, val policy: Policy)
+data class EnrollResponse(
+    val deviceId: String,
+    val deviceToken: String,
+    val policy: Policy,
+    /** Base64; checks a parent's offline release code. Absent from a server older than release codes. */
+    val releaseSecret: String? = null
+)
 
 @Serializable
 data class CommandAck(val commandId: String, val status: String, val detail: String? = null)
@@ -65,7 +71,9 @@ data class SyncRequest(
     // Omitted entirely (not even an empty string) when push isn't
     // configured -- see PushConfig.isConfigured -- so a build without
     // Firebase set up behaves exactly as it did before this field existed.
-    val pushToken: String? = null
+    val pushToken: String? = null,
+    /** False asks the server for the release secret (a phone enrolled before release codes). */
+    val hasReleaseSecret: Boolean = false
 )
 
 @Serializable
@@ -82,5 +90,8 @@ data class SyncResponse(
     val policyChanged: Boolean,
     val policy: Policy? = null,
     val pendingCommands: List<Command> = emptyList(),
-    val acceptedEventIds: List<String> = emptyList()
+    val acceptedEventIds: List<String> = emptyList(),
+    val releaseSecret: String? = null,
+    /** The server has removed this phone after its release ack. */
+    val released: Boolean = false
 )

@@ -1,5 +1,6 @@
 package com.manara.agent.location
 
+import com.manara.agent.R
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -127,7 +128,7 @@ class LocationNoticeService : Service() {
         return builder
             .setContentTitle("Location is being shared")
             .setContentText("This device's location is shared per the current policy.")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setSmallIcon(R.drawable.ic_stat_manara)
             .setOngoing(true)
             .build()
     }

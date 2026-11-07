@@ -64,7 +64,8 @@ data class Policy(
         val blockPrivateDnsConfig: Boolean = false,
         val blockFactoryReset: Boolean = false,
         val blockSafeBoot: Boolean = false,
-        val blockAddUser: Boolean = false
+        val blockAddUser: Boolean = false,
+        val blockDebugging: Boolean = false
     )
 
     @Serializable

@@ -72,7 +72,8 @@ object PolicySummary {
             "Private DNS configuration".takeIf { restrictions.blockPrivateDnsConfig },
             "Factory reset from Settings".takeIf { restrictions.blockFactoryReset },
             "Safe boot".takeIf { restrictions.blockSafeBoot },
-            "Adding users".takeIf { restrictions.blockAddUser }
+            "Adding users".takeIf { restrictions.blockAddUser },
+            "Developer options".takeIf { restrictions.blockDebugging }
         )
         lines += requested.ifEmpty { listOf("None") }
         return lines.joinToString("\n")

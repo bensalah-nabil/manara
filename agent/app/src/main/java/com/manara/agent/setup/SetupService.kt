@@ -1,5 +1,6 @@
 package com.manara.agent.setup
 
+import com.manara.agent.R
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -112,7 +113,7 @@ class SetupService : Service() {
             .setContentTitle("Manara setup: this phone is being set up for parental management")
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))
-            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setSmallIcon(R.drawable.ic_stat_manara)
             .setOngoing(true)
         if (askForCode) {
             val input = RemoteInput.Builder(KEY_PAIRING).setLabel("Code and port, e.g. 123456 41235").build()
@@ -157,6 +158,9 @@ class SetupService : Service() {
         private const val ACTION_FINISH = "com.manara.agent.setup.FINISH"
 
         @Volatile private var running = false
+
+        /** While setup runs, nothing may block the wireless debugging it works over. */
+        val isRunning: Boolean get() = running
         @Volatile private var finished = false
         @Volatile private var pairing = CompletableDeferred<SetupInput.Pairing>()
         @Volatile private var onPairingInput: ((Boolean) -> Unit)? = null

@@ -28,12 +28,17 @@ object RestrictionDecision {
         val unexpectedlyMissing: Set<String>
     )
 
-    fun desiredKeys(restrictions: Policy.Restrictions, sdkInt: Int): Set<String> = buildSet {
+    /**
+     * [debuggingBlockAllowed] is false while guided setup runs (it works over wireless
+     * debugging) and in debug builds (development needs adb).
+     */
+    fun desiredKeys(restrictions: Policy.Restrictions, sdkInt: Int, debuggingBlockAllowed: Boolean = true): Set<String> = buildSet {
         if (restrictions.blockVpnConfig) add(UserManager.DISALLOW_CONFIG_VPN)
         if (restrictions.blockPrivateDnsConfig && sdkInt >= 29) add(UserManager.DISALLOW_CONFIG_PRIVATE_DNS)
         if (restrictions.blockFactoryReset) add(UserManager.DISALLOW_FACTORY_RESET)
         if (restrictions.blockSafeBoot) add(UserManager.DISALLOW_SAFE_BOOT)
         if (restrictions.blockAddUser) add(UserManager.DISALLOW_ADD_USER)
+        if (restrictions.blockDebugging && debuggingBlockAllowed) add(UserManager.DISALLOW_DEBUGGING_FEATURES)
     }
 
     /**

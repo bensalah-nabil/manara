@@ -35,18 +35,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val registry = defaultEnforcerRegistry(applicationContext)
         val policyCache = PolicyCache(db)
         val eventQueue = EventQueue(db)
-        val syncManager = SyncManager(
-            api = ManaraApiFactory.create(),
-            policyCache = policyCache,
-            eventQueue = eventQueue,
-            enforcerRegistry = registry,
-            tokenStore = DeviceTokenStore(applicationContext),
-            commandAckQueue = CommandAckQueue(db),
-            pushTokenStore = PushTokenStore(applicationContext)
-        )
-
-        val result = syncManager.sync()
+        val result = SyncManager.create(applicationContext, registry).sync()
         Log.i(TAG, "sync result: $result")
+        if (result is SyncManager.Result.Released) return WorkResult.success()
 
         // Re-apply the cached policy regardless of whether THIS sync
         // changed it, or even succeeded at all. Found directly from
@@ -64,7 +55,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         registry.collectAllEvents().forEach { eventQueue.enqueue(it) }
 
         return when (result) {
-            is SyncManager.Result.Success -> WorkResult.success()
+            is SyncManager.Result.Success, is SyncManager.Result.Released -> WorkResult.success()
             is SyncManager.Result.NotEnrolled -> WorkResult.success() // nothing to sync yet, not a failure
             is SyncManager.Result.Unauthorized -> WorkResult.failure() // needs re-enrollment, retrying won't help
             is SyncManager.Result.Failed -> {
@@ -77,6 +68,10 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         private const val TAG = "ManaraSyncWorker"
         private const val WORK_NAME = "manara-sync"
         private const val MAX_RETRIES = 5
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        }
 
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES).build()

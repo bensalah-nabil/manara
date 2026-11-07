@@ -13,5 +13,7 @@ plugins {
     // Phase 1: Room needs an annotation processor (KSP, not kapt -- faster,
     // Kotlin-first) and kotlinx.serialization needs its own compiler plugin.
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.20" apply false
+    // Jetpack Compose's compiler ships with Kotlin, so its version is Kotlin's.
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.20" apply false
     id("com.google.devtools.ksp") version "2.3.13" apply false
 }

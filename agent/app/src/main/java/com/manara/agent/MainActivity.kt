@@ -1,394 +1,279 @@
 package com.manara.agent
 
-import android.app.Activity
+import android.Manifest
 import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
-import android.widget.Toast
-import com.manara.agent.enforcers.TimeLimitEnforcer
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.manara.agent.enforcers.defaultEnforcerRegistry
-import com.manara.agent.enroll.EnrollmentActivity
-import com.manara.agent.events.EventQueue
-import com.manara.agent.policy.Policy
-import com.manara.agent.policy.PolicyCache
-import com.manara.agent.policy.PolicySummary
+import com.manara.agent.enroll.EnrollmentRepository
+import com.manara.agent.enroll.PreviousAccountData
 import com.manara.agent.policy.CollectionStatusReader
-import com.manara.agent.policy.CollectionStatusSummary
+import com.manara.agent.policy.PolicyCache
+import com.manara.agent.push.PushManager
+import com.manara.agent.release.ReleaseStore
+import com.manara.agent.release.Releaser
+import com.manara.agent.release.TransferWindow
+import com.manara.agent.setup.SetupService
 import com.manara.agent.storage.ManaraDatabase
-import com.manara.agent.sync.CommandAckQueue
 import com.manara.agent.sync.DeviceTokenStore
 import com.manara.agent.sync.ManaraApiFactory
-import com.manara.agent.sync.PushTokenStore
 import com.manara.agent.sync.SyncManager
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
+import com.manara.agent.sync.SyncStatusStore
+import com.manara.agent.sync.SyncWorker
+import com.manara.agent.ui.ChildView
+import com.manara.agent.ui.ConnectScreen
+import com.manara.agent.ui.HomeModel
+import com.manara.agent.ui.ManagedScreen
+import com.manara.agent.ui.ManaraTheme
+import com.manara.agent.ui.ReleaseScreen
+import com.manara.agent.ui.ReleaseStep
+import com.manara.agent.ui.ReleasedScreen
+import com.manara.agent.ui.SetupScreen
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.DateFormat
+import java.util.Date
 
 /**
- * One screen. It reports whether Manara is currently the device owner — the one
- * fact Phase 0 exists to confirm — and (re)starts the visible managed notice.
- *
- * No layout XML on purpose: keeps the Phase 0 app to the fewest files possible.
+ * The app's one activity. Which screen shows is [HomeModel]'s decision and what
+ * the managed screen says is [ChildView]'s; this class only does the Android side.
  */
-class MainActivity : Activity() {
-    private val policyStatusScope = MainScope()
-    private var policyStatusJob: Job? = null
-    private lateinit var policyStatus: TextView
-    private lateinit var collectionStatus: TextView
+class MainActivity : ComponentActivity() {
+    /** Bumped on every resume, so the screens re-read the phone's state. */
+    private val resumes = mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent { ManaraTheme { App() } }
+    }
 
-        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val owner = ComponentName(this, OwnerReceiver::class.java)
+    override fun onResume() {
+        super.onResume()
+        keepManagementRunning()
+        resumes.intValue++
+    }
 
-        val isDeviceOwner = dpm.isDeviceOwnerApp(packageName)
-        val isAdminActive = dpm.isAdminActive(owner)
+    private val isDeviceOwner: Boolean
+        get() = getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(packageName)
 
-        // If we're managing this device, make sure the honest notice is showing.
-        if (isDeviceOwner) {
-            ManagedNoticeService.start(this)
-            // Belt-and-suspenders alongside OwnerReceiver.onEnabled() and
-            // BootReceiver -- idempotent (KEEP policy / re-granting an
-            // already-granted permission is a no-op), and the only way this
-            // phone's already-enrolled admin (from before these existed)
-            // actually gets them without a fresh enrollment.
-            com.manara.agent.sync.SyncWorker.schedule(this)
-            OwnerReceiver.grantSelfGrantablePermissions(this)
-            com.manara.agent.push.PushManager.ensureRegistered(this)
+    /** Idempotent: the notice, syncing, and self-granted permissions of a managed phone. */
+    private fun keepManagementRunning() {
+        if (!isDeviceOwner) return
+        ManagedNoticeService.start(this)
+        OwnerReceiver.grantSelfGrantablePermissions(this)
+        if (DeviceTokenStore(this).deviceToken() != null) {
+            SyncWorker.schedule(this)
+            PushManager.ensureRegistered(this)
         }
+    }
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(48, 48, 48, 48)
-            // WRAP_CONTENT on height, not MATCH_PARENT -- this is now the
-            // direct child of a ScrollView (added test harnesses pushed the
-            // content past one screen's height), and MATCH_PARENT here
-            // would force it to the screen's height and defeat scrolling.
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
+    private enum class Route { HOME, RELEASE, RELEASED }
 
-        root.addView(TextView(this).apply {
-            text = "Manara"
-            textSize = 22f
-            setTypeface(typeface, Typeface.BOLD)
-            gravity = Gravity.CENTER
-        })
+    @Composable
+    private fun App() {
+        val resume by resumes
+        var route by remember { mutableStateOf(Route.HOME) }
 
-        root.addView(TextView(this).apply {
-            text = if (isDeviceOwner) "Device owner: YES" else "Device owner: NO"
-            textSize = 20f
-            setTextColor(if (isDeviceOwner) Color.rgb(0, 128, 0) else Color.RED)
-            gravity = Gravity.CENTER
-            setPadding(0, 48, 0, 0)
-        })
+        val tokenStore = remember { DeviceTokenStore(this) }
+        val releaseStore = remember { ReleaseStore(this) }
+        val enrolled = remember(resume, route) { tokenStore.deviceId() != null }
+        val deviceOwner = remember(resume, route) { isDeviceOwner }
+        val moveOpen = remember(resume, route) { TransferWindow.isOpen(releaseStore.transferUntil, System.currentTimeMillis()) }
 
-        root.addView(TextView(this).apply {
-            text = "Device admin active: ${if (isAdminActive) "yes" else "no"}"
-            textSize = 15f
-            gravity = Gravity.CENTER
-            setPadding(0, 24, 0, 0)
-        })
-
-        if (!isDeviceOwner) {
-            root.addView(TextView(this).apply {
-                text = "\nTo set via ADB on a factory-reset phone:\n" +
-                        "adb shell dpm set-device-owner \n" +
-                        "com.manara.agent/.OwnerReceiver"
-                textSize = 13f
-                gravity = Gravity.CENTER
-                setPadding(0, 32, 0, 0)
-            })
-            if (com.manara.agent.setup.SetupService.canStart(this)) {
-                root.addView(Button(this).apply {
-                    text = "Start guided setup"
-                    setOnClickListener {
-                        com.manara.agent.setup.SetupService.start(this@MainActivity)
-                        Toast.makeText(this@MainActivity, "Follow the Manara setup notification.", Toast.LENGTH_LONG).show()
-                    }
-                })
+        when (route) {
+            Route.RELEASED -> ReleasedScreen()
+            Route.RELEASE -> {
+                BackHandler { route = Route.HOME }
+                ReleaseFlow(onDone = { released -> route = if (released) Route.RELEASED else Route.HOME })
             }
-        }
-
-        root.addView(TextView(this).apply {
-            text = "Collection status"
-            textSize = 18f
-            setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, 32, 0, 16)
-        })
-        collectionStatus = TextView(this).apply {
-            text = "Loading status..."
-            textSize = 16f
-            gravity = Gravity.START
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-        root.addView(collectionStatus)
-
-        root.addView(TextView(this).apply {
-            text = "Configured policy"
-            textSize = 18f
-            setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, 32, 0, 16)
-        })
-        policyStatus = TextView(this).apply {
-            text = "Loading policy..."
-            textSize = 16f
-            gravity = Gravity.START
-            setPadding(0, 0, 0, 24)
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-        root.addView(policyStatus)
-
-        if (isDeviceOwner) {
-            addTimeLimitTestHarness(root)
-            addSyncTestHarness(root)
-        }
-
-        setContentView(ScrollView(this).apply { addView(root) })
-    }
-
-    override fun onStart() {
-        super.onStart()
-        policyStatus.text = "Loading policy..."
-        collectionStatus.text = "Loading status..."
-        policyStatusJob = policyStatusScope.launch {
-            val statusReader = CollectionStatusReader(applicationContext, ManaraDatabase.get(applicationContext))
-            try {
-                PolicyCache(ManaraDatabase.get(applicationContext)).observe()
-                    .flowOn(Dispatchers.IO)
-                    .collectLatest { policy ->
-                        do {
-                            val snapshot = withContext(Dispatchers.IO) { statusReader.read(policy) }
-                            val summary = PolicySummary.describe(policy, snapshot.usageMinutes)
-                            if (policyStatus.text.toString() != summary) policyStatus.text = summary
-                            val status = CollectionStatusSummary.describe(policy, snapshot.usage, snapshot.location)
-                            if (collectionStatus.text.toString() != status) collectionStatus.text = status
-                            if (!CollectionStatusSummary.needsRefresh(policy)) return@collectLatest
-                            delay(30_000)
-                        } while (isActive)
-                    }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                Log.w("ManaraPolicyStatus", "Cannot read cached policy", error)
-                policyStatus.text = "Policy unavailable"
-                collectionStatus.text = CollectionStatusSummary.describe(null)
-            }
-        }
-    }
-
-    override fun onStop() {
-        policyStatusJob?.cancel()
-        policyStatusJob = null
-        super.onStop()
-    }
-
-    override fun onDestroy() {
-        policyStatusScope.cancel()
-        super.onDestroy()
-    }
-
-    /**
-     * Temporary on-device verification harness for docs/phase1-plan.md step
-     * 3 — confirms TimeLimitEnforcer's setPackagesSuspended call actually
-     * blocks a real app, not just that the decision logic is right (that
-     * part is already covered by TimeLimitDecisionTest). Not meant to
-     * survive once that's verified and a real policy-editing UI exists.
-     */
-    private fun addTimeLimitTestHarness(root: LinearLayout) {
-        val testPackage = "com.instagram.android"
-        val enforcer = TimeLimitEnforcer(this)
-
-        root.addView(TextView(this).apply {
-            text = "\n— TimeLimitEnforcer test (step 3) —\nTarget: $testPackage"
-            textSize = 13f
-            gravity = Gravity.CENTER
-            setPadding(0, 32, 0, 8)
-        })
-
-        root.addView(Button(this).apply {
-            text = "Open Usage Access settings"
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-            }
-        })
-
-        root.addView(Button(this).apply {
-            text = "Show tracked usage today ($testPackage)"
-            setOnClickListener {
-                val minutes = enforcer.todaysUsageMinutesByPackage()[testPackage]
-                val message = if (minutes == null) {
-                    "No entry for $testPackage -- either Usage Access isn't really " +
-                        "granted (check appops, not just Settings), or it hasn't been " +
-                        "opened today at all"
-                } else {
-                    "$testPackage: $minutes minute(s) tracked today"
+            Route.HOME -> {
+                val screen = HomeModel.screen(enrolled, deviceOwner)
+                when {
+                    screen == HomeModel.Screen.MANAGED && moveOpen -> Connect(moving = true) { resumes.intValue++ }
+                    screen == HomeModel.Screen.CONNECT -> Connect(moving = false) { resumes.intValue++ }
+                    screen == HomeModel.Screen.SETUP -> Setup { resumes.intValue++ }
+                    else -> Managed(resume, onReleased = { route = Route.RELEASED }, onRelease = { route = Route.RELEASE })
                 }
-                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
             }
-        })
+        }
+    }
 
-        root.addView(Button(this).apply {
-            text = "Suspend $testPackage now (limit = 0)"
-            setOnClickListener {
-                enforcer.apply(
-                    Policy(
-                        version = 1,
-                        timeLimits = Policy.TimeLimits(
-                            enabled = true,
-                            rules = listOf(
-                                Policy.TimeLimits.Rule(
-                                    category = "test",
-                                    packages = listOf(testPackage),
-                                    dailyMinutes = 0
-                                )
-                            )
-                        )
-                    )
+    @Composable
+    private fun Connect(moving: Boolean, onConnected: () -> Unit) {
+        val scope = rememberCoroutineScope()
+        var busy by remember { mutableStateOf(false) }
+        var message by remember { mutableStateOf<String?>(null) }
+
+        fun enroll(code: String) {
+            busy = true
+            message = null
+            scope.launch {
+                val db = ManaraDatabase.get(this@MainActivity)
+                val repository = EnrollmentRepository(
+                    api = ManaraApiFactory.create(),
+                    tokenStore = DeviceTokenStore(this@MainActivity),
+                    policyCache = PolicyCache(db),
+                    enforcerRegistry = defaultEnforcerRegistry(this@MainActivity),
+                    previousAccountData = PreviousAccountData(db),
+                    releaseStore = ReleaseStore(this@MainActivity),
                 )
-                Toast.makeText(this@MainActivity, "Applied — check if $testPackage is now blocked", Toast.LENGTH_LONG).show()
-            }
-        })
-
-        root.addView(Button(this).apply {
-            text = "Resume $testPackage (disable the rule)"
-            setOnClickListener {
-                enforcer.apply(Policy(version = 2, timeLimits = Policy.TimeLimits(enabled = false)))
-                Toast.makeText(this@MainActivity, "Applied — check if $testPackage opens again", Toast.LENGTH_LONG).show()
-            }
-        })
-
-        root.addView(Button(this).apply {
-            text = "Force-unsuspend $testPackage (bypass tracking)"
-            setOnClickListener {
-                val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-                val admin = ComponentName(this@MainActivity, OwnerReceiver::class.java)
-                runCatching { dpm.setPackagesSuspended(admin, arrayOf(testPackage), false) }
-                Toast.makeText(this@MainActivity, "Directly unsuspended $testPackage", Toast.LENGTH_LONG).show()
-            }
-        })
-    }
-
-    /**
-     * Phase 1 step 7's sync test, now pointed at the real enrollment screen
-     * (step 6) instead of an inline "Enroll" button that duplicated
-     * [EnrollmentRepository]'s logic. "Sync now" stays as a manual trigger
-     * alongside the periodic `SyncWorker` — useful for testing without
-     * waiting out the schedule.
-     */
-    private fun addSyncTestHarness(root: LinearLayout) {
-        val scope = CoroutineScope(Dispatchers.Main)
-        val tokenStore = DeviceTokenStore(this)
-        val db = ManaraDatabase.get(this)
-        val policyCache = PolicyCache(db)
-        val eventQueue = EventQueue(db)
-        val registry = defaultEnforcerRegistry(this)
-
-        val status = TextView(this).apply {
-            text = "\n— Sync test (steps 5-7) —\nNot enrolled"
-            textSize = 13f
-            gravity = Gravity.CENTER
-            setPadding(0, 32, 0, 8)
-        }
-        root.addView(status)
-
-        fun refreshStatus(message: String) {
-            status.text = "\n— Sync test (steps 5-7) —\n$message"
-        }
-
-        root.addView(Button(this).apply {
-            text = "Enroll this device"
-            setOnClickListener {
-                startActivity(Intent(this@MainActivity, EnrollmentActivity::class.java))
-            }
-        })
-
-        root.addView(Button(this).apply {
-            text = "Sync now"
-            setOnClickListener {
-                scope.launch {
-                    val syncManager = SyncManager(
-                        api = ManaraApiFactory.create(),
-                        policyCache = policyCache,
-                        eventQueue = eventQueue,
-                        enforcerRegistry = registry,
-                        tokenStore = tokenStore,
-                        commandAckQueue = CommandAckQueue(db),
-                        pushTokenStore = PushTokenStore(this@MainActivity)
-                    )
-                    val syncResult = withContext(Dispatchers.IO) { syncManager.sync() }
-                    // Same fix as SyncWorker: re-apply the cached policy
-                    // regardless of whether this sync changed it, since a
-                    // lock schedule / usage limit is wall-clock-driven, not
-                    // just policy-change-driven. Without this, a second
-                    // "Sync now" tap on an unchanged policy looks like
-                    // enforcement silently stopped working.
-                    withContext(Dispatchers.IO) {
-                        policyCache.current()?.let { registry.applyAll(it) }
-                        registry.collectAllEvents().forEach { eventQueue.enqueue(it) }
+                val result = withContext(Dispatchers.IO) { repository.enroll(code) }
+                busy = false
+                when (result) {
+                    is EnrollmentRepository.Result.Success -> {
+                        keepManagementRunning()
+                        onConnected()
                     }
-                    val message = when (syncResult) {
-                        is SyncManager.Result.Success -> {
-                            val version = withContext(Dispatchers.IO) { policyCache.currentVersion() }
-                            "Sync OK, policy version: $version"
-                        }
-                        is SyncManager.Result.NotEnrolled -> "Not enrolled — tap Enroll first"
-                        is SyncManager.Result.Unauthorized -> "Unauthorized — token rejected"
-                        is SyncManager.Result.Failed -> "Sync failed: ${syncResult.cause.message}"
-                    }
-                    refreshStatus(message)
+                    is EnrollmentRepository.Result.Rejected -> message =
+                        "That code didn't work. Codes work once: ask for a new one in the console."
+                    is EnrollmentRepository.Result.NotAllowed -> message =
+                        "This phone is managed for a parent account. Only that parent can release it."
+                    is EnrollmentRepository.Result.Failed -> message =
+                        "Couldn't reach Manara. Check the internet connection and try again; the server can take a minute to wake up."
                 }
             }
-        })
+        }
 
-        root.addView(Button(this).apply {
-            text = "Run SyncWorker via WorkManager (not a direct call)"
-            setOnClickListener {
-                // Unlike the button above (which calls SyncManager directly
-                // from this Activity's own scope), this actually goes
-                // through WorkManager -- the same dispatch path the real
-                // periodic job (and an incoming FCM push, see
-                // ManaraFirebaseMessagingService) uses, just as a one-time
-                // request instead of waiting ~15 min. Added because `adb
-                // shell cmd jobscheduler run -f` turned out NOT to reliably
-                // invoke doWork() for a WorkManager-backed job when tested
-                // -- this is the cleaner way to actually exercise that code
-                // path on demand.
-                val id = com.manara.agent.sync.SyncWorker.enqueueOneTime(this@MainActivity)
-                refreshStatus("Enqueued one-time SyncWorker run (id=$id) -- check logcat/adb for the result")
+        ConnectScreen(
+            moving = moving,
+            busy = busy,
+            message = message,
+            onScan = {
+                GmsBarcodeScanning.getClient(this).startScan()
+                    .addOnSuccessListener { barcode -> barcode.rawValue?.let(::enroll) ?: run { message = "That QR code had nothing to read." } }
+                    .addOnFailureListener { message = "The scanner couldn't start. Type the code instead." }
+            },
+            onCode = ::enroll,
+        )
+    }
+
+    @Composable
+    private fun Setup(onManaged: () -> Unit) {
+        var running by remember { mutableStateOf(SetupService.isRunning) }
+        val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            // The pairing code is typed into a notification, so setup only starts once it can show one.
+            if (it) SetupService.start(this)
+        }
+        LaunchedEffect(Unit) {
+            while (true) {
+                running = SetupService.isRunning
+                if (isDeviceOwner && !running) {
+                    keepManagementRunning()
+                    onManaged()
+                    break
+                }
+                delay(2_000)
             }
-        })
+        }
+        SetupScreen(
+            supported = HomeModel.setupSupported(Build.VERSION.SDK_INT),
+            running = running,
+            onStart = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else SetupService.start(this)
+            },
+        )
+    }
+
+    @Composable
+    private fun Managed(resume: Int, onReleased: () -> Unit, onRelease: () -> Unit) {
+        val scope = rememberCoroutineScope()
+        var view by remember { mutableStateOf<ChildView.View?>(null) }
+        var refreshing by remember { mutableStateOf(false) }
+        var reloads by remember { mutableIntStateOf(0) }
+
+        LaunchedEffect(resume, reloads) {
+            view = withContext(Dispatchers.IO) {
+                val db = ManaraDatabase.get(this@MainActivity)
+                val policy = PolicyCache(db).current()
+                val snapshot = CollectionStatusReader(this@MainActivity, db).read(policy)
+                ChildView.build(policy, snapshot.usage, snapshot.location, SyncStatusStore(this@MainActivity).lastSuccessAt(), System.currentTimeMillis())
+            }
+        }
+
+        val current = view ?: return
+        ManagedScreen(
+            view = current,
+            refreshing = refreshing,
+            onFix = { fix ->
+                startActivity(Intent(if (fix == ChildView.Fix.USAGE_ACCESS) Settings.ACTION_USAGE_ACCESS_SETTINGS else Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            },
+            onRefresh = {
+                refreshing = true
+                scope.launch {
+                    val registry = defaultEnforcerRegistry(this@MainActivity)
+                    val result = withContext(Dispatchers.IO) {
+                        val result = SyncManager.create(this@MainActivity, registry).sync()
+                        if (result !is SyncManager.Result.Released) {
+                            val db = ManaraDatabase.get(this@MainActivity)
+                            PolicyCache(db).current()?.let { registry.applyAll(it) }
+                            com.manara.agent.events.EventQueue(db).let { queue -> registry.collectAllEvents().forEach { queue.enqueue(it) } }
+                        }
+                        result
+                    }
+                    refreshing = false
+                    if (result is SyncManager.Result.Released) onReleased() else reloads++
+                }
+            },
+            onRelease = onRelease,
+        )
+    }
+
+    @Composable
+    private fun ReleaseFlow(onDone: (released: Boolean) -> Unit) {
+        val scope = rememberCoroutineScope()
+        var step by remember { mutableStateOf<ReleaseStep>(ReleaseStep.EnterCode) }
+        var message by remember { mutableStateOf<String?>(null) }
+        val releaser = remember {
+            val db = ManaraDatabase.get(this)
+            Releaser(this, db, defaultEnforcerRegistry(this), DeviceTokenStore(this), ReleaseStore(this))
+        }
+
+        ReleaseScreen(
+            step = step,
+            message = message,
+            onCode = { code ->
+                message = when (val result = releaser.checkCode(code)) {
+                    is Releaser.CodeResult.Accepted -> { step = ReleaseStep.Choose; null }
+                    is Releaser.CodeResult.Wrong -> "That code isn't right. Check it with your parent."
+                    is Releaser.CodeResult.Locked ->
+                        "Too many wrong codes. Try again after ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(result.untilMillis))}."
+                    is Releaser.CodeResult.NoSecret ->
+                        "This phone hasn't received its release key yet. Connect to the internet, wait a few minutes, and try again."
+                }
+            },
+            onMove = {
+                releaser.openTransfer(commandId = null)
+                onDone(false)
+            },
+            onRemove = {
+                step = ReleaseStep.Working
+                scope.launch {
+                    withContext(Dispatchers.IO) { releaser.removeManara() }
+                    onDone(true)
+                }
+            },
+            onBack = { onDone(false) },
+        )
     }
 }

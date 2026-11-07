@@ -4,6 +4,10 @@ import com.manara.agent.enforcers.EnforcerRegistry
 import com.manara.agent.enforcers.LockEnforcer
 import com.manara.agent.events.EventQueue
 import com.manara.agent.policy.PolicyCache
+import com.manara.agent.release.Releaser
+import com.manara.agent.release.ReleaseStore
+import com.manara.agent.release.TransferWindow
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * The one round-trip of the agent-sync loop (architecture.md §3,
@@ -37,13 +41,19 @@ class SyncManager(
     private val enforcerRegistry: EnforcerRegistry,
     private val tokenStore: DeviceTokenStore,
     private val commandAckQueue: CommandAckQueue,
-    private val pushTokenStore: PushTokenStore
+    private val pushTokenStore: PushTokenStore,
+    private val releaser: Releaser,
+    private val releaseStore: ReleaseStore,
+    private val now: () -> Long = System::currentTimeMillis,
+    private val onSuccess: (Long) -> Unit = {}
 ) {
     sealed class Result {
         data object Success : Result()
         data object NotEnrolled : Result()
         /** The device token was rejected — re-enrollment is needed, don't just retry. */
         data object Unauthorized : Result()
+        /** The parent released the phone: Manara no longer manages it. */
+        data object Released : Result()
         data class Failed(val cause: Throwable) : Result()
     }
 
@@ -51,6 +61,7 @@ class SyncManager(
         val token = tokenStore.deviceToken() ?: return Result.NotEnrolled
 
         collectEnforcerEvents()
+        closeExpiredTransfer()
 
         val policyVersion = policyCache.currentVersion() ?: 0
         val events = eventQueue.drainBatch()
@@ -63,7 +74,8 @@ class SyncManager(
                     policyVersion = policyVersion,
                     events = events,
                     commandAcks = acksToSend,
-                    pushToken = pushTokenStore.current()
+                    pushToken = pushTokenStore.current(),
+                    hasReleaseSecret = tokenStore.releaseSecret() != null
                 )
             )
 
@@ -81,23 +93,94 @@ class SyncManager(
                     // command acks are idempotent (re-acking is a no-op).
                     eventQueue.markAccepted(body.acceptedEventIds)
                     commandAckQueue.markSent(acksToSend.map { it.commandId })
+                    body.releaseSecret?.let { tokenStore.saveReleaseSecret(it) }
 
                     if (body.policyChanged && body.policy != null) {
                         policyCache.replace(body.policy)
                         enforcerRegistry.applyAll(body.policy)
                     }
 
+                    var removal: Command? = null
                     for (command in body.pendingCommands) {
+                        if (command.type == "release") {
+                            when (command.params["mode"]?.jsonPrimitive?.content) {
+                                "remove" -> removal = command
+                                "transfer" -> openTransfer(command)
+                                else -> commandAckQueue.enqueue(CommandAck(command.commandId, "failed", "unknown release mode"))
+                            }
+                            continue
+                        }
                         val (status, detail) = execute(command)
                         commandAckQueue.enqueue(CommandAck(command.commandId, status, detail))
                     }
                     collectEnforcerEvents()
 
-                    Result.Success
+                    onSuccess(now())
+                    if (removal != null) removeManara(token, removal) else Result.Success
                 }
             }
         } catch (t: Exception) {
             Result.Failed(t)
+        }
+    }
+
+    /** A move stays open until the new account takes over (see EnrollmentRepository) or the window closes. */
+    private fun openTransfer(command: Command) {
+        if (releaseStore.transferCommandId == command.commandId) return
+        releaser.openTransfer(command.commandId)
+    }
+
+    private suspend fun closeExpiredTransfer() {
+        if (!TransferWindow.hasExpired(releaseStore.transferUntil, now())) return
+        releaseStore.transferCommandId?.let {
+            commandAckQueue.enqueue(CommandAck(it, "failed", "The phone was not connected to another account in time."))
+        }
+        releaseStore.closeTransfer()
+    }
+
+    /**
+     * Tells the server first, while the token still works: its reply deletes
+     * the phone from the account. The phone lets go whether or not that last
+     * request arrives, since the parent asked for it; the console can still
+     * remove a phone that never confirmed.
+     */
+    private suspend fun removeManara(token: String, command: Command): Result {
+        commandAckQueue.enqueue(CommandAck(command.commandId, "acked", null))
+        val acks = commandAckQueue.pending()
+        val confirmed = runCatching {
+            api.sync(
+                bearerToken = "Bearer $token",
+                request = SyncRequest(
+                    policyVersion = policyCache.currentVersion() ?: 0,
+                    events = emptyList(),
+                    commandAcks = acks,
+                    hasReleaseSecret = true
+                )
+            ).body()?.released == true
+        }.getOrDefault(false)
+        if (!confirmed) android.util.Log.w("ManaraSync", "Release ack not confirmed by the server; releasing anyway")
+        releaser.removeManara()
+        return Result.Released
+    }
+
+    companion object {
+        /** The one place a SyncManager is wired, for the worker and the app's own screens. */
+        fun create(context: android.content.Context, registry: EnforcerRegistry): SyncManager {
+            val db = com.manara.agent.storage.ManaraDatabase.get(context)
+            val tokenStore = DeviceTokenStore(context)
+            val releaseStore = ReleaseStore(context)
+            return SyncManager(
+                api = ManaraApiFactory.create(),
+                policyCache = PolicyCache(db),
+                eventQueue = EventQueue(db),
+                enforcerRegistry = registry,
+                tokenStore = tokenStore,
+                commandAckQueue = CommandAckQueue(db),
+                pushTokenStore = PushTokenStore(context),
+                releaser = Releaser(context, db, registry, tokenStore, releaseStore),
+                releaseStore = releaseStore,
+                onSuccess = SyncStatusStore(context)::recordSuccess
+            )
         }
     }
 

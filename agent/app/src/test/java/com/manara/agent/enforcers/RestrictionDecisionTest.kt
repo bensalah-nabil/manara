@@ -25,6 +25,13 @@ class RestrictionDecisionTest {
     }
 
     @Test
+    fun `debugging block waits while it is not allowed`() {
+        val restrictions = Policy.Restrictions(blockDebugging = true)
+        assertEquals(setOf(UserManager.DISALLOW_DEBUGGING_FEATURES), RestrictionDecision.desiredKeys(restrictions, 34))
+        assertEquals(emptySet<String>(), RestrictionDecision.desiredKeys(restrictions, 34, debuggingBlockAllowed = false))
+    }
+
+    @Test
     fun `adds only what is not already active`() {
         val d = RestrictionDecision.decide(desired = setOf(vpn, reset), previouslyApplied = emptySet(), currentlyActive = setOf(vpn))
         assertEquals(setOf(reset), d.toAdd)

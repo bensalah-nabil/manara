@@ -33,7 +33,10 @@ class RestrictionsEnforcer(context: Context) : PolicyEnforcer {
         set(value) = prefs.edit().putStringSet(KEY_APPLIED, value).apply()
 
     override fun apply(policy: Policy) {
-        val desired = RestrictionDecision.desiredKeys(policy.restrictions, Build.VERSION.SDK_INT)
+        val desired = RestrictionDecision.desiredKeys(
+            policy.restrictions, Build.VERSION.SDK_INT,
+            debuggingBlockAllowed = !com.manara.agent.BuildConfig.DEBUG && !com.manara.agent.setup.SetupService.isRunning
+        )
         val active = runCatching { devicePolicyManager.getUserRestrictions(admin) }
             .onFailure { Log.w(TAG, "getUserRestrictions threw", it) }
             .getOrNull()
