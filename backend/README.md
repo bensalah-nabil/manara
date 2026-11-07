@@ -54,12 +54,14 @@ Real signup/login exists (`POST /console/auth/signup`, `POST
 something to build product features on:
 
 ```bash
-docker compose exec server /usr/local/bin/manara-server -seed
+docker compose exec server /usr/local/bin/manara-server -seed -seed-email you@example.com
 ```
 
-Prints a `parentId`, a `parentSession` bearer token (for `/console/*`
-calls), and a one-time `enrollmentToken` (for the agent's `/enroll` call —
-same QR/manual-entry flow as `agent/`'s `EnrollmentActivity`). A signed-in
+Creates a parent that signs in like any other and prints its `parentId`,
+email, a generated password (shown once), a `parentSession` bearer token (for
+`/console/*` calls), and a one-time `enrollmentToken` (for the agent's
+`/enroll` call). The email is required: a phone enrolled to an account
+nobody can sign in to could never get a release code. A signed-in
 parent can also generate their own enrollment token via `POST
 /console/enrollment-tokens`.
 

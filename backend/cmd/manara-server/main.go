@@ -5,6 +5,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"log"
@@ -18,12 +20,11 @@ import (
 	"manara/backend/internal/persistence/postgres"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
-
-	"github.com/google/uuid"
 )
 
 func main() {
-	seed := flag.Bool("seed", false, "create one parent + print a parentSession token and an enrollment token, then exit")
+	seed := flag.Bool("seed", false, "dev only: create a parent that can sign in, print its password, a parentSession and an enrollment token, then exit")
+	seedEmail := flag.String("seed-email", "", "the seeded parent's email (required with -seed)")
 	flag.Parse()
 
 	connString := os.Getenv("DATABASE_URL")
@@ -42,12 +43,12 @@ func main() {
 		log.Fatalf("migrate: %v", err)
 	}
 
-	parents := postgres.NewParentRepository(db)
+	auth := postgres.NewAuthRepository(db)
 	sessions := postgres.NewParentSessionRepository(db)
 	enrollments := postgres.NewEnrollmentTokenRepository(db)
 
 	if *seed {
-		runSeed(ctx, parents, sessions, enrollments)
+		runSeed(ctx, *seedEmail, auth, sessions, enrollments)
 		return
 	}
 
@@ -56,7 +57,6 @@ func main() {
 	policies := postgres.NewPolicyRepository(db)
 	commands := postgres.NewCommandQueue(db)
 	events := postgres.NewEventStore(db)
-	auth := postgres.NewAuthRepository(db)
 	setups := postgres.NewSetupRepository(db)
 	releases := postgres.NewReleaseRepository(db)
 	notifier := newNotifier(ctx)
@@ -230,9 +230,20 @@ func runRetentionSweep(ctx context.Context, events domain.EventStore, setups dom
 	}
 }
 
-func runSeed(ctx context.Context, parents domain.ParentRepository, sessions domain.ParentSessionRepository, enrollments domain.EnrollmentTokenRepository) {
-	parent := &domain.Parent{ID: uuid.NewString(), CreatedAt: time.Now().UTC()}
-	if err := parents.Create(ctx, parent); err != nil {
+// runSeed creates a parent that can sign in like any other, never an
+// account with no email or password: a phone enrolled to one of those could
+// only be released from a database nobody can sign in to.
+func runSeed(ctx context.Context, email string, auth domain.AuthRepository, sessions domain.ParentSessionRepository, enrollments domain.EnrollmentTokenRepository) {
+	if email == "" {
+		log.Fatalf("seed: -seed-email is required, so the seeded parent can sign in to the console")
+	}
+	raw := make([]byte, 12)
+	if _, err := rand.Read(raw); err != nil {
+		log.Fatalf("seed: generate password: %v", err)
+	}
+	password := base64.RawURLEncoding.EncodeToString(raw)
+	parent, err := auth.SignUp(ctx, email, password)
+	if err != nil {
 		log.Fatalf("seed: create parent: %v", err)
 	}
 	sessionToken, err := sessions.Issue(ctx, parent.ID)
@@ -245,6 +256,8 @@ func runSeed(ctx context.Context, parents domain.ParentRepository, sessions doma
 	}
 
 	fmt.Printf("parentId:         %s\n", parent.ID)
+	fmt.Printf("email:            %s\n", parent.Email)
+	fmt.Printf("password:         %s\n", password)
 	fmt.Printf("parentSession:    %s\n", sessionToken)
 	fmt.Printf("enrollmentToken:  %s\n", enrollmentToken)
 }
