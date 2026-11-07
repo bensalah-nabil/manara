@@ -176,7 +176,7 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
 // ---- Guided setup ------------------------------------------------------------
 
 @Composable
-fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit) {
+fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onShowNotice: () -> Unit) {
     Page {
         Header("Almost there", "This phone is connected to a parent account.")
         if (!supported) {
@@ -189,6 +189,7 @@ fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit) {
             Step(3, "Follow Manara's notification. Each step also shows in the parent's console, with any accounts to remove for a few minutes.")
             if (running) {
                 Note("Setup is running. Follow Manara's notification.")
+                OutlinedButton(onClick = onShowNotice, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Show the notification again") }
             } else {
                 Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Start guided setup") }
             }

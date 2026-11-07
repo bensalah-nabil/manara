@@ -197,6 +197,7 @@ class MainActivity : ComponentActivity() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                 else SetupService.start(this)
             },
+            onShowNotice = SetupService::showAgain,
         )
     }
 

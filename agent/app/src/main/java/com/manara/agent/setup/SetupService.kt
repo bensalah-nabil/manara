@@ -35,6 +35,7 @@ class SetupService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        current = this
         startForeground(NOTIFICATION_ID, notification("Starting guided setup.", askForCode = false))
     }
 
@@ -69,6 +70,7 @@ class SetupService : Service() {
     }
 
     override fun onDestroy() {
+        if (current === this) current = null
         scope.cancel()
         super.onDestroy()
     }
@@ -99,6 +101,7 @@ class SetupService : Service() {
     }
 
     private fun show(text: String, askForCode: Boolean, canFinish: Boolean = false) {
+        last = Shown(text, askForCode, canFinish)
         getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(text, askForCode, canFinish))
     }
 
@@ -115,6 +118,14 @@ class SetupService : Service() {
             .setStyle(Notification.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.ic_stat_manara)
             .setOngoing(true)
+            // Android 14 lets the user swipe this away while Manara isn't device owner yet,
+            // which would leave setup waiting for a code nobody can enter: post it again.
+            .setDeleteIntent(
+                PendingIntent.getBroadcast(
+                    this, 2, Intent(this, SetupInputReceiver::class.java).setAction(ACTION_DISMISSED),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            )
         if (askForCode) {
             val input = RemoteInput.Builder(KEY_PAIRING).setLabel("Code and port, e.g. 123456 41235").build()
             val reply = PendingIntent.getBroadcast(
@@ -145,6 +156,7 @@ class SetupService : Service() {
                     onPairingInput?.invoke(parsed != null)
                 }
                 ACTION_FINISH -> finished = true
+                ACTION_DISMISSED -> showAgain()
             }
         }
     }
@@ -156,6 +168,19 @@ class SetupService : Service() {
         private const val KEY_PAIRING = "pairing"
         private const val ACTION_PAIRING = "com.manara.agent.setup.PAIRING"
         private const val ACTION_FINISH = "com.manara.agent.setup.FINISH"
+        private const val ACTION_DISMISSED = "com.manara.agent.setup.DISMISSED"
+
+        private data class Shown(val text: String, val askForCode: Boolean, val canFinish: Boolean)
+        @Volatile private var current: SetupService? = null
+        @Volatile private var last: Shown? = null
+
+        /** Posts the setup notice again, as last shown; nothing if setup isn't running. */
+        fun showAgain() {
+            val service = current ?: return
+            if (!running) return
+            val shown = last ?: Shown("Starting guided setup.", askForCode = false, canFinish = false)
+            service.show(shown.text, shown.askForCode, shown.canFinish)
+        }
 
         @Volatile private var running = false
 
