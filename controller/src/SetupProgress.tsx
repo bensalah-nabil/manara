@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
-import { errorText, lastSeenText } from './format.ts'
+import { deviceName, errorText, lastSeenText } from './format.ts'
 import { PairPhone } from './PairPhone.tsx'
 import { accountTypeName, canFinish, isActive, reconnectChecklist, stepStates, waitingToPair } from './setup.ts'
 import type { DeviceSetup, StepState } from './setup.ts'
@@ -86,7 +86,7 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
     return (
         <div class="stack">
             <div class="consent">
-                <h3>This is your child's phone: {device.label || 'Unnamed device'}</h3>
+                <h3>This is your child's phone: {deviceName(device)}</h3>
                 <p>Everything below is happening on that phone. Make sure it is your child's phone, not your own.</p>
             </div>
             <strong>Setup progress</strong>

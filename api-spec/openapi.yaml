@@ -476,6 +476,73 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /console/devices/{deviceId}:
+    delete:
+      tags: [console]
+      summary: Remove a phone from the account and delete everything stored about it
+      description: >
+        The phone itself stays managed until it is released (ADR-0004); this
+        only removes the server's record, for example after a release by code.
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '200':
+          description: Deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    patch:
+      tags: [console]
+      summary: Set the child's name and color for a phone
+      description: A field left out keeps its current value. The name is trimmed.
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label: { type: string, maxLength: 40, description: Up to 40 letters; empty clears it. }
+                color:
+                  type: string
+                  enum: ['', teal, blue, purple, pink, red, orange, amber, green]
+      responses:
+        '200':
+          description: Saved, as stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [label, color]
+                properties:
+                  label: { type: string }
+                  color: { type: string }
+        '400':
+          description: "`bad_request` or `invalid_profile` (name over 40 letters or with control characters, or an unknown color)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /console/devices/{deviceId}/setup/pairing-code:
     post:
       tags: [console]
@@ -631,7 +698,13 @@ components:
       required: [deviceId, label, status, lastSeen]
       properties:
         deviceId: { type: string, format: uuid }
-        label: { type: string, example: "Aicha's phone" }
+        label: { type: string, example: "Aicha's phone", description: "The child's name, as the parent typed it; empty until set." }
+        color:
+          type: string
+          enum: [teal, blue, purple, pink, red, orange, amber, green]
+          description: The color the parent picked; absent until one is.
+        model: { type: string, example: SM-A045F, description: As the phone reported it at enrollment. }
+        manufacturer: { type: string, example: samsung }
         status:
           type: string
           enum: [reporting, not_reporting, never_connected]
@@ -774,6 +847,13 @@ components:
           type: string
           enum: [pending, delivered, acked, failed, expired]
         createdAt: { type: string, format: date-time }
+        woken:
+          type: boolean
+          description: >
+            In the create response: a push reached the phone, so an urgent
+            command runs within seconds. False when the server has no push
+            set up or the phone has no push token yet: it runs at the phone's
+            next check-in.
 
     # ---- Events ---------------------------------------------------- #
     EventKind:

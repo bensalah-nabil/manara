@@ -239,3 +239,11 @@ test('sendPairingCode and finishSetup post to that device', async () => {
     assert.equal(calls[1].url, 'http://x/console/devices/d1/setup/finish')
     assert.equal(calls[1].init.method, 'POST')
 })
+
+test('updateDevice patches that device with the name and color', async () => {
+    const { calls, fetchImpl } = recorder(() => jsonResponse(200, { label: 'Sara', color: 'pink' }))
+    await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl }).updateDevice('d 1', { label: 'Sara', color: 'pink' })
+    assert.equal(calls[0].url, 'http://x/console/devices/d%201')
+    assert.equal(calls[0].init.method, 'PATCH')
+    assert.equal(calls[0].init.body, JSON.stringify({ label: 'Sara', color: 'pink' }))
+})

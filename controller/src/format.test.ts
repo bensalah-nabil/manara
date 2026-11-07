@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { agoText, authErrorText, errorText, lastSeenText, statusText } from './format.ts'
+import { agoText, authErrorText, deviceName, errorText, lastSeenText, statusText } from './format.ts'
 import { ApiError } from './api.ts'
 
 test('errorText reports a missing device specifically and everything else generically', () => {
@@ -38,4 +38,14 @@ test('agoText is relative for recent times and a date after two days', () => {
     assert.equal(agoText('2026-11-06T06:00:00Z', now), 'yesterday')
     assert.equal(agoText('2026-11-01T12:00:00Z', now, 'en-GB'), '01/11/2026')
     assert.equal(agoText('0001-01-01T00:00:00Z', now), 'never')
+})
+
+test('a phone with no label is named by its maker and model', () => {
+    assert.equal(deviceName({ label: 'Sara', model: 'SM-A045F', manufacturer: 'samsung' }), 'Sara')
+    assert.equal(deviceName({ label: '', model: 'SM-A045F', manufacturer: 'samsung' }), 'Samsung SM-A045F')
+    assert.equal(deviceName({ label: ' ', model: 'Pixel 8', manufacturer: 'Google' }), 'Google Pixel 8')
+    assert.equal(deviceName({ label: '', model: 'Redmi Note 12', manufacturer: 'Xiaomi' }), 'Xiaomi Redmi Note 12')
+    assert.equal(deviceName({ label: '', manufacturer: 'Fairphone' }), 'Fairphone')
+    assert.equal(deviceName({ label: '' }), 'Unnamed phone')
+    assert.equal(deviceName({ label: '' }, 'this phone'), 'this phone')
 })

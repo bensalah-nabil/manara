@@ -332,3 +332,22 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* A child's phone: their initial in the color the parent picked, with the reporting dot on its corner. */
+.avatar {
+  position: relative; flex: none; display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  color: #fff; font-weight: 650; line-height: 1;
+}
+.avatar.large { width: 48px; height: 48px; font-size: 1.3rem; }
+.avatar .dot { position: absolute; right: -2px; bottom: -2px; box-shadow: 0 0 0 2px var(--bg); }
+.phone.active .avatar .dot { box-shadow: 0 0 0 2px var(--brand-soft); }
+.device-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.profile-preview { display: flex; align-items: center; gap: 12px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0; }
+.swatch {
+  width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer;
+}
+.swatch[aria-checked="true"] { box-shadow: 0 0 0 3px var(--ink); }
+.swatch:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }

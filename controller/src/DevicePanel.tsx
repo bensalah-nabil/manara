@@ -1,10 +1,12 @@
+import { colorHex, initial } from './profile.ts'
+import { ProfileEditor } from './ProfileEditor.tsx'
 import { useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
 import { LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
 import type { Props } from './Editors.tsx'
-import { agoText, errorText, lastSeenText, statusText } from './format.ts'
+import { agoText, deviceName, errorText, lastSeenText, statusText } from './format.ts'
 import { summarizeProtection } from './protection.ts'
 import type { ProtectionReport } from './protection.ts'
 import { limitHitText, summarizeLimitHits } from './usageHistory.ts'
@@ -166,13 +168,15 @@ function LockNow({ api, device, onSessionExpired }: Props) {
     const [error, setError] = useState('')
 
     async function lock() {
-        if (!window.confirm(`Lock "${device.label || 'this phone'}" now?`)) return
+        if (!window.confirm(`Lock "${deviceName(device, 'this phone')}" now?`)) return
         setBusy(true)
         setError('')
         setMessage('')
         try {
-            await api.lockNow(device.deviceId)
-            setMessage('Lock sent. The phone locks right away if it can be reached, otherwise at its next check-in.')
+            const { woken } = await api.lockNow(device.deviceId)
+            setMessage(woken
+                ? 'Lock sent. The phone locks in a few seconds.'
+                : 'Lock sent. This server cannot wake the phone, so it locks at its next check-in, within 15 minutes.')
         } catch (caught) {
             if (isSessionError(caught)) onSessionExpired()
             else setError(errorText(caught))
@@ -201,19 +205,22 @@ const TABS: { key: Tab; label: string }[] = [
     { key: 'phone', label: 'Phone' },
 ]
 
-export function DevicePanel(props: Props & { onRemoved: () => void }) {
+export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: () => void }) {
     const { device } = props
     const [tab, setTab] = useState<Tab>('activity')
 
     return (
         <div class="device">
             <header class="device-head">
-                <div>
-                    <h1>{device.label || 'Unnamed phone'}</h1>
-                    <p class="muted">
-                        <span class={`pill ${device.status}`}>{statusText(device.status)}</span>
-                        <span title={lastSeenText(device.lastSeen)}>Last seen {agoText(device.lastSeen)}</span>
-                    </p>
+                <div class="device-title">
+                    <span class="avatar large" style={{ background: colorHex(device.color) }} aria-hidden="true">{initial(deviceName(device))}</span>
+                    <div>
+                        <h1>{deviceName(device)}</h1>
+                        <p class="muted">
+                            <span class={`pill ${device.status}`}>{statusText(device.status)}</span>
+                            <span title={lastSeenText(device.lastSeen)}>Last seen {agoText(device.lastSeen)}</span>
+                        </p>
+                    </div>
                 </div>
                 <LockNow {...props} />
             </header>
@@ -253,7 +260,12 @@ export function DevicePanel(props: Props & { onRemoved: () => void }) {
                         <RestrictionsEditor {...props} />
                     </>
                 )}
-                {tab === 'phone' && <ReleasePanel {...props} />}
+                {tab === 'phone' && (
+                    <>
+                        <ProfileEditor {...props} />
+                        <ReleasePanel {...props} />
+                    </>
+                )}
                 {tab === 'sharing' && (
                     <>
                         <LocationEditor {...props} />

@@ -6,6 +6,10 @@ import type { DeviceSetup } from './setup.ts'
 export interface DeviceSummary {
     deviceId: string
     label: string
+    /** One of profile.ts COLORS, or absent until the parent picks one. */
+    color?: string
+    model?: string
+    manufacturer?: string
     status: DeviceStatus
     lastSeen: string
     policyVersion?: number
@@ -156,8 +160,15 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             return toPolicy(await request('PUT', devicePath(deviceId, 'policy'), policy, true))
         },
 
-        async lockNow(deviceId: string): Promise<void> {
-            await request('POST', devicePath(deviceId, 'commands'), { type: 'lock_now' }, true)
+        /** The child's name and color for this phone. */
+        async updateDevice(deviceId: string, profile: { label: string; color: string }): Promise<void> {
+            await request('PATCH', `/console/devices/${encodeURIComponent(deviceId)}`, profile, true)
+        },
+
+        /** True when the server woke the phone with a push; false means it locks at its next check-in. */
+        async lockNow(deviceId: string): Promise<{ woken: boolean }> {
+            const value = (await request('POST', devicePath(deviceId, 'commands'), { type: 'lock_now' }, true)) as { woken?: unknown } | null
+            return { woken: value?.woken === true }
         },
 
         async listEvents(deviceId: string, kind: string, since?: Date): Promise<EventItem[]> {

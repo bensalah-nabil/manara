@@ -1,9 +1,10 @@
+import { colorHex, initial } from './profile.ts'
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks'
 import { ApiError, createApi, isSessionError } from './api.ts'
 import type { Api, DeviceSummary } from './api.ts'
 import { AddDevice } from './AddDevice.tsx'
 import { DevicePanel } from './DevicePanel.tsx'
-import { agoText, authErrorText, lastSeenText, statusText } from './format.ts'
+import { agoText, authErrorText, deviceName, lastSeenText, statusText } from './format.ts'
 import { createSessionStore } from './session.ts'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
@@ -132,9 +133,12 @@ function PhoneList({ devices, selected, onRefresh, error }: { devices: DeviceSum
                                 class={device.deviceId === selected ? 'phone active' : 'phone'}
                                 aria-current={device.deviceId === selected ? 'page' : undefined}
                             >
-                                <span class={`dot ${device.status}`} aria-hidden="true" />
+                                <span class="avatar" style={{ background: colorHex(device.color) }} aria-hidden="true">
+                                    {initial(deviceName(device))}
+                                    <span class={`dot ${device.status}`} />
+                                </span>
                                 <span class="phone-text">
-                                    <strong>{device.label || 'Unnamed phone'}</strong>
+                                    <strong>{deviceName(device)}</strong>
                                     <span class="muted small" title={`Last seen ${lastSeenText(device.lastSeen)}`}>{statusText(device.status)} · {agoText(device.lastSeen)}</span>
                                 </span>
                             </a>
@@ -198,7 +202,7 @@ function Console({ api, onSignOut, onExpired }: { api: Api; onSignOut: () => voi
         detail = <AddDevice api={api} onSessionExpired={onExpired} onDone={() => { refresh(); go('') }} />
     } else if (route.view === 'phone') {
         detail = selected ? (
-            <DevicePanel key={selected.deviceId} api={api} device={selected} onSessionExpired={onExpired} onRemoved={() => { refresh(); go('') }} />
+            <DevicePanel key={selected.deviceId} api={api} device={selected} onSessionExpired={onExpired} onRemoved={() => { refresh(); go('') }} onChanged={refresh} />
         ) : devices === null ? (
             <p class="muted">Loading…</p>
         ) : (

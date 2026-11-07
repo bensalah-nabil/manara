@@ -54,3 +54,16 @@ export function errorText(error: unknown): string {
     if (error instanceof ApiError && error.status === 404) return 'That device no longer exists.'
     return authErrorText(error instanceof ApiError ? error.code : 'unknown')
 }
+
+const MAKERS: Record<string, string> = { samsung: 'Samsung', xiaomi: 'Xiaomi', google: 'Google', oppo: 'OPPO', vivo: 'vivo', huawei: 'Huawei', honor: 'HONOR', motorola: 'Motorola', oneplus: 'OnePlus', nokia: 'Nokia', realme: 'realme', tecno: 'TECNO', infinix: 'Infinix' }
+
+/** The parent's label, else the phone's maker and model ("Samsung SM-A045F"), else a placeholder. */
+export function deviceName(device: { label?: string; model?: string; manufacturer?: string }, fallback = 'Unnamed phone'): string {
+    const label = device.label?.trim()
+    if (label) return label
+    const model = device.model?.trim() ?? ''
+    const raw = device.manufacturer?.trim() ?? ''
+    const maker = MAKERS[raw.toLowerCase()] ?? raw
+    if (!model) return maker || fallback
+    return maker && !model.toLowerCase().startsWith(maker.toLowerCase()) ? `${maker} ${model}` : model
+}
