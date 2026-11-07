@@ -32,6 +32,18 @@ val manaraApiUrl: String = ((findProperty("MANARA_API_URL") as String?)
     ?: localProperties.getProperty("MANARA_API_URL", "http://localhost:8080/api/v1/"))
     .let { if (it.endsWith("/")) it else "$it/" }
 
+// A release build without MANARA_API_URL silently talked to localhost on a real phone, which then
+// could not check in at all (2026-11-07). Play builds must name the deployed HTTPS server.
+val checkReleaseApiUrl by tasks.registering {
+    val url = manaraApiUrl
+    doLast {
+        check(url.startsWith("https://")) {
+            "A release build needs the deployed server: -PMANARA_API_URL=https://... (got $url)"
+        }
+    }
+}
+tasks.configureEach { if (name == "preReleaseBuild") dependsOn(checkReleaseApiUrl) }
+
 android {
     namespace = "com.manara.agent"
     // Kadb requires compileSdk 37.

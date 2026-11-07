@@ -1,10 +1,12 @@
 package com.manara.agent.sync
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -88,7 +90,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
          * the real periodic job, not a separate code path to keep correct.
          */
         fun enqueueOneTime(context: Context): UUID {
-            val request = OneTimeWorkRequestBuilder<SyncWorker>().build()
+            // Expedited, or an idle phone holds a push's sync until its next maintenance window:
+            // the push arrived and Lock now still waited (found on the A045F). Firebase's
+            // message-priority guide says to start an expedited job after a high-priority message.
+            // Only from Android 12: before it, WorkManager runs expedited work as a foreground
+            // service, which needs getForegroundInfo().
+            val builder = OneTimeWorkRequestBuilder<SyncWorker>()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                builder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            }
+            val request = builder.build()
             WorkManager.getInstance(context).enqueue(request)
             return request.id
         }

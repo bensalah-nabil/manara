@@ -249,6 +249,25 @@ even though it compiled cleanly. Check `dependencyInsight` for shared
 libraries (coroutines, okio, BouncyCastle) when adding a test dependency, and
 pin the app to the newer version.
 
+## Test push on a release build, not just debug
+
+Push worked in debug for weeks and failed in every release build: R8 removed
+`OverwritingInputMerger`'s no-argument constructor, which WorkManager creates
+by reflection for one-time work only. Every push-started sync died at once
+(`Could not create Input Merger`), while the periodic sync, which needs no
+merger, kept working, so it looked like "push is slow". Google Play services'
+own record (`dumpsys activity service com.google.android.gms/.gcm.GcmService`,
+"Successful broadcast to com.manara.agent") proved delivery and pointed the
+search at the app. Anything loaded by reflection (WorkManager, Firebase
+components) needs a keep rule in `proguard-rules.pro`; test it on a release
+build on a phone.
+
+## A release build needs `-PMANARA_API_URL`
+
+Without it the build falls back to the dev `http://localhost:8080`, and a
+real phone on that build cannot check in at all. It happened installing an
+update on the A045F. `preReleaseBuild` now fails unless the URL is HTTPS.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

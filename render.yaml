@@ -18,3 +18,7 @@ services:
       # The console's Netlify address, e.g. https://manara-console.netlify.app
       - key: CORS_ALLOWED_ORIGIN
         sync: false
+      # Turns on push wake-ups (Lock now within seconds). Add the Firebase service-account
+      # key as the Secret File service-account.json; the value is /etc/secrets/service-account.json.
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
