@@ -260,8 +260,139 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400':
+          description: >
+            `weak_password`: shorter than 8 characters or longer than 72 bytes
+            (bcrypt's limit). Existing passwords are never re-checked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '409':
           description: Email already registered.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/auth/password-reset:
+    post:
+      tags: [console]
+      summary: Email a password-reset link
+      description: >
+        Answers 202 for any address, and sends in the background, so neither
+        the answer nor its timing tells the caller whether an account exists.
+        Only a real account gets an email, at most one per minute. The link is
+        `<console>/#reset=<token>`, works for one hour, and only once.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '202':
+          description: Accepted; an email goes out if the address has an account.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent: { type: boolean }
+        '400':
+          description: No email address given.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: "`email_unavailable`: this server has no email provider configured."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/auth/password-reset/confirm:
+    post:
+      tags: [console]
+      summary: Choose a new password from a reset link
+      description: >
+        Sets the password, uses up the link and every other unused link of the
+        account, ends every session of the account, and signs in.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 8 }
+      responses:
+        '200':
+          description: Password changed; signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400':
+          description: >
+            `weak_password` (the link stays usable), or `invalid_reset_token`:
+            unknown, already used, or older than one hour.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/account:
+    get:
+      tags: [console]
+      summary: The signed-in parent's account
+      security: [{ parentSession: [] }]
+      responses:
+        '200':
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Account' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags: [console]
+      summary: Delete the parent account and all its data
+      description: >
+        Needs the password again. Refused while any phone is still on the
+        account: a child's phone managed by an account that no longer exists
+        could not be released by anyone. Deletes, in one statement, the parent
+        and (by cascade) every device, policy, event, command, session and token.
+      security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '200':
+          description: Deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: "`wrong_password`. Not 401, which the console reads as an ended session."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: "`devices_remain`: release or remove every phone first."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -399,10 +530,19 @@ paths:
             schema: { $ref: '#/components/schemas/Policy' }
       responses:
         '200':
-          description: Stored. Queued for delivery to the device.
+          description: >
+            Stored, and a push asks the phone to fetch it now. `woken` is true
+            only when that push really went out (the server has push, the phone
+            gave a token, Firebase accepted it); otherwise the phone gets it at
+            its next check-in. The console must not send `woken` back.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Policy' }
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Policy' }
+                  - type: object
+                    properties:
+                      woken: { type: boolean }
 
   /console/devices/{deviceId}/commands:
     post:
@@ -675,6 +815,18 @@ components:
         code: { type: string }
         message: { type: string }
 
+    Account:
+      type: object
+      required: [email, phones, passwordReset]
+      properties:
+        email: { type: string, format: email }
+        phones:
+          type: integer
+          description: Phones still on the account; deleting it waits until this is 0.
+        passwordReset:
+          type: boolean
+          description: False when the server cannot send email, so a reset link can never arrive.
+
     AuthResponse:
       type: object
       required: [parentId, parentSession]
@@ -830,6 +982,29 @@ components:
             30 days.
           properties:
             enabled: { type: boolean }
+        browser:
+          type: object
+          description: >
+            Optional; absent or all off leaves Chrome alone. The phone, as
+            device owner, sets Chrome's managed configuration
+            (setApplicationRestrictions) using Chrome's own policies:
+            ForceGoogleSafeSearch, ForceYouTubeRestrict (1 moderate, 2 strict),
+            DnsOverHttpsMode "off", and URLBlocklist. Chrome only; other
+            browsers are not covered. The child's status screen lists each rule.
+            Refused with 400 `invalid_browser_rules` for an unknown youtube
+            value, an empty or whitespace-containing site, or more than 200 sites.
+          properties:
+            safeSearch: { type: boolean }
+            youtube: { type: string, enum: ['off', moderate, strict] }
+            secureDnsOff:
+              type: boolean
+              description: >
+                Stops Chrome's own DNS-over-HTTPS, which would otherwise go
+                around the site filter's Private DNS host.
+            blockedSites:
+              type: array
+              maxItems: 200
+              items: { type: string, maxLength: 253 }
 
     # ---- Commands -------------------------------------------------- #
     CommandType:

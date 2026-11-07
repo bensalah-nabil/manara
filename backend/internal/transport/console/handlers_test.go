@@ -26,9 +26,17 @@ func (f fakeDevices) Create(context.Context, *domain.Device) error { return nil 
 func (f fakeDevices) FindByID(_ context.Context, id string) (*domain.Device, error) {
 	return f.byID[id], nil
 }
-func (f fakeDevices) ListByParent(context.Context, string) ([]*domain.Device, error) { return nil, nil }
-func (f fakeDevices) UpdateLastSeen(context.Context, string, time.Time) error        { return nil }
-func (f fakeDevices) UpdatePushToken(context.Context, string, string) error          { return nil }
+func (f fakeDevices) ListByParent(_ context.Context, parentID string) ([]*domain.Device, error) {
+	var out []*domain.Device
+	for _, d := range f.byID {
+		if d.ParentID == parentID {
+			out = append(out, d)
+		}
+	}
+	return out, nil
+}
+func (f fakeDevices) UpdateLastSeen(context.Context, string, time.Time) error { return nil }
+func (f fakeDevices) UpdatePushToken(context.Context, string, string) error   { return nil }
 
 type fakePolicies struct{ byDevice map[string]*domain.Policy }
 

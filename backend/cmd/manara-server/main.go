@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"manara/backend/internal/domain"
@@ -61,25 +62,49 @@ func main() {
 	releases := postgres.NewReleaseRepository(db)
 	notifier := newNotifier(ctx)
 	_, pushOff := notifier.(notify.Noop)
+	parents := postgres.NewParentRepository(db)
+	accounts := postgres.NewAccountRepository(db)
+	mailer := newMailer()
+	alertSenders := newAlertSenders(parents, mailer)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Releases: releases,
-		Alerts: newAlertService(devices),
+		Alerts: newAlertService(devices, alertSenders),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
 		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Releases: releases,
 		Notifier: notifier, PushEnabled: !pushOff, Profiles: devices,
+		Parents: parents, Accounts: accounts, Resets: accounts, ConsoleURL: consoleURL(),
+	}
+	if mailer != nil {
+		consoleHandlers.Mailer = mailer
+	}
+	if len(alertSenders) > 0 {
+		go watchSilentPhones(ctx, &domain.SilenceWatcher{
+			Repo: postgres.NewSilenceRepository(db), Notifier: alertSenders,
+			After: silentAfter(), Now: time.Now,
+		})
 	}
 
 	mux := http.NewServeMux()
+	// For an outside pinger: a free Render service sleeps after 15 minutes
+	// without requests, and the silent-phone watcher sleeps with it.
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("ok\n"))
+	})
 	mux.HandleFunc("POST /api/v1/enroll", agentHandlers.Enroll)
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
 	mux.HandleFunc("POST /api/v1/agent/setup", agentHandlers.ReportSetup)
 	mux.HandleFunc("GET /api/v1/agent/setup/input", agentHandlers.GetSetupInput)
 	mux.HandleFunc("POST /api/v1/console/auth/signup", consoleHandlers.SignUp)
 	mux.HandleFunc("POST /api/v1/console/auth/login", consoleHandlers.Login)
+	mux.HandleFunc("POST /api/v1/console/auth/password-reset", consoleHandlers.RequestPasswordReset)
+	mux.HandleFunc("POST /api/v1/console/auth/password-reset/confirm", consoleHandlers.ConfirmPasswordReset)
+	mux.HandleFunc("GET /api/v1/console/account", consoleHandlers.GetAccount)
+	mux.HandleFunc("DELETE /api/v1/console/account", consoleHandlers.DeleteAccount)
 	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
 	mux.HandleFunc("GET /api/v1/console/devices", consoleHandlers.ListDevices)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/policy", consoleHandlers.GetPolicy)
@@ -129,12 +154,78 @@ func newNotifier(ctx context.Context) domain.PushNotifier {
 	return n
 }
 
-// newAlertService is additive like newNotifier: no ALERT_NTFY_URL and no
-// ALERT_WEBHOOK_URL (the default) means nil, and nothing alerts. The
-// destinations come from the operator's environment, never from a parent's
-// request, so the server cannot be pointed at an arbitrary address.
-func newAlertService(devices domain.DeviceRepository) *domain.AlertService {
+// newMailer is additive like newNotifier: no BREVO_API_KEY means nil, and
+// the server has no email (no password reset, no emailed alerts). HTTPS API,
+// not SMTP: Render's free plan blocks outbound ports 25, 465 and 587.
+func newMailer() *notify.Brevo {
+	key := os.Getenv("BREVO_API_KEY")
+	if key == "" {
+		log.Printf("BREVO_API_KEY not set -- no email: password reset and emailed alerts disabled")
+		return nil
+	}
+	m, err := notify.NewBrevo(key, os.Getenv("MAIL_FROM"), os.Getenv("MAIL_FROM_NAME"))
+	if err != nil {
+		log.Printf("email: %v -- password reset and emailed alerts disabled", err)
+		return nil
+	}
+	log.Printf("email enabled via Brevo")
+	return m
+}
+
+// consoleURL is where emailed links point: CONSOLE_URL, or else the one
+// console origin CORS already allows.
+func consoleURL() string {
+	if u := os.Getenv("CONSOLE_URL"); u != "" {
+		return u
+	}
+	if o := os.Getenv("CORS_ALLOWED_ORIGIN"); o != "" && o != "*" {
+		return o
+	}
+	return ""
+}
+
+// silentAfter is SILENT_PHONE_HOURS, or 12 hours.
+func silentAfter() time.Duration {
+	if raw := os.Getenv("SILENT_PHONE_HOURS"); raw != "" {
+		if h, err := strconv.Atoi(raw); err == nil && h > 0 {
+			return time.Duration(h) * time.Hour
+		}
+		log.Printf("SILENT_PHONE_HOURS=%q is not a whole number of hours -- using 12", raw)
+	}
+	return domain.SilentAfterDefault
+}
+
+// watchSilentPhones checks every 15 minutes, the phones' own check-in rhythm.
+// A free Render service sleeps after 15 minutes without requests, and then
+// nothing runs: when every phone has gone quiet, an outside pinger (see
+// backend/README.md) keeps the watcher awake.
+func watchSilentPhones(ctx context.Context, w *domain.SilenceWatcher) {
+	log.Printf("silent-phone alerts after %s", w.After)
+	tick := time.NewTicker(15 * time.Minute)
+	defer tick.Stop()
+	for {
+		if n, err := w.Check(ctx); err != nil {
+			log.Printf("silent phones: %v", err)
+		} else if n > 0 {
+			log.Printf("silent phones: %d alert(s) sent", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+	}
+}
+
+// newAlertSenders gathers every alert destination: each parent by email when
+// the server has email, and the operator's ntfy topic or webhook. Those two
+// come from the operator's environment, never from a parent's request, so the
+// server cannot be pointed at an arbitrary address.
+func newAlertSenders(parents domain.ParentRepository, mailer *notify.Brevo) notify.Fanout {
 	var senders notify.Fanout
+	if mailer != nil {
+		senders = append(senders, notify.ParentEmailAlerts{Parents: parents, Mailer: mailer})
+	}
 	if raw := os.Getenv("ALERT_NTFY_URL"); raw != "" {
 		n, err := notify.NewNtfy(raw, os.Getenv("ALERT_NTFY_TOKEN"))
 		if err != nil {
@@ -156,6 +247,14 @@ func newAlertService(devices domain.DeviceRepository) *domain.AlertService {
 		return nil
 	}
 	log.Printf("parent alerts enabled (%d destination(s))", len(senders))
+	return senders
+}
+
+// newAlertService is nil without a destination, and nothing alerts.
+func newAlertService(devices domain.DeviceRepository, senders notify.Fanout) *domain.AlertService {
+	if len(senders) == 0 {
+		return nil
+	}
 	return &domain.AlertService{
 		Devices:  devices,
 		Notifier: senders,
@@ -171,6 +270,10 @@ func newAlertService(devices domain.DeviceRepository) *domain.AlertService {
 // controller simply wouldn't work at all without this from day one.
 // CORS_ALLOWED_ORIGIN lets a real deployment restrict this once there's a
 // real controller origin to allow instead of every origin.
+// corsMethods must list every method the console sends. PATCH was missing, so a
+// browser refused to save a child's name and color (found on the live console).
+const corsMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+
 func withCORS(next http.Handler) http.Handler {
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 	if allowedOrigin == "" {
@@ -178,7 +281,7 @@ func withCORS(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", corsMethods)
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

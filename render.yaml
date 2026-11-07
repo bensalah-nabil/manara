@@ -22,3 +22,9 @@ services:
       # key as the Secret File service-account.json; the value is /etc/secrets/service-account.json.
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
+      # Email through Brevo's HTTPS API (Render's free plan blocks SMTP): password reset
+      # and each parent's own alerts. Both off when unset. See backend/README.md.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false

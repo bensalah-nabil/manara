@@ -1,6 +1,12 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"unicode"
+)
 
 // Policy mirrors api-spec/openapi.yaml's Policy schema exactly, same shape
 // as the agent's own Policy.kt -- kept in lockstep with the API contract
@@ -16,6 +22,52 @@ type Policy struct {
 	LockSchedule *LockSchedule  `json:"lockSchedule,omitempty"`
 	Restrictions *Restrictions  `json:"restrictions,omitempty"`
 	UsageReport  *UsageReport   `json:"usageReport,omitempty"`
+	Browser      *Browser       `json:"browser,omitempty"`
+}
+
+// Browser is Chrome's managed configuration, which the phone sets as a device
+// owner (setApplicationRestrictions). The names it maps to, and their types,
+// are Chrome's own policy definitions (Chromium source,
+// components/policy/resources/templates/policy_definitions): ForceGoogleSafeSearch
+// (bool, Android 41+), ForceYouTubeRestrict (0/1/2, Android 55+),
+// DnsOverHttpsMode ("off", Android 85+) and URLBlocklist (list, Android 86+).
+// Other browsers are not covered. Absent or all off means Chrome is left alone.
+type Browser struct {
+	SafeSearch bool `json:"safeSearch,omitempty"`
+	// YouTube is "", "off", "moderate" or "strict".
+	YouTube string `json:"youtube,omitempty"`
+	// SecureDNSOff stops Chrome's own encrypted DNS, which would go around
+	// the site filter's Private DNS host.
+	SecureDNSOff bool     `json:"secureDnsOff,omitempty"`
+	BlockedSites []string `json:"blockedSites,omitempty"`
+}
+
+// MaxBlockedSites keeps the list a parent's list, not an imported blocklist;
+// category lists are capability-plan.md B5's job.
+const MaxBlockedSites = 200
+
+var ErrInvalidBrowserPolicy = errors.New("invalid browser rules")
+
+// Validate refuses what Chrome would ignore or misread: an unknown YouTube
+// mode, an empty or oversized site, whitespace inside one, too many sites.
+func (b *Browser) Validate() error {
+	if b == nil {
+		return nil
+	}
+	switch b.YouTube {
+	case "", "off", "moderate", "strict":
+	default:
+		return fmt.Errorf("%w: youtube must be off, moderate or strict", ErrInvalidBrowserPolicy)
+	}
+	if len(b.BlockedSites) > MaxBlockedSites {
+		return fmt.Errorf("%w: at most %d blocked sites", ErrInvalidBrowserPolicy, MaxBlockedSites)
+	}
+	for _, site := range b.BlockedSites {
+		if site == "" || len(site) > 253 || strings.IndexFunc(site, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 {
+			return fmt.Errorf("%w: %q is not a site", ErrInvalidBrowserPolicy, site)
+		}
+	}
+	return nil
 }
 
 // UsageReport opts in to the daily per-app minutes report. Absent means off.

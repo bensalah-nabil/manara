@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +36,14 @@ type Handlers struct {
 	// PushEnabled is false when Notifier is notify.Noop: an urgent command then
 	// waits for the phone's next check-in, and the console says so.
 	PushEnabled bool
+
+	Parents  domain.ParentRepository
+	Accounts domain.AccountRepository
+	Resets   domain.PasswordResetRepository
+	// Mailer is nil when no email provider is configured; password reset is then off.
+	Mailer domain.Mailer
+	// ConsoleURL is where a reset link points, e.g. https://manara-front.netlify.app
+	ConsoleURL string
 }
 
 type deviceSummaryDTO struct {
@@ -147,6 +156,10 @@ func (h *Handlers) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Email == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "bad_request", "email and password are required")
+		return
+	}
+	if err := domain.ValidatePassword(req.Password); err != nil {
+		writeError(w, http.StatusBadRequest, "weak_password", err.Error())
 		return
 	}
 
@@ -430,7 +443,8 @@ func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceID := r.PathValue("deviceId")
-	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+	device, ok := h.ownsDevice(w, r, parentID, deviceID)
+	if !ok {
 		return
 	}
 
@@ -439,13 +453,41 @@ func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
+	if err := policy.Browser.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_browser_rules", err.Error())
+		return
+	}
 	stored, err := h.Policies.Set(r.Context(), deviceID, policy)
 	if err != nil {
 		log.Printf("console: set policy: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
-	writeJSON(w, http.StatusOK, stored)
+	// A new bedtime or limit used to wait for the phone's next check-in, up to
+	// 15 minutes or longer on an idle phone. The policy is stored first, so a
+	// failed push only means the phone gets it at that check-in instead.
+	writeJSON(w, http.StatusOK, savedPolicyDTO{Policy: stored, Woken: h.wake(r, device, "policy v"+strconv.Itoa(stored.Version))})
+}
+
+// savedPolicyDTO is the stored policy plus whether a push woke the phone to fetch it.
+type savedPolicyDTO struct {
+	domain.Policy
+	Woken bool `json:"woken"`
+}
+
+// wake asks the phone to check in now. Best-effort, by domain.PushNotifier's
+// contract: whatever it is told to fetch is already stored. True only when a
+// push really went out: this server has push, the phone gave a token, and
+// Firebase accepted the message.
+func (h *Handlers) wake(r *http.Request, device *domain.Device, what string) bool {
+	if h.Notifier == nil {
+		return false
+	}
+	if err := h.Notifier.Notify(r.Context(), device.PushToken); err != nil {
+		log.Printf("console: push notify for %s: %v", what, err)
+		return false
+	}
+	return h.PushEnabled && device.PushToken != ""
 }
 
 func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
@@ -485,11 +527,7 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 	// worst case it's picked up on the device's next poll instead.
 	woken := false
 	if commandType.IsUrgent() {
-		if err := h.Notifier.Notify(r.Context(), device.PushToken); err != nil {
-			log.Printf("console: push notify for command %s: %v", command.ID, err)
-		} else {
-			woken = h.PushEnabled && device.PushToken != ""
-		}
+		woken = h.wake(r, device, "command "+command.ID)
 	}
 
 	writeJSON(w, http.StatusAccepted, commandDTO{

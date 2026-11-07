@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -19,7 +20,8 @@ func TestPolicyRoundTripKeepsEveryFieldTheAgentDefines(t *testing.T) {
 		"callLog": {"enabled": true},
 		"lockSchedule": {"enabled": true, "windows": [{"days": [6, 7], "fromHour": 22, "toHour": 7}]},
 		"restrictions": {"blockVpnConfig": true, "blockPrivateDnsConfig": true, "blockFactoryReset": true, "blockSafeBoot": true, "blockAddUser": true, "blockDebugging": true},
-		"usageReport": {"enabled": true}
+		"usageReport": {"enabled": true},
+		"browser": {"safeSearch": true, "youtube": "strict", "secureDnsOff": true, "blockedSites": ["example.com"]}
 	}`
 
 	var policy Policy
@@ -56,5 +58,25 @@ func TestPolicyRoundTripDropsFieldsTheServerDoesNotDefine(t *testing.T) {
 	}
 	if filter, _ := got["siteFilter"].(map[string]any); filter["futureField"] != nil {
 		t.Fatal("expected an undefined field to be dropped; if the server now preserves unknown fields, update the controller README and this test")
+	}
+}
+
+func TestBrowserRulesValidate(t *testing.T) {
+	var none *Browser
+	ok := []*Browser{none, {}, {SafeSearch: true, YouTube: "strict", SecureDNSOff: true, BlockedSites: []string{"example.com", "*.bad.example"}}}
+	for _, b := range ok {
+		if err := b.Validate(); err != nil {
+			t.Errorf("%+v: %v", b, err)
+		}
+	}
+	many := make([]string, MaxBlockedSites+1)
+	for i := range many {
+		many[i] = "a.example"
+	}
+	bad := []*Browser{{YouTube: "lenient"}, {BlockedSites: []string{""}}, {BlockedSites: []string{"has space.com"}}, {BlockedSites: many}}
+	for _, b := range bad {
+		if err := b.Validate(); !errors.Is(err, ErrInvalidBrowserPolicy) {
+			t.Errorf("%+v accepted: %v", b, err)
+		}
 	}
 }

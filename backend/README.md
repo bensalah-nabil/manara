@@ -111,6 +111,40 @@ a parent's request, so the server cannot be pointed at an arbitrary address.
 A bad URL logs a warning and disables that destination; it does not stop
 the server. Errors never log the URL, since it may hold the topic.
 
+### Email: password reset and emailed alerts (Brevo)
+
+Optional and additive too. Without `BREVO_API_KEY` the server logs that email
+is off: password reset answers `503 email_unavailable`, the console's Account
+page says so, and alerts go only to ntfy or the webhook. With it, the server
+also emails each parent their own alerts, and a reset link on request.
+
+It uses Brevo's HTTPS API, not SMTP: Render's free plan blocks outbound ports
+25, 465 and 587 (since 2025-09-26). Brevo's free plan sends 300 emails a day
+from a single verified sender address, so no domain is needed.
+
+```bash
+BREVO_API_KEY=xkeysib-...          # Brevo, SMTP & API, API keys
+MAIL_FROM=you@example.com          # verified in Brevo, Senders
+MAIL_FROM_NAME=Manara              # optional
+CONSOLE_URL=https://manara-front.netlify.app   # optional; defaults to CORS_ALLOWED_ORIGIN
+SILENT_PHONE_HOURS=12              # optional; when a quiet phone is alerted
+```
+
+A reset link is `CONSOLE_URL/#reset=<token>`: one hour, single use, stored
+hashed. Using it ends every session of that account. A reset request answers
+the same way for any address, so it can't be used to find out who has an
+account.
+
+### Silent-phone alerts
+
+With any alert destination (email, ntfy or webhook), the server checks every
+15 minutes for phones that haven't checked in for `SILENT_PHONE_HOURS`
+(default 12) and sends one alert per silence. A free Render service sleeps
+after 15 minutes without requests, and the check sleeps with it: when every
+phone is quiet, nothing wakes the server to notice. Point a free outside
+pinger (for example cron-job.org, every 10 minutes) at `GET /healthz` to keep
+it awake.
+
 ## Try it
 
 ```bash
@@ -132,6 +166,19 @@ curl -s -X PUT http://localhost:8080/api/v1/console/devices/DEVICE_ID/policy \
 curl -s -X POST http://localhost:8080/api/v1/console/devices/DEVICE_ID/commands \
   -H "Authorization: Bearer PARENT_SESSION" -H "Content-Type: application/json" \
   -d '{"type":"lock_now"}'
+```
+
+## Database tests
+
+`internal/persistence/postgres` has tests that need a real, throwaway
+database; without `MANARA_TEST_DATABASE_URL` they skip. With the Compose
+stack running:
+
+```bash
+docker exec backend-postgres-1 createdb -U manara manara_test
+docker run --rm --network backend_default -v "$PWD:/src" -w /src \
+  -e MANARA_TEST_DATABASE_URL=postgres://manara:manara@postgres:5432/manara_test \
+  golang:1.26-alpine go test ./internal/persistence/postgres/
 ```
 
 ## What's not here yet
