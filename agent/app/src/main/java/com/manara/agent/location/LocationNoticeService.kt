@@ -19,16 +19,11 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.manara.agent.events.Event
-import com.manara.agent.events.EventKind
 import com.manara.agent.storage.ManaraDatabase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import java.time.Instant
 import java.util.UUID
 
 /**
@@ -93,17 +88,13 @@ class LocationNoticeService : Service() {
             try {
                 val db = ManaraDatabase.get(applicationContext)
                 LocationObservationStore(db).record(
-                    Event(
+                    LocationFixEvent.build(
                         id = UUID.randomUUID().toString(),
-                        kind = EventKind.location,
-                        occurredAt = Instant.now().toString(),
-                        payload = JsonObject(
-                            mapOf(
-                                "lat" to JsonPrimitive(location.latitude),
-                                "lng" to JsonPrimitive(location.longitude),
-                                "accuracyMeters" to JsonPrimitive(location.accuracy)
-                            )
-                        )
+                        latitude = location.latitude,
+                        longitude = location.longitude,
+                        accuracyMeters = location.accuracy,
+                        fixTimeMillis = location.time,
+                        nowMillis = System.currentTimeMillis()
                     ),
                     sampleAt = location.time
                 )

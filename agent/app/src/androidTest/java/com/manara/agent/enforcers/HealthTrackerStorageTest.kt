@@ -284,6 +284,15 @@ class HealthTrackerStorageTest {
     }
 
     @Test
+    fun sameProviderFixRedeliveredUnderNewIdIsNotQueuedTwice() = runBlocking {
+        val first = locationEvent()
+        LocationObservationStore(db) { 200L }.record(first, 100L)
+        LocationObservationStore(db) { 300L }.record(locationEvent(), 100L)
+        assertEquals(first.id, db.locationObservationDao().get()?.eventId)
+        assertEquals(listOf(first), EventQueue(db).drainBatch())
+    }
+
+    @Test
     fun versionThreeMigrationPreservesHealthAndQueuedEvents() = runBlocking {
         seedMigrationRows()
         tracker().observe("usage_access", false)

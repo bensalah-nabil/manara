@@ -13,14 +13,28 @@ class LocationObservationStore(
 ) {
     suspend fun record(event: Event, sampleAt: Long?) {
         require(event.kind == EventKind.location)
+        val sample = sampleAt?.takeIf { it > 0L }
         db.withTransaction {
-            if (db.locationObservationDao().get()?.eventId == event.id) return@withTransaction
+            if (isDuplicate(db.locationObservationDao().get(), event.id, sample)) return@withTransaction
             EventQueue(db).enqueue(event)
             db.locationObservationDao().put(LocationObservationEntity(
                 eventId = event.id,
-                sampleAt = sampleAt?.takeIf { it > 0L },
+                sampleAt = sample,
                 savedAt = clock()
             ))
+        }
+    }
+
+    companion object {
+        /**
+         * Pure. The same event retried, or the same provider fix delivered
+         * again: every delivery gets a fresh event id, so the id alone never
+         * catches a redelivered fix; its provider time does.
+         */
+        fun isDuplicate(saved: LocationObservationEntity?, eventId: String, sampleAt: Long?): Boolean {
+            if (saved == null) return false
+            if (saved.eventId == eventId) return true
+            return sampleAt != null && saved.sampleAt == sampleAt
         }
     }
 }
