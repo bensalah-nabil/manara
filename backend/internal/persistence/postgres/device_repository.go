@@ -31,7 +31,7 @@ func (r *DeviceRepository) Create(ctx context.Context, d *domain.Device) error {
 
 func (r *DeviceRepository) FindByID(ctx context.Context, id string) (*domain.Device, error) {
 	row := r.db.Pool.QueryRow(ctx, `
-		SELECT id, parent_id, label, model, manufacturer, android_version, agent_version, last_seen, created_at, push_token
+		SELECT id, parent_id, label, color, model, manufacturer, android_version, agent_version, last_seen, created_at, push_token
 		FROM devices WHERE id = $1
 	`, id)
 	return scanDevice(row)
@@ -39,7 +39,7 @@ func (r *DeviceRepository) FindByID(ctx context.Context, id string) (*domain.Dev
 
 func (r *DeviceRepository) ListByParent(ctx context.Context, parentID string) ([]*domain.Device, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, parent_id, label, model, manufacturer, android_version, agent_version, last_seen, created_at, push_token
+		SELECT id, parent_id, label, color, model, manufacturer, android_version, agent_version, last_seen, created_at, push_token
 		FROM devices WHERE parent_id = $1 ORDER BY created_at
 	`, parentID)
 	if err != nil {
@@ -78,12 +78,20 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
+func (r *DeviceRepository) UpdateProfile(ctx context.Context, id, label, color string) error {
+	_, err := r.db.Pool.Exec(ctx, `UPDATE devices SET label = $2, color = $3 WHERE id = $1`, id, label, color)
+	if err != nil {
+		return fmt.Errorf("update device profile: %w", err)
+	}
+	return nil
+}
+
 func scanDevice(row rowScanner) (*domain.Device, error) {
 	var d domain.Device
 	var lastSeen *time.Time
 	var pushToken *string
 	err := row.Scan(
-		&d.ID, &d.ParentID, &d.Label,
+		&d.ID, &d.ParentID, &d.Label, &d.Color,
 		&d.Info.Model, &d.Info.Manufacturer, &d.Info.AndroidVersion, &d.Info.AgentVersion,
 		&lastSeen, &d.CreatedAt, &pushToken,
 	)

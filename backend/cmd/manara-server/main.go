@@ -60,6 +60,7 @@ func main() {
 	setups := postgres.NewSetupRepository(db)
 	releases := postgres.NewReleaseRepository(db)
 	notifier := newNotifier(ctx)
+	_, pushOff := notifier.(notify.Noop)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
@@ -69,7 +70,7 @@ func main() {
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
 		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Releases: releases,
-		Notifier: notifier,
+		Notifier: notifier, PushEnabled: !pushOff, Profiles: devices,
 	}
 
 	mux := http.NewServeMux()
@@ -91,6 +92,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/finish", consoleHandlers.FinishSetup)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/release-code", consoleHandlers.GetReleaseCode)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.DeleteDevice)
+	mux.HandleFunc("PATCH /api/v1/console/devices/{deviceId}", consoleHandlers.UpdateDevice)
 
 	go runHeartbeatSweep(ctx, commands)
 	go runRetentionSweep(ctx, events, setups)

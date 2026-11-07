@@ -27,9 +27,11 @@ type DeviceInfo struct {
 }
 
 type Device struct {
-	ID            string
-	ParentID      string
+	ID       string
+	ParentID string
+	// Label is the child's name, as the parent typed it; Color one of DeviceColors, or "".
 	Label         string
+	Color         string
 	Info          DeviceInfo
 	PolicyVersion int
 	LastSeen      time.Time // zero value means never

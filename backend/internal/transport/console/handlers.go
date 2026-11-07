@@ -30,12 +30,19 @@ type Handlers struct {
 	// commands (e.g. lock_now), instead of relying solely on the next
 	// /agent/sync poll. notify.Noop{} when Firebase isn't configured --
 	// see cmd/manara-server/main.go.
+	Profiles domain.DeviceProfileRepository
 	Notifier domain.PushNotifier
+	// PushEnabled is false when Notifier is notify.Noop: an urgent command then
+	// waits for the phone's next check-in, and the console says so.
+	PushEnabled bool
 }
 
 type deviceSummaryDTO struct {
 	DeviceID      string    `json:"deviceId"`
 	Label         string    `json:"label"`
+	Color         string    `json:"color,omitempty"`
+	Model         string    `json:"model,omitempty"`
+	Manufacturer  string    `json:"manufacturer,omitempty"`
 	Status        string    `json:"status"`
 	LastSeen      time.Time `json:"lastSeen"`
 	PolicyVersion int       `json:"policyVersion"`
@@ -47,6 +54,8 @@ type commandDTO struct {
 	Params    map[string]any `json:"params,omitempty"`
 	Status    string         `json:"status"`
 	CreatedAt time.Time      `json:"createdAt"`
+	// Woken: a push reached the phone, so an urgent command runs now, not at its next check-in.
+	Woken bool `json:"woken"`
 }
 
 type eventDTO struct {
@@ -250,11 +259,53 @@ func (h *Handlers) ListDevices(w http.ResponseWriter, r *http.Request) {
 			version = policy.Version
 		}
 		summaries = append(summaries, deviceSummaryDTO{
-			DeviceID: d.ID, Label: d.Label, Status: string(d.Status(now)),
-			LastSeen: d.LastSeen, PolicyVersion: version,
+			DeviceID: d.ID, Label: d.Label, Color: d.Color, Model: d.Info.Model, Manufacturer: d.Info.Manufacturer,
+			Status: string(d.Status(now)), LastSeen: d.LastSeen, PolicyVersion: version,
 		})
 	}
 	writeJSON(w, http.StatusOK, summaries)
+}
+
+type profileRequest struct {
+	Label *string `json:"label"`
+	Color *string `json:"color"`
+}
+
+// UpdateDevice saves the child's name and color for a phone. A field left out
+// keeps its current value.
+func (h *Handlers) UpdateDevice(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	device, ok := h.ownsDevice(w, r, parentID, deviceID)
+	if !ok {
+		return
+	}
+	var req profileRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4<<10)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+	label, color := device.Label, device.Color
+	if req.Label != nil {
+		label = *req.Label
+	}
+	if req.Color != nil {
+		color = *req.Color
+	}
+	label, color, err := domain.NormalizeProfile(label, color)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_profile", "The name can be up to 40 letters, and the color must be one of the console's.")
+		return
+	}
+	if err := h.Profiles.UpdateProfile(r.Context(), deviceID, label, color); err != nil {
+		log.Printf("console: update device profile: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"label": label, "color": color})
 }
 
 // GetPolicy exists so the controller can edit one part of a policy without
@@ -432,15 +483,18 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 	// Best-effort, by domain.PushNotifier's contract: the command above is
 	// already durably queued, so a push failure here never loses it --
 	// worst case it's picked up on the device's next poll instead.
+	woken := false
 	if commandType.IsUrgent() {
 		if err := h.Notifier.Notify(r.Context(), device.PushToken); err != nil {
 			log.Printf("console: push notify for command %s: %v", command.ID, err)
+		} else {
+			woken = h.PushEnabled && device.PushToken != ""
 		}
 	}
 
 	writeJSON(w, http.StatusAccepted, commandDTO{
 		CommandID: command.ID, Type: string(command.Type), Params: command.Params,
-		Status: string(command.Status), CreatedAt: command.CreatedAt,
+		Status: string(command.Status), CreatedAt: command.CreatedAt, Woken: woken,
 	})
 }
 
