@@ -45,6 +45,18 @@ export function authErrorText(code: string): string {
             return 'The statements were updated. Reload the page and confirm them again.'
         case 'unknown_phone_brand':
             return 'Please choose the phone brand again.'
+        case 'invalid_browser_rules':
+            return 'One of the Chrome rules is not valid. Check the website list.'
+        case 'weak_password':
+            return 'Choose a password of at least 8 characters.'
+        case 'invalid_reset_token':
+            return 'This reset link is invalid, already used, or older than one hour. Ask for a new one.'
+        case 'email_unavailable':
+            return "This server can't send email, so password reset is not available. Contact the person who runs it."
+        case 'wrong_password':
+            return 'That password is not right.'
+        case 'devices_remain':
+            return 'Release or remove every phone first.'
         default:
             return 'Something went wrong. Please try again.'
     }

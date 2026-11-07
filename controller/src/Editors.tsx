@@ -10,6 +10,8 @@ import { applyRestrictions, RESTRICTIONS, toDraft as restrictionsDraft } from '.
 import type { Draft as RestrictionsDraft } from './restrictions.ts'
 import { applySiteFilter, filterWarning, toDraft as filterDraft, unlockedNote, validateDraft as validateFilter } from './siteFilter.ts'
 import type { Draft as FilterDraft, SiteFilter } from './siteFilter.ts'
+import { applyBrowser, MAX_SITES, secureDnsNote, toDraft as browserDraft, validateDraft as validateBrowser, YOUTUBE_MODES } from './browser.ts'
+import type { BrowserPolicy, Draft as BrowserDraft, YouTubeMode } from './browser.ts'
 import { usePolicyEditor } from './usePolicyEditor.ts'
 import type { Section } from './usePolicyEditor.ts'
 import { applyUsageReport, toDraft as usageReportDraft, USAGE_REPORT_WARNING } from './usageReport.ts'
@@ -74,6 +76,15 @@ const restrictionsSection: Section<RestrictionsDraft, RestrictionsDraft> = {
         const added = RESTRICTIONS.filter(({ key }) => after[key] && !before[key]).map(({ label }) => label)
         return added.length === 0 ? null : `This takes effect on the child's phone: ${added.join('; ')}. Save anyway?`
     },
+}
+
+const browserSection: Section<BrowserDraft, BrowserPolicy> = {
+    toDraft: browserDraft,
+    validate: (draft) => {
+        const result = validateBrowser(draft)
+        return result.ok ? { ok: true, value: result.browser } : result
+    },
+    apply: applyBrowser,
 }
 
 const usageReportSection: Section<UsageReportDraft, UsageReportPolicy> = {
@@ -327,6 +338,49 @@ export function RestrictionsEditor(props: Props) {
                 </Toggle>
             ))}
             <Footer editor={editor} saveLabel="Save restrictions" />
+        </Open>
+    )
+}
+
+export function BrowserEditor(props: Props) {
+    const editor = usePolicyEditor({ ...props, section: browserSection })
+    const { draft, policy, setDraft } = editor
+    if (draft === null || policy === null) {
+        return <Row title="Chrome" summary="SafeSearch, YouTube Restricted Mode, and websites to block in Chrome." editor={editor} />
+    }
+    const draftNow = draft
+    const filterOn = (policy.siteFilter as { enabled?: boolean } | undefined)?.enabled === true
+
+    return (
+        <Open title="Chrome" version={policy.version}>
+            <p class="muted">
+                These rules apply in Chrome only. Another browser on the phone is not covered: set an app time limit of 0 minutes to block it.
+                The child sees each rule on the phone.
+            </p>
+            <Toggle checked={draftNow.safeSearch} onChange={(on) => setDraft({ ...draftNow, safeSearch: on })}>
+                SafeSearch on Google<span class="muted small"> Hides explicit results in Google Search.</span>
+            </Toggle>
+            <label>
+                YouTube in Chrome
+                <select value={draftNow.youtube} onChange={(event) => setDraft({ ...draftNow, youtube: event.currentTarget.value as YouTubeMode })}>
+                    {YOUTUBE_MODES.map((mode) => <option key={mode.key} value={mode.key}>{mode.label}</option>)}
+                </select>
+                <span class="muted small">The YouTube app is separate: give it a time limit to control it.</span>
+            </label>
+            <Toggle checked={draftNow.secureDnsOff} onChange={(on) => setDraft({ ...draftNow, secureDnsOff: on })}>
+                Turn off Chrome's own secure DNS<span class="muted small"> {secureDnsNote(filterOn)}</span>
+            </Toggle>
+            <label>
+                Websites to block
+                <textarea
+                    rows={5}
+                    placeholder={'example.com\nanother.example'}
+                    value={draftNow.sitesText}
+                    onInput={(event) => setDraft({ ...draftNow, sitesText: event.currentTarget.value })}
+                />
+                <span class="muted small">One per line, up to {MAX_SITES}. A site also blocks its subdomains.</span>
+            </label>
+            <Footer editor={editor} saveLabel="Save Chrome rules" />
         </Open>
     )
 }

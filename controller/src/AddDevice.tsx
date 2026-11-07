@@ -204,15 +204,16 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     <code class="token">{token}</code>
                     {alreadySetUp ? (
                         <p class="hint">
-                            The code works once and is shown only now. On the phone, open Manara, tap "Enroll this device", then
-                            scan it and tap "Move to this account". The phone keeps its setup, takes this account's rules, and
-                            deletes anything it had not yet sent to the previous account. It then appears in your list of phones.
+                            The code works once and is shown only now. On the phone, open Manara and tap "Scan the code" (or type
+                            it). The phone keeps its setup, takes this account's rules, and deletes anything it had not yet sent to
+                            the previous account. It then appears in your list of phones.
                         </p>
                     ) : (
                         <p class="hint">
-                            The code works once and is shown only now. On the phone, open Manara and scan it. Then tap "Start guided
-                            setup" in Manara and follow the Manara notification on the phone. Each step then shows on this phone's page
-                            here, including which accounts to remove and, at the end, which to sign back in to.
+                            The code works once and is shown only now. On the phone, open Manara, tap "Scan the code" and scan it.
+                            Then tap "Start guided setup" in Manara, open Wireless debugging, and leave the phone on that screen. This
+                            phone's page here shows a pairing QR code to scan with the phone, or a box for the phone's pairing code,
+                            then each step: which accounts to remove and, at the end, which to sign back in to.
                         </p>
                     )}
                     <div class="actions">

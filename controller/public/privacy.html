@@ -92,8 +92,10 @@
     <ul>
       <li>Render (server hosting, Frankfurt, Germany) and Neon (database, Frankfurt, Germany).</li>
       <li>Netlify (hosts this website and the parent console).</li>
-      <li>Google Firebase Cloud Messaging, to wake the phone when the parent sends a command. The message carries no data,
-        only "check in now".</li>
+      <li>Google Firebase Cloud Messaging, to wake the phone when the parent sends a command or changes a rule. The message
+        carries no data, only "check in now".</li>
+      <li>Brevo (email), to send the parent a password-reset link and alerts, such as a phone that stopped checking in.
+        It receives the parent's email address and the email's text, never the child's data.</li>
       <li>Google Play services on the phone, for location and for scanning the connection QR code.</li>
     </ul>
     <p>
@@ -122,8 +124,9 @@
   <section>
     <h2>Your choices and rights</h2>
     <p>
-      A parent can turn any collection off at any time, delete saved account lists, and remove a phone, which deletes its
-      data. To see, correct or delete any data, including the whole parent account, write to
+      A parent can turn any collection off at any time, delete saved account lists, remove a phone, which deletes its
+      data, and delete the whole parent account from the console (<a href="/delete-account.html">how to delete your
+      account</a>). To see, correct or delete any data, write to
       <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a>; we answer within 30 days. You may also
       complain to your data protection authority: in Tunisia, the Instance Nationale de Protection des Données
       Personnelles (INPDP).

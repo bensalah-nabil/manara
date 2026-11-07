@@ -3,6 +3,15 @@ import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
 import type { DeviceSetup } from './setup.ts'
 
+/** The parent's own account, as the Account page shows it. */
+export interface Account {
+    email: string
+    /** Phones still on the account; deleting it waits until this is 0. */
+    phones: number
+    /** False when the server cannot send email, so password reset is off. */
+    passwordReset: boolean
+}
+
 export interface DeviceSummary {
     deviceId: string
     label: string
@@ -131,6 +140,29 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             return toAuth(await request('POST', '/console/auth/signup', { email, password }))
         },
 
+        /** Always succeeds the same way for any address; the link only goes to a real account. */
+        async requestPasswordReset(email: string): Promise<void> {
+            await request('POST', '/console/auth/password-reset', { email })
+        },
+
+        /** Sets the new password from an emailed link and signs in; every other session ends. */
+        async confirmPasswordReset(token: string, password: string): Promise<AuthResponse> {
+            return toAuth(await request('POST', '/console/auth/password-reset/confirm', { token, password }))
+        },
+
+        async getAccount(): Promise<Account> {
+            const value = (await request('GET', '/console/account', undefined, true)) as Partial<Account> | null
+            if (!value || typeof value.email !== 'string' || typeof value.phones !== 'number') {
+                throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            }
+            return { email: value.email, phones: value.phones, passwordReset: value.passwordReset === true }
+        },
+
+        /** Needs the password again. Refused (devices_remain) while any phone is still on the account. */
+        async deleteAccount(password: string): Promise<void> {
+            await request('DELETE', '/console/account', { password }, true)
+        },
+
         async listDevices(): Promise<DeviceSummary[]> {
             const value = await request('GET', '/console/devices', undefined, true)
             if (!Array.isArray(value)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
@@ -156,8 +188,10 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             return toPolicy(value)
         },
 
-        async setPolicy(deviceId: string, policy: Policy): Promise<Policy> {
-            return toPolicy(await request('PUT', devicePath(deviceId, 'policy'), policy, true))
+        /** The stored policy, and whether a push woke the phone to fetch it now. */
+        async setPolicy(deviceId: string, policy: Policy): Promise<{ policy: Policy; woken: boolean }> {
+            const { woken, ...stored } = toPolicy(await request('PUT', devicePath(deviceId, 'policy'), policy, true)) as Policy & { woken?: unknown }
+            return { policy: stored as Policy, woken: woken === true }
         },
 
         /** The child's name and color for this phone. */

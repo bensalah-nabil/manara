@@ -22,6 +22,7 @@ const ENFORCERS: Record<string, string> = {
     restrictions: 'Settings restrictions',
     lock: 'Scheduled lock',
     'usage-report': 'Usage reporting',
+    browser: 'Chrome rules',
 }
 
 const DETAILS: Record<string, string> = {

@@ -79,10 +79,10 @@ export function usePolicyEditor<D, V>({ api, device, onSessionExpired, section }
         try {
             // The save replaces the whole policy, so re-read it first: another change may have landed since this panel opened.
             const latest = await api.getPolicy(device.deviceId)
-            const stored = await api.setPolicy(device.deviceId, section.apply(latest, result.value))
+            const { policy: stored, woken } = await api.setPolicy(device.deviceId, section.apply(latest, result.value))
             setPolicy(stored)
             setDraftState(section.toDraft(stored))
-            setSaved(`Saved as version ${stored.version}. The phone applies it at its next check-in, within about 15 minutes.`)
+            setSaved(savedText(stored.version, woken))
         } catch (caught) {
             fail(caught)
         } finally {
@@ -91,4 +91,11 @@ export function usePolicyEditor<D, V>({ api, device, onSessionExpired, section }
     }
 
     return { policy, draft, loading, saving, problems, error, saved, load, save, close, setDraft }
+}
+
+/** What the parent is told after a save: a push means seconds, otherwise the next check-in. */
+export function savedText(version: number, woken: boolean): string {
+    return woken
+        ? `Saved as version ${version}. The phone applies it in a few seconds.`
+        : `Saved as version ${version}. The phone applies it at its next check-in, within about 15 minutes.`
 }

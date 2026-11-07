@@ -86,7 +86,7 @@ test('getPolicy and setPolicy use the policy path, encode the id, and keep unkno
     assert.deepEqual(await api.getPolicy('a/b'), policy)
     assert.equal(calls[0].url, 'http://x/console/devices/a%2Fb/policy')
     assert.equal(calls[0].init.method, 'GET')
-    assert.deepEqual(await api.setPolicy('d1', policy), policy)
+    assert.deepEqual(await api.setPolicy('d1', policy), { policy, woken: false })
     assert.equal(calls[1].init.method, 'PUT')
     assert.equal(calls[1].init.body, JSON.stringify(policy))
     assert.equal((calls[1].init.headers as Record<string, string>).Authorization, 'Bearer tok')
@@ -246,4 +246,10 @@ test('updateDevice patches that device with the name and color', async () => {
     assert.equal(calls[0].url, 'http://x/console/devices/d%201')
     assert.equal(calls[0].init.method, 'PATCH')
     assert.equal(calls[0].init.body, JSON.stringify({ label: 'Sara', color: 'pink' }))
+})
+
+test('setPolicy reports a push wake-up without putting it in the policy', async () => {
+    const { fetchImpl } = recorder(() => jsonResponse(200, { version: 5, lock: {}, woken: true }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    assert.deepEqual(await api.setPolicy('d1', { version: 4 }), { policy: { version: 5, lock: {} }, woken: true })
 })

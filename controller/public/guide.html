@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Manara · Parent guide</title>
+<style>
+  :root { --bg:#f4f6f8; --surface:#fff; --ink:#12202a; --muted:#5a6a76; --line:#e1e6ea; --brand:#0f4c5c; --soft:#e3f0f2;
+    color-scheme: light; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1418; --surface:#141d23; --ink:#e6edf1; --muted:#93a3ad; --line:#25323b; --brand:#5cb3c4; --soft:#16323a; color-scheme: dark; } }
+  body { margin: 0; background: var(--bg); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  header a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; }
+  h1 { font-size: 1.8rem; margin: 24px 0 4px; }
+  h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+  h3 { font-size: 1rem; margin: 18px 0 4px; }
+  .muted { color: var(--muted); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 16px; }
+  .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  nav ol { columns: 2; column-gap: 32px; padding-left: 20px; }
+  @media (max-width: 560px) { nav ol { columns: 1; } }
+  li { margin: 4px 0; }
+  a { color: var(--brand); }
+  strong { font-weight: 650; }
+</style>
+</head>
+<body>
+<main>
+  <header><a href="/">Manara</a></header>
+  <h1>Parent guide</h1>
+  <p class="muted">How to set up your child's phone with Manara, choose its rules, and take Manara off again.</p>
+
+  <nav aria-label="Contents">
+    <ol>
+      <li><a href="#how">How Manara works</a></li>
+      <li><a href="#before">Before you start</a></li>
+      <li><a href="#account">Create your account</a></li>
+      <li><a href="#connect">Connect the phone</a></li>
+      <li><a href="#setup">Guided setup</a></li>
+      <li><a href="#rules">Choose the rules</a></li>
+      <li><a href="#everyday">Every day</a></li>
+      <li><a href="#alerts">Alerts by email</a></li>
+      <li><a href="#release">Move or remove Manara</a></li>
+      <li><a href="#trouble">If something goes wrong</a></li>
+    </ol>
+  </nav>
+
+  <section id="how">
+    <h2>How Manara works</h2>
+    <p>
+      Manara manages your child's Android phone openly. The phone always shows a notice saying it is managed, and opening
+      Manara on it shows exactly which rules are on and what you can see. There is no hidden mode. Manara never reads
+      messages, photos, contacts, calls or browsing history.
+    </p>
+    <p>
+      You set the rules in the <strong>console</strong>, a web page you open on your own phone or computer. Manara on the
+      child's phone applies them, and keeps applying them without a connection.
+    </p>
+  </section>
+
+  <section id="before">
+    <h2>Before you start</h2>
+    <p>Setup takes about 15 minutes. It removes every account from the phone for a few minutes, so prepare:</p>
+    <ul>
+      <li>The phone runs <strong>Android 11 or newer</strong>, is on <strong>Wi-Fi</strong>, and is charged above 50%. No computer or cable is needed.</li>
+      <li><strong>Back up chats</strong> (for WhatsApp: Settings, Chats, Chat backup). Apps removed during setup lose what is stored only on the phone.</li>
+      <li>Know the <strong>password of every account</strong> on the phone (Google, Samsung or Xiaomi, and each app), or have them written down. Manara never sees or stores passwords.</li>
+      <li>On a Samsung, a <strong>Secure Folder</strong> must be removed first. Move anything you need out of it.</li>
+      <li>Tell your child the phone will be managed, and why.</li>
+    </ul>
+  </section>
+
+  <section id="account">
+    <h2>1. Create your account</h2>
+    <p>
+      Open the console, choose <strong>New here? Create an account</strong>, and enter your email address and a password of
+      at least 8 characters. Use an address you check: password-reset links and alerts go there.
+    </p>
+  </section>
+
+  <section id="connect">
+    <h2>2. Connect the phone</h2>
+    <ol>
+      <li>Install <strong>Manara</strong> on your child's phone.</li>
+      <li>In the console, choose <strong>+ Add a phone</strong>. Confirm the three statements (you are the parent or guardian,
+        the child is a minor, the child will be told), and pick the phone's brand.</li>
+      <li>Follow the console's steps for that brand to turn on <strong>Wireless debugging</strong>: usually Settings, About
+        phone, tap <strong>Build number</strong> seven times, then Developer options, Wireless debugging. If a menu name
+        differs, search for "Build number" in Settings.</li>
+      <li>Tick each item of the checklist. The console shows a <strong>connection code</strong>, as a QR code and as text.</li>
+      <li>On the phone, open Manara and tap <strong>Scan the code</strong>, or type it.</li>
+    </ol>
+  </section>
+
+  <section id="setup">
+    <h2>3. Guided setup</h2>
+    <ol>
+      <li>On the phone, tap <strong>Start guided setup</strong> in Manara, then open <strong>Wireless debugging</strong>
+        (Manara's <strong>Open Developer options</strong> button gets you there). <strong>Leave the phone on that
+        screen</strong>: Android stops pairing the moment you leave it.</li>
+      <li>In the console, open the phone's page. It offers two ways to pair:
+        <ul>
+          <li><strong>QR code:</strong> on the phone, tap <strong>Pair device with QR code</strong> and scan the QR code
+            shown in the console.</li>
+          <li><strong>Pairing code:</strong> on the phone, tap <strong>Pair device with pairing code</strong>, and type the
+            6-digit code the phone shows into the console.</li>
+        </ul>
+      </li>
+      <li>Setup then runs by itself, and the console shows each step. Manara removes the phone's accounts for a moment,
+        becomes the phone's manager, and puts the apps back.</li>
+      <li>At the end, sign back in on the phone to the accounts you want to keep. You don't have to sign back in to all of
+        them. Then choose <strong>Finish setup</strong> in the console.</li>
+    </ol>
+    <p class="note">
+      Once setup has finished, Manara blocks developer options by default, so a computer can't be used to undo the rules.
+      You can change this under Rules, Settings restrictions.
+    </p>
+  </section>
+
+  <section id="rules">
+    <h2>4. Choose the rules</h2>
+    <p>Open the phone in the console. Every rule is off until you turn it on, and the child sees each one on the phone.</p>
+    <h3>Rules tab</h3>
+    <ul>
+      <li><strong>App time limits:</strong> daily minutes for the apps you choose. One limit can be shared by several apps.
+        0 minutes blocks an app.</li>
+      <li><strong>Lock schedule:</strong> hours when the phone stays locked, such as bedtime or school, per day of the week.</li>
+      <li><strong>Site filtering:</strong> sends all website lookups through a family-safe filtering service (a Private DNS
+        host). Also block Private DNS and VPN settings under Settings restrictions, so it can't be turned off.</li>
+      <li><strong>Chrome:</strong> SafeSearch on Google, YouTube Restricted Mode, a list of websites to block, and turning
+        off Chrome's own secure DNS so the site filter applies. These work in Chrome only. Block another browser with a
+        0-minute app limit.</li>
+      <li><strong>Settings restrictions:</strong> stop the child resetting the phone, using safe mode, adding users,
+        changing VPN or Private DNS, or using developer options.</li>
+    </ul>
+    <h3>Sharing tab</h3>
+    <ul>
+      <li><strong>Location:</strong> the phone sends its location at the interval you choose, and shows a notice while it does.</li>
+      <li><strong>Daily usage report:</strong> minutes per app today, sent about once an hour.</li>
+    </ul>
+    <h3>Phone tab</h3>
+    <ul>
+      <li><strong>Name and color:</strong> your child's name and a color, so each phone is easy to find in your list.</li>
+    </ul>
+    <p>A saved rule reaches the phone within seconds. The console says when it can't, and when the phone will get it instead.</p>
+  </section>
+
+  <section id="everyday">
+    <h2>5. Every day</h2>
+    <ul>
+      <li><strong>Lock now</strong>, at the top of the phone's page, locks the phone in a few seconds.</li>
+      <li>The <strong>Activity</strong> tab shows whether every protection is working, daily app usage if you turned it on,
+        and when a time limit was reached.</li>
+      <li>The list of phones shows when each phone last checked in.</li>
+    </ul>
+  </section>
+
+  <section id="alerts">
+    <h2>6. Alerts by email</h2>
+    <p>Manara emails you when:</p>
+    <ul>
+      <li>a phone hasn't checked in for 12 hours: it may be off, out of battery, or offline, or Manara may have been stopped;</li>
+      <li>a protection stops working, for example Usage access turned off, or Private DNS changed.</li>
+    </ul>
+    <p class="muted">You get one email per problem, not one every check-in. Check your spam folder the first time.</p>
+  </section>
+
+  <section id="release">
+    <h2>7. Move or remove Manara</h2>
+    <p>Only you can do this. Manara on the phone has no button for it, so your child can't remove it.</p>
+    <ul>
+      <li><strong>Remove Manara from this phone</strong> (Phone tab): within seconds, or at the phone's next check-in if
+        it is offline, every rule is lifted and the phone becomes an ordinary phone again.</li>
+      <li><strong>Move to another account</strong>: for example, to the other parent's account. The phone keeps its setup.</li>
+      <li><strong>Phone can't be reached?</strong> Choose <strong>Show release code</strong> and type the code on the phone,
+        in Manara, under <strong>Release this phone</strong>. Then choose <strong>Remove from my list</strong>.</li>
+      <li>A lost or reset phone: <strong>Remove from my list</strong>.</li>
+    </ul>
+    <p>To delete your account and all its data, see <a href="/delete-account.html">Delete your account</a>.</p>
+  </section>
+
+  <section id="trouble">
+    <h2>If something goes wrong</h2>
+    <h3>Setup stays on "pairing"</h3>
+    <p>
+      The phone must stay on the Wireless debugging screen until pairing is done. Open it again, choose the QR code or the
+      pairing code again, and try once more. The phone and the console must both be online.
+    </p>
+    <h3>The phone shows "Not reporting"</h3>
+    <p>
+      The phone hasn't checked in for 2 hours. Check that it is on and online. Opening Manara on it and tapping
+      <strong>Check now</strong> makes it check in at once. On some phones, battery saving delays apps in the background:
+      allow Manara to run without restrictions in the phone's battery settings.
+    </p>
+    <h3>Forgot your password</h3>
+    <p>On the sign-in page, choose <strong>Forgot your password?</strong>. The emailed link works for one hour.</p>
+    <h3>Anything else</h3>
+    <p>Write to <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a>.</p>
+  </section>
+
+  <p class="muted"><a href="/privacy.html">Privacy policy</a> · <a href="/delete-account.html">Delete your account</a></p>
+</main>
+</body>
+</html>

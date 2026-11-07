@@ -351,3 +351,8 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 }
 .swatch[aria-checked="true"] { box-shadow: 0 0 0 3px var(--ink); }
 .swatch:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+/* The parent's account page. */
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.button-link { text-decoration: none; display: inline-flex; align-items: center; }
+.danger-zone { border-color: var(--danger); }

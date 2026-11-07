@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
-import { LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
+import { BrowserEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText, statusText } from './format.ts'
 import { summarizeProtection } from './protection.ts'
@@ -257,6 +257,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                         <TimeLimitsEditor {...props} />
                         <ScheduleEditor {...props} />
                         <SiteFilterEditor {...props} />
+                        <BrowserEditor {...props} />
                         <RestrictionsEditor {...props} />
                     </>
                 )}

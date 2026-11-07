@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Manara · Delete your account</title>
+<style>
+  :root { --bg:#f4f6f8; --surface:#fff; --ink:#12202a; --muted:#5a6a76; --line:#e1e6ea; --brand:#0f4c5c; --soft:#e3f0f2;
+    color-scheme: light; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1418; --surface:#141d23; --ink:#e6edf1; --muted:#93a3ad; --line:#25323b; --brand:#5cb3c4; --soft:#16323a; color-scheme: dark; } }
+  body { margin: 0; background: var(--bg); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  header a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; }
+  h1 { font-size: 1.8rem; margin: 24px 0 4px; }
+  h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+  .muted { color: var(--muted); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 16px; }
+  .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  li { margin: 4px 0; }
+  a { color: var(--brand); }
+</style>
+</head>
+<body>
+<main>
+  <header><a href="/">Manara</a></header>
+  <h1>Delete your Manara account</h1>
+  <p class="muted">For parents who use Manara, the parental controls app by Nabil Ben Salah.</p>
+
+  <section>
+    <h2>Delete it yourself, in the console</h2>
+    <ol>
+      <li>Release every phone first: in the console, open each phone, then the <strong>Phone</strong> tab, and choose
+        <strong>Remove Manara from this phone</strong>. This takes Manara off the phone and deletes that phone's data. If
+        the phone can't be reached, <strong>Show release code</strong> gives a code to type on it; after that, choose
+        <strong>Remove from my list</strong>. If a phone is lost or
+        was reset, choose <strong>Remove from my list</strong> instead.</li>
+      <li>Choose <strong>Account</strong> at the top of the console, then <strong>Delete your account</strong>.</li>
+      <li>Enter your password, type DELETE, and confirm.</li>
+    </ol>
+    <p class="note">
+      The console asks you to release every phone first on purpose: a child's phone still managed by an account that no
+      longer exists could not be released by anyone.
+    </p>
+  </section>
+
+  <section>
+    <h2>What is deleted</h2>
+    <p>
+      Everything stored with the account, at once: your email address and password hash, and for every phone its rules,
+      activity reports, locations, app usage, limit history, protection status, setup records, and its push token,
+      device token and release key. Nothing is kept for any other purpose.
+    </p>
+    <p>
+      The database provider keeps a short restore history, 6 hours on the current plan, after which deleted data is gone
+      for good. The server's logs hold only internal account and phone numbers, never your email or your child's data.
+      If you received emails from Manara, our email provider (Brevo) keeps its own record of them (address and subject)
+      for its limited retention period.
+    </p>
+  </section>
+
+  <section>
+    <h2>If you can't sign in</h2>
+    <p>
+      Use <strong>Forgot your password?</strong> on the sign-in page to get a reset link by email. If that doesn't work,
+      write to <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a> from the email address of the account,
+      and ask for it to be deleted. We answer within 30 days, and we will ask you to release the phones first, or confirm
+      they are lost or reset.
+    </p>
+  </section>
+
+  <p class="muted"><a href="/privacy.html">Privacy policy</a></p>
+</main>
+</body>
+</html>
