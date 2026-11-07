@@ -25,6 +25,7 @@ type Handlers struct {
 	Auth        domain.AuthRepository
 	Enrollments domain.EnrollmentTokenRepository
 	Setup       domain.SetupRepository
+	Releases    domain.ReleaseRepository
 	// Notifier wakes a device immediately for CommandType.IsUrgent()
 	// commands (e.g. lock_now), instead of relying solely on the next
 	// /agent/sync poll. notify.Noop{} when Firebase isn't configured --
@@ -359,6 +360,14 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	commandType := domain.CommandType(req.Type)
+	if err := domain.ValidateCommand(commandType, req.Params); err != nil {
+		code := "unknown_command"
+		if errors.Is(err, domain.ErrUnknownReleaseMode) {
+			code = "invalid_release_mode"
+		}
+		writeError(w, http.StatusBadRequest, code, err.Error())
+		return
+	}
 	command, err := h.Commands.Enqueue(r.Context(), deviceID, commandType, req.Params)
 	if err != nil {
 		log.Printf("console: enqueue command: %v", err)
@@ -379,6 +388,53 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 		CommandID: command.ID, Type: string(command.Type), Params: command.Params,
 		Status: string(command.Status), CreatedAt: command.CreatedAt,
 	})
+}
+
+type releaseCodeDTO struct {
+	Code       string    `json:"code"`
+	ValidUntil time.Time `json:"validUntil"`
+	// PhoneReady is false until the phone has confirmed it holds the secret;
+	// until then a code typed on the phone cannot work.
+	PhoneReady bool `json:"phoneReady"`
+}
+
+// GetReleaseCode gives the parent the code that frees the phone when it can't be reached.
+func (h *Handlers) GetReleaseCode(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	secret, confirmed, err := h.Releases.Secret(r.Context(), deviceID)
+	if err != nil {
+		log.Printf("console: release code: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	code, until := domain.ReleaseCode(secret, time.Now())
+	writeJSON(w, http.StatusOK, releaseCodeDTO{Code: code, ValidUntil: until, PhoneReady: confirmed})
+}
+
+// DeleteDevice removes a phone from the account, with everything stored about it.
+// It doesn't free the phone itself: that takes a release command or code first.
+func (h *Handlers) DeleteDevice(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	if err := h.Releases.Delete(r.Context(), deviceID); err != nil {
+		log.Printf("console: delete device: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }
 
 func (h *Handlers) ListEvents(w http.ResponseWriter, r *http.Request) {

@@ -3,10 +3,12 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"manara/backend/internal/domain"
 )
 
@@ -76,14 +78,21 @@ func (q *CommandQueue) PendingForDevice(ctx context.Context, deviceID string) ([
 	return commands, rows.Err()
 }
 
-func (q *CommandQueue) Ack(ctx context.Context, commandID string, status domain.CommandStatus, detail string) error {
-	_, err := q.db.Pool.Exec(ctx, `
-		UPDATE commands SET status = $1, detail = $2, updated_at = now() WHERE id = $3
-	`, string(status), detail, commandID)
-	if err != nil {
-		return fmt.Errorf("ack command: %w", err)
+// Ack only touches a command of the acking device: an id from another phone matches nothing.
+func (q *CommandQueue) Ack(ctx context.Context, deviceID, commandID string, status domain.CommandStatus, detail string) (domain.CommandType, error) {
+	var commandType string
+	err := q.db.Pool.QueryRow(ctx, `
+		UPDATE commands SET status = $1, detail = $2, updated_at = now()
+		WHERE id::text = $3 AND device_id = $4
+		RETURNING type
+	`, string(status), detail, commandID, deviceID).Scan(&commandType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
 	}
-	return nil
+	if err != nil {
+		return "", fmt.Errorf("ack command: %w", err)
+	}
+	return domain.CommandType(commandType), nil
 }
 
 func (q *CommandQueue) ExpirePending(ctx context.Context, olderThan time.Duration) (int, error) {

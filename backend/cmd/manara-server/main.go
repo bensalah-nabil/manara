@@ -58,16 +58,17 @@ func main() {
 	events := postgres.NewEventStore(db)
 	auth := postgres.NewAuthRepository(db)
 	setups := postgres.NewSetupRepository(db)
+	releases := postgres.NewReleaseRepository(db)
 	notifier := newNotifier(ctx)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
-		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups,
+		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Releases: releases,
 		Alerts: newAlertService(devices),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
-		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups,
+		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Releases: releases,
 		Notifier: notifier,
 	}
 
@@ -85,6 +86,8 @@ func main() {
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup", consoleHandlers.GetSetup)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.ClearSetupAccounts)
+	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/release-code", consoleHandlers.GetReleaseCode)
+	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.DeleteDevice)
 
 	go runHeartbeatSweep(ctx, commands)
 	go runRetentionSweep(ctx, events, setups)

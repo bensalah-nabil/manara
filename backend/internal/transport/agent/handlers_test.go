@@ -45,8 +45,51 @@ func (fakeCommands) Enqueue(context.Context, string, domain.CommandType, map[str
 func (fakeCommands) PendingForDevice(context.Context, string) ([]*domain.Command, error) {
 	return nil, nil
 }
-func (fakeCommands) Ack(context.Context, string, domain.CommandStatus, string) error { return nil }
-func (fakeCommands) ExpirePending(context.Context, time.Duration) (int, error)       { return 0, nil }
+
+// fakeCommands knows one command per id; Ack only matches the acking device's own.
+type commandOf struct {
+	device string
+	kind   domain.CommandType
+}
+
+var knownCommands = map[string]commandOf{
+	"cmd-release": {"dev-1", domain.CommandTypeRelease},
+	"cmd-lock":    {"dev-1", domain.CommandTypeLockNow},
+	"cmd-other":   {"dev-2", domain.CommandTypeRelease},
+}
+
+func (fakeCommands) Ack(_ context.Context, deviceID, commandID string, _ domain.CommandStatus, _ string) (domain.CommandType, error) {
+	c, ok := knownCommands[commandID]
+	if !ok || c.device != deviceID {
+		return "", nil
+	}
+	return c.kind, nil
+}
+func (fakeCommands) ExpirePending(context.Context, time.Duration) (int, error) { return 0, nil }
+
+type fakeReleases struct {
+	mu        sync.Mutex
+	confirmed bool
+	deleted   []string
+}
+
+func (f *fakeReleases) Secret(context.Context, string) ([]byte, bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return []byte("0123456789abcdef0123456789abcdef"), f.confirmed, nil
+}
+func (f *fakeReleases) Confirm(context.Context, string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.confirmed = true
+	return nil
+}
+func (f *fakeReleases) Delete(_ context.Context, id string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.deleted = append(f.deleted, id)
+	return nil
+}
 
 // fakeEvents is idempotent on id like the real store.
 type fakeEvents struct {
@@ -81,7 +124,68 @@ func (c channelNotifier) Send(_ context.Context, a domain.Alert) error { c.ch <-
 func newHandlers(alerts *domain.AlertService) *Handlers {
 	return &Handlers{
 		Devices: fakeDevices{}, Tokens: fakeTokens{}, Policies: fakePolicies{}, Commands: fakeCommands{},
-		Events: &fakeEvents{seen: map[string]bool{}}, Alerts: alerts,
+		Events: &fakeEvents{seen: map[string]bool{}}, Alerts: alerts, Releases: &fakeReleases{},
+	}
+}
+
+func postSync(t *testing.T, h *Handlers, body map[string]any) syncResponse {
+	t.Helper()
+	raw, _ := json.Marshal(body)
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/agent/sync", bytes.NewReader(raw))
+	r.Header.Set("Authorization", "Bearer good")
+	w := httptest.NewRecorder()
+	h.Sync(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("sync status = %d: %s", w.Code, w.Body.String())
+	}
+	var resp syncResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	return resp
+}
+
+func ack(id, status string) map[string]any {
+	return map[string]any{"policyVersion": 0, "events": []any{}, "hasReleaseSecret": true,
+		"commandAcks": []any{map[string]any{"commandId": id, "status": status}}}
+}
+
+func TestSyncGivesTheReleaseSecretUntilThePhoneHasIt(t *testing.T) {
+	h := newHandlers(nil)
+	releases := h.Releases.(*fakeReleases)
+	resp := postSync(t, h, map[string]any{"policyVersion": 0, "events": []any{}})
+	if resp.ReleaseSecret == "" {
+		t.Fatal("phone without the secret did not receive it")
+	}
+	resp = postSync(t, h, map[string]any{"policyVersion": 0, "events": []any{}, "hasReleaseSecret": true})
+	if resp.ReleaseSecret != "" || !releases.confirmed {
+		t.Fatalf("secret resent (%q) or not confirmed (%v)", resp.ReleaseSecret, releases.confirmed)
+	}
+}
+
+func TestAckedReleaseDeletesTheDevice(t *testing.T) {
+	h := newHandlers(nil)
+	resp := postSync(t, h, ack("cmd-release", "acked"))
+	if !resp.Released {
+		t.Fatal("release ack not confirmed to the phone")
+	}
+	if got := h.Releases.(*fakeReleases).deleted; len(got) != 1 || got[0] != "dev-1" {
+		t.Fatalf("deleted = %v", got)
+	}
+}
+
+func TestOnlyAnAckedReleaseOfThisPhoneDeletesIt(t *testing.T) {
+	for _, c := range []struct{ id, status string }{
+		{"cmd-release", "failed"}, // the phone could not let go
+		{"cmd-lock", "acked"},     // another command type
+		{"cmd-other", "acked"},    // another phone's release
+		{"cmd-unknown", "acked"},
+	} {
+		h := newHandlers(nil)
+		resp := postSync(t, h, ack(c.id, c.status))
+		if resp.Released || len(h.Releases.(*fakeReleases).deleted) != 0 {
+			t.Errorf("%s %s released the phone", c.id, c.status)
+		}
 	}
 }
 

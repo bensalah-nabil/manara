@@ -6,6 +6,7 @@ package agent
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log"
@@ -26,6 +27,7 @@ type Handlers struct {
 	Events      domain.EventStore
 	Enrollments domain.EnrollmentTokenRepository
 	Setup       domain.SetupRepository
+	Releases    domain.ReleaseRepository
 	// Alerts is optional: nil means no parent alerts are configured.
 	Alerts *domain.AlertService
 }
@@ -48,6 +50,8 @@ type enrollResponse struct {
 	DeviceID    string        `json:"deviceId"`
 	DeviceToken string        `json:"deviceToken"`
 	Policy      domain.Policy `json:"policy"`
+	// ReleaseSecret (base64) lets the phone check a parent's offline release code.
+	ReleaseSecret string `json:"releaseSecret"`
 }
 
 type commandAckDTO struct {
@@ -64,6 +68,8 @@ type syncRequest struct {
 	// have Firebase configured -- an empty/missing value just means push
 	// isn't available for this device, not an error.
 	PushToken string `json:"pushToken,omitempty"`
+	// HasReleaseSecret false (an older or just-upgraded agent) asks for the secret.
+	HasReleaseSecret bool `json:"hasReleaseSecret,omitempty"`
 }
 
 type eventDTO struct {
@@ -86,6 +92,9 @@ type syncResponse struct {
 	Policy           *domain.Policy `json:"policy,omitempty"`
 	PendingCommands  []commandDTO   `json:"pendingCommands"`
 	AcceptedEventIDs []string       `json:"acceptedEventIds"`
+	ReleaseSecret    string         `json:"releaseSecret,omitempty"`
+	// Released confirms the phone's release ack: this device no longer exists here.
+	Released bool `json:"released,omitempty"`
 }
 
 type errorBody struct {
@@ -148,8 +157,18 @@ func (h *Handlers) Enroll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secret, _, err := h.Releases.Secret(r.Context(), device.ID)
+	if err != nil {
+		log.Printf("enroll: release secret: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+
 	log.Printf("enrolled device %s (%s %s)", device.ID, device.Info.Manufacturer, device.Info.Model)
-	writeJSON(w, http.StatusOK, enrollResponse{DeviceID: device.ID, DeviceToken: token, Policy: policy})
+	writeJSON(w, http.StatusOK, enrollResponse{
+		DeviceID: device.ID, DeviceToken: token, Policy: policy,
+		ReleaseSecret: base64.StdEncoding.EncodeToString(secret),
+	})
 }
 
 func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
@@ -210,10 +229,38 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 		go h.Alerts.HandleNewEvents(context.WithoutCancel(r.Context()), deviceID, stored.Stored)
 	}
 
+	released := false
 	for _, ack := range req.CommandAcks {
-		if err := h.Commands.Ack(r.Context(), ack.CommandID, domain.CommandStatus(ack.Status), ack.Detail); err != nil {
+		status := domain.CommandStatus(ack.Status)
+		commandType, err := h.Commands.Ack(r.Context(), deviceID, ack.CommandID, status, ack.Detail)
+		if err != nil {
 			log.Printf("sync: ack command %s: %v", ack.CommandID, err)
 		}
+		if commandType == domain.CommandTypeRelease && status == domain.CommandStatusAcked {
+			released = true
+		}
+	}
+	if released {
+		// The phone has already let go; it sends this ack as its last request.
+		if err := h.Releases.Delete(r.Context(), deviceID); err != nil {
+			log.Printf("sync: delete released device: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+		log.Printf("released device %s", deviceID)
+		writeJSON(w, http.StatusOK, syncResponse{PendingCommands: []commandDTO{}, AcceptedEventIDs: acceptedIDs, Released: true})
+		return
+	}
+
+	var releaseSecret string
+	if req.HasReleaseSecret {
+		if err := h.Releases.Confirm(r.Context(), deviceID); err != nil {
+			log.Printf("sync: confirm release secret: %v", err)
+		}
+	} else if secret, _, err := h.Releases.Secret(r.Context(), deviceID); err != nil {
+		log.Printf("sync: release secret: %v", err)
+	} else {
+		releaseSecret = base64.StdEncoding.EncodeToString(secret)
 	}
 
 	pending, err := h.Commands.PendingForDevice(r.Context(), deviceID)
@@ -230,7 +277,7 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	resp := syncResponse{PendingCommands: pendingDTOs, AcceptedEventIDs: acceptedIDs}
+	resp := syncResponse{PendingCommands: pendingDTOs, AcceptedEventIDs: acceptedIDs, ReleaseSecret: releaseSecret}
 	policy, err := h.Policies.Get(r.Context(), deviceID)
 	if err != nil {
 		log.Printf("sync: get policy: %v", err)

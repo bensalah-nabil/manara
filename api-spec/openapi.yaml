@@ -627,6 +627,13 @@ components:
             blockAddUser:
               type: boolean
               description: UserManager.DISALLOW_ADD_USER.
+            blockDebugging:
+              type: boolean
+              description: >
+                UserManager.DISALLOW_DEBUGGING_FEATURES (developer options, USB and
+                wireless debugging). The agent holds it back while guided setup runs,
+                since setup itself works over wireless debugging. On by default for a
+                new device, with blockFactoryReset, blockSafeBoot and blockAddUser.
         usageReport:
           type: object
           description: >

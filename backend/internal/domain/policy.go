@@ -31,6 +31,9 @@ type Restrictions struct {
 	BlockFactoryReset     bool `json:"blockFactoryReset,omitempty"`
 	BlockSafeBoot         bool `json:"blockSafeBoot,omitempty"`
 	BlockAddUser          bool `json:"blockAddUser,omitempty"`
+	// BlockDebugging is DISALLOW_DEBUGGING_FEATURES: no developer options or adb,
+	// so a computer can't undo the rest. The phone holds it back during guided setup.
+	BlockDebugging bool `json:"blockDebugging,omitempty"`
 }
 
 type TimeLimits struct {
@@ -72,8 +75,13 @@ type LockWindow struct {
 // DefaultPolicy is what a newly-enrolled device gets -- nothing enabled,
 // version 1. A real default (console-configurable) is Phase 3's job; this
 // is the safe, inert starting point until then.
+// DefaultPolicy is a new phone's: no rules yet, but tamper protection on, so the
+// child can't reset the phone, boot it in safe mode, add a user, or use adb to get
+// Manara off it. The parent can turn each of these off.
 func DefaultPolicy() Policy {
-	return Policy{Version: 1}
+	return Policy{Version: 1, Restrictions: &Restrictions{
+		BlockFactoryReset: true, BlockSafeBoot: true, BlockAddUser: true, BlockDebugging: true,
+	}}
 }
 
 // PolicyRepository is the port -- one current policy per device

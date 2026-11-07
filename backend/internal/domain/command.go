@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -12,7 +13,23 @@ const (
 	CommandTypeApplyPolicy     CommandType = "apply_policy"
 	CommandTypeRequestLocation CommandType = "request_location"
 	CommandTypePing            CommandType = "ping"
+	// CommandTypeRelease frees the phone from this account; params.mode is a ReleaseMode.
+	CommandTypeRelease CommandType = "release"
 )
+
+var ErrUnknownCommand = errors.New("unknown command type")
+
+// ValidateCommand rejects a type the agent doesn't know, and a release without a valid mode.
+func ValidateCommand(t CommandType, params map[string]any) error {
+	switch t {
+	case CommandTypeLockNow, CommandTypeApplyPolicy, CommandTypeRequestLocation, CommandTypePing:
+		return nil
+	case CommandTypeRelease:
+		mode, _ := params["mode"].(string)
+		return ReleaseMode(mode).Validate()
+	}
+	return ErrUnknownCommand
+}
 
 // IsUrgent marks the command types worth an immediate push wake-up
 // (domain.PushNotifier) rather than waiting for the next /agent/sync poll --
@@ -22,7 +39,7 @@ const (
 // defeats the point. apply_policy and request_location stay poll-only --
 // a short delay there doesn't change the outcome.
 func (t CommandType) IsUrgent() bool {
-	return t == CommandTypeLockNow
+	return t == CommandTypeLockNow || t == CommandTypeRelease
 }
 
 type CommandStatus string
@@ -57,7 +74,9 @@ type CommandQueue interface {
 	// PendingForDevice also marks what it returns as delivered -- the
 	// agent is about to receive them in the same /agent/sync response.
 	PendingForDevice(ctx context.Context, deviceID string) ([]*Command, error)
-	Ack(ctx context.Context, commandID string, status CommandStatus, detail string) error
+	// Ack records the phone's result for one of its own commands and returns that
+	// command's type, or "" when the device has no command with that id.
+	Ack(ctx context.Context, deviceID, commandID string, status CommandStatus, detail string) (CommandType, error)
 	// ExpirePending moves any command stuck at pending/delivered past
 	// CommandExpiry to expired; returns how many it swept.
 	ExpirePending(ctx context.Context, olderThan time.Duration) (int, error)
