@@ -105,6 +105,7 @@ function AuthForm({ onSubmit, notice }: { onSubmit: (mode: 'login' | 'signup', e
                     {mode === 'login' ? 'New here? Create an account' : 'I already have an account'}
                 </button>
             </form>
+            <a class="muted small" href="/privacy.html">Privacy policy</a>
         </div>
     )
 }

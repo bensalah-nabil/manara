@@ -27,6 +27,7 @@ const ENFORCERS: Record<string, string> = {
 const DETAILS: Record<string, string> = {
     usage_access: 'Usage Access is turned off, so app usage cannot be measured.',
     device_location_on: 'The phone\'s Location setting is off.',
+    location_permission: 'Manara is not allowed to read the phone\'s location.',
     private_dns_host: 'Private DNS is not set to the filtering server.',
     host_not_serving: 'The phone could not use the filtering host (it did not answer as a Private DNS server). Check the host name.',
     failure_setting: 'The phone could not apply the filtering host.',

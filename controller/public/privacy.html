@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Manara · Privacy policy</title>
+<style>
+  :root { --bg:#f4f6f8; --surface:#fff; --ink:#12202a; --muted:#5a6a76; --line:#e1e6ea; --brand:#0f4c5c; --soft:#e3f0f2;
+    color-scheme: light; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1418; --surface:#141d23; --ink:#e6edf1; --muted:#93a3ad; --line:#25323b; --brand:#5cb3c4; --soft:#16323a; color-scheme: dark; } }
+  body { margin: 0; background: var(--bg); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  header a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; display: flex; gap: 10px; align-items: center; }
+  h1 { font-size: 1.8rem; margin: 24px 0 4px; }
+  h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .wrap { overflow-x: auto; }
+  .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  a { color: var(--brand); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a href="/"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0f4c5c"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2a93b"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>Manara</a>
+  </header>
+
+  <h1>Privacy policy</h1>
+  <p class="muted">Last updated 7 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
+
+  <p class="note">
+    Manara lets a parent set rules on their own child's phone. The phone always shows that it is managed and what is
+    shared; Manara has no hidden mode. Manara never collects messages, photos, contacts, calls, call logs, browsing
+    history or passwords.
+  </p>
+
+  <section>
+    <h2>Who is responsible</h2>
+    <p>
+      Manara is run by <strong>Nabil Ben Salah</strong>, in Tunisia. Questions, requests to see or delete data, and
+      complaints: <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a>.
+    </p>
+    <p>
+      A parent who connects a phone decides what is collected about the child using it, and confirms when connecting it
+      that they are the child's parent or legal guardian, that the child is a minor, and that the child will be told the
+      phone is managed. Manara processes the child's data on that parent's behalf, for that purpose only.
+    </p>
+  </section>
+
+  <section>
+    <h2>What is collected, and for how long</h2>
+    <div class="wrap">
+    <table>
+      <tr><th>Data</th><th>When</th><th>Kept</th></tr>
+      <tr><td>Parent's email address and a hashed password</td><td>To create the parent account</td><td>Until the account is deleted</td></tr>
+      <tr><td>The parent's three confirmations, the date, and the phone's brand</td><td>When adding a phone</td><td>As long as the phone is in the account</td></tr>
+      <tr><td>Phone model, maker and Android version</td><td>When the phone is connected</td><td>As long as the phone is in the account</td></tr>
+      <tr><td>The phone's location (coordinates and accuracy)</td><td>Only if the parent turns location sharing on; the phone shows a notice while it is on</td><td>30 days</td></tr>
+      <tr><td>Minutes spent in each app today (by app package name, top 30)</td><td>Only if the parent turns the daily usage report on</td><td>30 days</td></tr>
+      <tr><td>Which daily app limit was reached, and when</td><td>Only if the parent sets app limits</td><td>90 days</td></tr>
+      <tr><td>Whether Manara's protections are working (for example "Usage access is off")</td><td>Always, while the phone is managed</td><td>90 days</td></tr>
+      <tr><td>Names and types of the accounts on the phone (never passwords)</td><td>During guided setup, so the parent knows what to sign back in to</td><td>7 days, or sooner if the parent deletes them</td></tr>
+      <tr><td>A push token, a device token, and a release key</td><td>So the phone can be reached, sign its requests, and be released by the parent</td><td>As long as the phone is in the account</td></tr>
+    </table>
+    </div>
+    <p>
+      Removing a phone from the account deletes everything stored about it. App usage is measured on the phone with
+      Android's Usage Access; time limits and the lock schedule are applied on the phone itself.
+    </p>
+  </section>
+
+  <section>
+    <h2>What is not collected</h2>
+    <p>
+      Messages, emails, photos, videos, files, contacts, calls and call logs, microphone or camera, browsing history, what
+      is typed, and passwords. Website filtering works by pointing the phone at a family-safe DNS service the parent
+      chooses (for example AdGuard Family); that service, not Manara, answers the phone's DNS lookups, under its own
+      privacy policy.
+    </p>
+  </section>
+
+  <section>
+    <h2>Who processes it</h2>
+    <ul>
+      <li>Render (server hosting, Frankfurt, Germany) and Neon (database, Frankfurt, Germany).</li>
+      <li>Netlify (hosts this website and the parent console).</li>
+      <li>Google Firebase Cloud Messaging, to wake the phone when the parent sends a command. The message carries no data,
+        only "check in now".</li>
+      <li>Google Play services on the phone, for location and for scanning the connection QR code.</li>
+    </ul>
+    <p>
+      The server and database are in Germany, so data is sent from the phone and the console to the European Union.
+      Data is never sold, never used for advertising, and never shared with anyone else.
+    </p>
+  </section>
+
+  <section>
+    <h2>How it is protected</h2>
+    <p>
+      All traffic uses HTTPS. Passwords are stored as bcrypt hashes and device tokens as hashes. On the phone, its token
+      and release key are encrypted with the Android Keystore. Only the parent account a phone belongs to can see its data.
+    </p>
+  </section>
+
+  <section>
+    <h2>The child's side</h2>
+    <p>
+      The phone always shows a "This phone is managed" notice, and a separate notice while location is shared. Opening
+      Manara on the phone shows exactly what the parent can see and which rules are on. Only the parent can release the
+      phone, from the console or with a release code.
+    </p>
+  </section>
+
+  <section>
+    <h2>Your choices and rights</h2>
+    <p>
+      A parent can turn any collection off at any time, delete saved account lists, and remove a phone, which deletes its
+      data. To see, correct or delete any data, including the whole parent account, write to
+      <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a>; we answer within 30 days. You may also
+      complain to your data protection authority: in Tunisia, the Instance Nationale de Protection des Données
+      Personnelles (INPDP).
+    </p>
+  </section>
+
+  <section>
+    <h2>Changes</h2>
+    <p>If this policy changes, the date at the top changes with it.</p>
+  </section>
+</main>
+</body>
+</html>
