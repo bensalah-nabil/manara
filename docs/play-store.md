@@ -2,7 +2,8 @@
 
 What the app already does for Play, what has to be filled in by hand in Play
 Console, and the risks still open. Checked against Google's pages on
-2026-11-07; recheck the policy links before each submission.
+2026-11-07; recheck the policy links before each submission. The step-by-step
+checklist is [`play-console-checklist.md`](play-console-checklist.md).
 
 ## Done in the app
 

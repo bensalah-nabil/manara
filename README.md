@@ -42,14 +42,18 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 | App time limits   | ✅ done | `UsageStatsManager` + `setPackagesSuspended`, verified end to end (Instagram on one device, Facebook on another) |
 | Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware, including via live FCM push with zero manual interaction |
 | Website filtering  | ✅ done | Private DNS, verified via `settings get global private_dns_mode` |
-| Location          | ✅ done | Visible foreground service; fails closed if Location is off device-wide (no DO API for that — physical/user setting) |
+| Location          | ✅ done | Background location at the parent's interval, with its own ongoing notice while on; fails closed without the permission or with Location off device-wide |
+| Bedtime lock schedule | ✅ done | Locks the phone in the parent's time windows |
+| Daily usage report | ✅ done | Minutes per app, only when the parent turns it on |
+| Tamper protection | ✅ done | Factory reset, safe boot, adding users and debugging blocked by default |
+| Release / move to another account | ✅ done | Only the parent: from the console, or an offline 8-digit code ([ADR-0004](docs/decisions/0004-only-the-parent-releases-a-phone.md)) |
 | Call log          | planned | Sideload-only; will not pass Play Store review     |
 | "Not reporting" alert | backend computes it; nothing proactively notifies a parent yet | `GET /console/devices` surfaces it; push/email alert not built |
 | Backend (Go, Postgres) | ✅ core done | Real signup/login, enrollment tokens, Docker + Caddy TLS, verified containerized |
-| Controller (parent web app) | scaffolded (React + Vite + TS) | Not yet wired to the real API — see `controller/README.md` |
+| Controller (parent web app) | ✅ done (Preact + Vite + TS) | Phone list, activity, rules, sharing, release; hosted on Netlify |
 
 See **[`docs/roadmap.md`](docs/roadmap.md)** for the phase-by-phase detail and
-what's still open (FCM push, a second-OEM device test, the controller UI).
+what's still open (a second-OEM device test, parent alerts, filtering v2).
 
 ---
 
@@ -86,7 +90,7 @@ The agent↔backend contract is the keystone: [`api-spec/openapi.yaml`](api-spec
 |---------------|--------------------------------------------------------|
 | `agent/`      | Android agent (Kotlin). Device-owner app. See its own `README.md` to build/enroll. |
 | `backend/`    | Server (Go). Domain / transport / persistence layers. See its own `README.md` to run. |
-| `controller/` | Parent web UI (phone + PC). React + Vite + TS, scaffolded, not yet wired to the API. |
+| `controller/` | Parent web UI (phone + PC). Preact + Vite + TS, talks to the backend's `/console` API. |
 | `api-spec/`   | OpenAPI contract — the shared source of truth.         |
 | `scripts/`    | Enrollment automation: account-removal preflight/backup/restore (see `agent/README.md`). |
 | `tools/`      | One-off dev tools, not shipped product code (e.g. `orphan-account-cleaner`). |
