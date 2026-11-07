@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.flyfishxu.kadb.cert.KadbCert
+import com.manara.agent.sync.SetupInputDto
 import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -14,18 +15,24 @@ import java.io.File
  * Opt-in check of guided setup's real phone I/O, read-only: pair with this phone's own wireless
  * debugging, find the connect port over mDNS, and read the accounts. Never runs a setup action
  * that changes the phone, and never turns wireless debugging off. Skipped unless `pairing` is
- * passed, e.g. `-e pairing "123456 41235"`. Reports only counts, never account names.
+ * passed, e.g. `-e pairing 123456` with "Pair device with pairing code" open; the port is found
+ * over mDNS, as in a real setup. Reports only counts, never account names.
  */
 @RunWith(AndroidJUnit4::class)
 class SelfAdbProbeTest {
     @Test
     fun pairsFindsTheConnectPortAndReadsAccounts() {
         val args = InstrumentationRegistry.getArguments()
-        val pairing = args.getString("pairing")?.let(SetupInput::parsePairing)
-        assumeTrue("opt-in: pass -e pairing \"CODE PORT\"", pairing != null)
+        val code = args.getString("pairing")?.trim()
+        assumeTrue("opt-in: pass -e pairing CODE", code != null && SetupInput.isPairingCode(code))
 
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val device = AdbSetupDevice(context, pairingInput = { pairing!! }, parentFinished = { false })
+        val console = object : SetupConsole {
+            override val qr = PairingDecision.newQrPairing()
+            override suspend fun input() = SetupInputDto(pairingCode = code, pairingCodeSeq = 1)
+            override suspend fun pairingStatus(message: String) { android.util.Log.i("SelfAdbProbe", message) }
+        }
+        val device = AdbSetupDevice(context, console)
         val report = Bundle()
         try {
             runBlocking {

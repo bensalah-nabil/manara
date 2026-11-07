@@ -7,10 +7,11 @@ import kotlinx.serialization.json.JsonObject
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 
-/** Mirrors `api-spec/openapi.yaml`'s `/enroll`, `/agent/sync` and `/agent/setup` exactly. */
+/** Mirrors `api-spec/openapi.yaml`'s `/enroll`, `/agent/sync`, `/agent/setup` and `/agent/setup/input` exactly. */
 interface ManaraApi {
     @POST("enroll")
     suspend fun enroll(@Body request: EnrollRequest): Response<EnrollResponse>
@@ -26,6 +27,9 @@ interface ManaraApi {
         @Header("Authorization") bearerToken: String,
         @Body request: SetupReportRequest
     ): Response<ResponseBody>
+
+    @GET("agent/setup/input")
+    suspend fun setupInput(@Header("Authorization") bearerToken: String): Response<SetupInputDto>
 }
 
 /** `accounts` null leaves the server's stored lists unchanged. */
@@ -34,8 +38,17 @@ data class SetupReportRequest(
     val step: String,
     val status: String,
     val message: String,
-    val accounts: List<SetupAccountDto>? = null
+    val accounts: List<SetupAccountDto>? = null,
+    /** Only on pairing-step reports, until the server has the QR code's name and password. */
+    val pairing: SetupPairingDto? = null,
 )
+
+@Serializable
+data class SetupPairingDto(val name: String, val password: String)
+
+/** What the parent typed in the console; [pairingCodeSeq] numbers each code sent. */
+@Serializable
+data class SetupInputDto(val pairingCode: String? = null, val pairingCodeSeq: Int = 0, val finish: Boolean = false)
 
 @Serializable
 data class SetupAccountDto(val type: String, val name: String)

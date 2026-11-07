@@ -15,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import okio.Path.Companion.toPath
 import java.io.File
 import java.net.Inet4Address
@@ -29,9 +28,7 @@ import kotlin.coroutines.resume
  */
 class AdbSetupDevice(
     private val context: Context,
-    /** Asks for the pairing code; [retry] says why the last one didn't work, null the first time. */
-    private val pairingInput: suspend (retry: String?) -> SetupInput.Pairing,
-    private val parentFinished: () -> Boolean,
+    private val console: SetupConsole,
 ) : SetupDevice {
 
     private val keyDir = File(context.noBackupFilesDir, "setup-adb")
@@ -53,27 +50,55 @@ class AdbSetupDevice(
         check(id.startsWith("uid=2000(shell)")) { "Connected, but not as the adb shell user." }
     }
 
-    /** Each "Pair device with pairing code" tap shows a new code, so a failed one is simply asked for again. */
+    /**
+     * Waits until the parent pairs from the console (ADR-0005): the phone scans the console's QR
+     * code, or shows a pairing code the parent types there. The phone never leaves its Wireless
+     * debugging screen, which stops pairing the moment it pauses (AOSP WirelessDebuggingFragment).
+     */
     private suspend fun pair(host: InetAddress) {
-        var retry: String? = null
-        repeat(SetupInput.PAIRING_ATTEMPTS) {
-            val pairing = pairingInput(retry)
-            val port = pairing.port ?: withTimeoutOrNull(PAIRING_DISCOVERY_MILLIS) { servicePort(PAIRING_SERVICE, host) }
-            if (port == null) {
-                retry = "Manara couldn't find the pairing screen. Tap Pair device with pairing code, keep it open, and enter its code."
-                return@repeat
+        val qr = console.qr
+        var lastSeq = console.input()?.pairingCodeSeq ?: 0
+        val triedQrPorts = mutableSetOf<Int>()
+        var failures = 0
+        while (true) {
+            val services = pairingServices(host)
+            val input = console.input()
+            val code = input?.let { PairingDecision.newCode(it.pairingCode, it.pairingCodeSeq, lastSeq) }
+            when (val next = PairingDecision.next(services, qr.name, code, triedQrPorts)) {
+                is PairingDecision.Next.PairWithQr -> {
+                    triedQrPorts += next.port
+                    console.pairingStatus("The phone scanned the QR code. Pairing...")
+                    if (tryPair(host, next.port, qr.password)) return
+                    failures++
+                    console.pairingStatus("Pairing with the QR code didn't work. On the phone, tap Pair device with QR code and scan it again.")
+                }
+                is PairingDecision.Next.PairWithCode -> {
+                    lastSeq = next.code.seq
+                    console.pairingStatus("Pairing with the code from the console...")
+                    if (tryPair(host, next.port, next.code.code)) return
+                    failures++
+                    console.pairingStatus("That code didn't work. On the phone, tap Pair device with pairing code again and send the new code.")
+                }
+                is PairingDecision.Next.NoCodeScreen -> {
+                    lastSeq = next.code.seq
+                    console.pairingStatus("The code arrived, but the phone isn't showing its pairing code. Tap Pair device with pairing code, keep it open, and send its code.")
+                }
+                PairingDecision.Next.Wait -> Unit
             }
-            try {
-                Kadb.pair(host.hostAddress!!, port, pairing.code)
-                return
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                android.util.Log.w(TAG, "pairing failed", error)
-                retry = "That code didn't work. Tap Pair device with pairing code again and enter the new code."
+            if (failures >= SetupInput.PAIRING_ATTEMPTS) {
+                error("Pairing didn't work after ${SetupInput.PAIRING_ATTEMPTS} tries. Start guided setup again.")
             }
         }
-        error("Pairing didn't work after ${SetupInput.PAIRING_ATTEMPTS} codes. Start guided setup again.")
+    }
+
+    private suspend fun tryPair(host: InetAddress, port: Int, password: String): Boolean = try {
+        Kadb.pair(host.hostAddress!!, port, password)
+        true
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        android.util.Log.w(TAG, "pairing failed", error)
+        false
     }
 
     override suspend fun listAccounts(): SetupFlow.Event.Accounts = withContext(Dispatchers.IO) {
@@ -125,7 +150,8 @@ class AdbSetupDevice(
     }
 
     override suspend fun watchAccounts(): List<Account>? {
-        if (parentFinished()) return null
+        // The parent signs back in to the accounts they want, then chooses Finish setup in the console.
+        if (console.input()?.finish == true) return null
         // A device owner sees every account (AccountManagerService.resolveAccountVisibility).
         return AccountManager.get(context).accounts.map { Account(it.type, it.name) }
     }
@@ -144,6 +170,16 @@ class AdbSetupDevice(
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         val properties = connectivity.getLinkProperties(connectivity.activeNetwork) ?: return null
         return properties.linkAddresses.map { it.address }.filterIsInstance<Inet4Address>().firstOrNull { !it.isLoopbackAddress }
+    }
+
+    /** The pairing services open on this phone's own address, by name, over one discovery window. */
+    private suspend fun pairingServices(host: InetAddress): List<PairingDecision.Service> {
+        val nsd = context.getSystemService(NsdManager::class.java)
+        return discover(nsd, PAIRING_SERVICE).mapNotNull { service ->
+            val resolved = resolve(nsd, service) ?: return@mapNotNull null
+            @Suppress("DEPRECATION")
+            if (resolved.host == host) PairingDecision.Service(resolved.serviceName, resolved.port) else null
+        }
     }
 
     /**
@@ -198,7 +234,6 @@ class AdbSetupDevice(
         const val TAG = "ManaraSetup"
         const val CONNECT_SERVICE = "_adb-tls-connect._tcp"
         const val PAIRING_SERVICE = "_adb-tls-pairing._tcp"
-        const val PAIRING_DISCOVERY_MILLIS = 15_000L
         const val DISCOVERY_WINDOW_MILLIS = 3_000L
         const val CONNECT_DISCOVERY_MILLIS = 30_000L
     }

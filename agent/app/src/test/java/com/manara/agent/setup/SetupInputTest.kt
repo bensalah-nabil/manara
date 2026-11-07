@@ -2,30 +2,16 @@ package com.manara.agent.setup
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SetupInputTest {
 
     @Test
-    fun `pairing input accepts the code and port in the usual separators`() {
-        val expected = SetupInput.Pairing("123456", 41235)
-        assertEquals(expected, SetupInput.parsePairing("123456 41235"))
-        assertEquals(expected, SetupInput.parsePairing(" 123456:41235 "))
-        assertEquals(expected, SetupInput.parsePairing("123456, 41235"))
-    }
-
-    @Test
-    fun `the code alone is enough, and setup finds the port`() {
-        assertEquals(SetupInput.Pairing("123456"), SetupInput.parsePairing("123456"))
-        assertEquals(SetupInput.Pairing("042137"), SetupInput.parsePairing("  042137 "))
-    }
-
-    @Test
-    fun `pairing input rejects anything else`() {
-        for (text in listOf("", "12345", "12345 41235", "1234567", "1234567 41235", "123456 0", "123456 70000", "abcdef 41235", "123456 41235; rm -rf /")) {
-            assertNull(text, SetupInput.parsePairing(text))
+    fun `a pairing code is exactly six digits`() {
+        assertTrue(SetupInput.isPairingCode("042137"))
+        for (text in listOf("", "12345", "1234567", "12a456", " 123456", "123456; rm -rf /")) {
+            assertFalse(text, SetupInput.isPairingCode(text))
         }
     }
 

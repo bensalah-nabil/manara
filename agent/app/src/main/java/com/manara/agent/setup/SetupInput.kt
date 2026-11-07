@@ -3,27 +3,16 @@ package com.manara.agent.setup
 /** Parsing for what the parent types and what `pm` prints; kept pure so it is unit-tested. */
 object SetupInput {
 
-    /**
-     * The six-digit code from Android's "Pair with pairing code" dialog, and its port if it was
-     * typed too; without one, setup finds the port itself.
-     */
-    data class Pairing(val code: String, val port: Int? = null)
-
-    private val PAIRING = Regex("""^\s*(\d{6})(?:\s*[\s:,;]\s*(\d{1,5}))?\s*$""")
     private val PACKAGE_NAME = Regex("""^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$""")
     private val APK_PATH = Regex("""^/[A-Za-z0-9._/=~+-]+\.apk$""")
 
-    /** Accepts "123456", or with the port: "123456 41235", "123456:41235", "123456,41235"; null otherwise. */
-    fun parsePairing(text: String): Pairing? {
-        val match = PAIRING.matchEntire(text) ?: return null
-        val typedPort = match.groupValues[2]
-        if (typedPort.isEmpty()) return Pairing(match.groupValues[1])
-        val port = typedPort.toInt()
-        return if (port in 1..65535) Pairing(match.groupValues[1], port) else null
-    }
-
-    /** At most this many codes are tried before setup stops; each "Pair" tap shows a new one. */
+    /** At most this many pairings are tried before setup stops; each "Pair" tap shows a new code. */
     const val PAIRING_ATTEMPTS = 5
+
+    private val PAIRING_CODE = Regex("""^\d{6}$""")
+
+    /** The six digits "Pair device with pairing code" shows. */
+    fun isPairingCode(text: String): Boolean = PAIRING_CODE.matches(text)
 
     /** The values of `package:` lines, as printed by `pm list packages` and `pm path`. */
     fun packageLines(output: String): List<String> =

@@ -176,7 +176,7 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
 // ---- Guided setup ------------------------------------------------------------
 
 @Composable
-fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onShowNotice: () -> Unit) {
+fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onOpenDeveloperOptions: () -> Unit) {
     Page {
         Header("Almost there", "This phone is connected to a parent account.")
         if (!supported) {
@@ -186,10 +186,11 @@ fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onSho
         Section("Let Manara manage this phone") {
             Step(1, "Open Settings, then Developer options, and turn on Wireless debugging. The parent's console shows how for this phone.")
             Step(2, "Tap Start guided setup below, and allow notifications.")
-            Step(3, "Follow Manara's notification. Each step also shows in the parent's console, with any accounts to remove for a few minutes.")
+            Step(3, "In Wireless debugging, tap Pair device with QR code and scan the code in the parent's console. Or tap Pair device with pairing code and type its code in the console.")
+            Step(4, "Keep the phone on that screen. Everything else is done in the console, which shows each step.")
             if (running) {
-                Note("Setup is running. Follow Manara's notification.")
-                OutlinedButton(onClick = onShowNotice, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Show the notification again") }
+                Note("Setup is running. Pair from the parent's console.")
+                OutlinedButton(onClick = onOpenDeveloperOptions, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Open Developer options") }
             } else {
                 Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Start guided setup") }
             }

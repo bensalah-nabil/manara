@@ -90,7 +90,7 @@ object SetupFlow {
         Action.WaitForPairingCode,
         report(
             Step.PAIRING, Status.WAITING_FOR_PARENT,
-            "On the phone, open Wireless debugging, tap Pair device with pairing code, and type the code into Manara's notification.",
+            "On the phone, in Wireless debugging, tap Pair device with QR code and scan the code in the console, or tap Pair device with pairing code and type its code in the console. Keep the phone on that screen.",
         ),
     )
 
@@ -147,7 +147,7 @@ object SetupFlow {
                         state.copy(step = Step.RECONNECTING),
                         Action.WatchAccounts,
                         report(Step.RECONNECTING, Status.WAITING_FOR_PARENT,
-                            "Sign back in to the accounts listed in the console. Open each app and sign in."),
+                            "Sign back in to the accounts you want to keep on this phone, then choose Finish setup in the console. You don't need to sign back in to all of them."),
                     )
                 }
                 else -> unexpected(state, event)
@@ -160,7 +160,7 @@ object SetupFlow {
                     } else {
                         Transition(state, Action.WatchAccounts,
                             report(Step.RECONNECTING, Status.WAITING_FOR_PARENT,
-                                "Sign back in to the accounts listed in the console. Open each app and sign in.", current))
+                                "Sign back in to the accounts you want to keep on this phone, then choose Finish setup in the console. You don't need to sign back in to all of them.", current))
                     }
                 }
                 Event.ParentFinished -> finished(state, null)
