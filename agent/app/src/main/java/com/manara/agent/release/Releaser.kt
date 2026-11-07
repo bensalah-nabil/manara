@@ -6,7 +6,7 @@ import android.util.Log
 import com.manara.agent.ManagedNoticeService
 import com.manara.agent.enforcers.EnforcerRegistry
 import com.manara.agent.enroll.PreviousAccountData
-import com.manara.agent.location.LocationNoticeService
+import com.manara.agent.location.LocationSharing
 import com.manara.agent.policy.Policy
 import com.manara.agent.storage.ManaraDatabase
 import com.manara.agent.sync.DeviceTokenStore
@@ -102,7 +102,7 @@ class Releaser(
     suspend fun removeManara() {
         registry.applyAll(Policy(version = 0))
         SyncWorker.cancel(context)
-        LocationNoticeService.stop(context)
+        LocationSharing.stop(context)
         PreviousAccountData(db).discard()
         db.policyDao().clear()
         tokenStore.clear()

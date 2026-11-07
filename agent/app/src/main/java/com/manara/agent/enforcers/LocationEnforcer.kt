@@ -4,16 +4,14 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.Build
 import com.manara.agent.events.Event
-import com.manara.agent.location.LocationNoticeService
+import com.manara.agent.location.LocationSharing
 import com.manara.agent.policy.Policy
 
 /**
- * architecture.md §2.2: fused location in a **visible** foreground service
- * (ADR-0001 twice over — see `LocationNoticeService`'s own doc comment).
- * This class just starts or stops that service based on policy; the actual
- * location requests and event-writing live there, since the service may
- * run (and keep writing events) across many `apply()`/`collectEvents()`
- * cycles, not just within one.
+ * architecture.md §2.2: location sharing with its own visible notice
+ * (ADR-0001; see [LocationSharing]). This class starts or stops it from the
+ * policy and reports when the phone can't share: Location turned off, or the
+ * permissions missing.
  *
  * With the device-wide Location toggle off, no fixes were produced on the
  * test phone even with ACCESS_FINE_LOCATION granted. This enforcer reports
@@ -27,11 +25,13 @@ class LocationEnforcer(private val context: Context) : PolicyEnforcer {
 
     override fun apply(policy: Policy) {
         if (policy.location.enabled) {
-            LocationNoticeService.start(context, intervalMinutes = policy.location.intervalMinutes)
+            LocationSharing.start(context, intervalMinutes = policy.location.intervalMinutes)
             health.observe(CHECK_LOCATION_ON, isLocationOn(context) ?: false)
+            health.observe(CHECK_PERMISSION, LocationSharing.hasPermissions(context))
         } else {
-            LocationNoticeService.stop(context)
+            LocationSharing.stop(context)
             health.forget(CHECK_LOCATION_ON)
+            health.forget(CHECK_PERMISSION)
         }
     }
 
@@ -50,5 +50,6 @@ class LocationEnforcer(private val context: Context) : PolicyEnforcer {
 
         private const val PREFS_NAME = "location_enforcer"
         private const val CHECK_LOCATION_ON = "device_location_on"
+        private const val CHECK_PERMISSION = "location_permission"
     }
 }

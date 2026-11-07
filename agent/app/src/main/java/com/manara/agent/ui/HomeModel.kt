@@ -75,7 +75,9 @@ object ChildView {
         if (limits.enabled) {
             limits.rules.forEach { rule ->
                 val apps = rule.packages.size
-                add(Line(rule.category.ifBlank { "App limit" }, "${minutes(rule.dailyMinutes)} a day, ${if (apps == 1) "1 app" else "$apps apps"}"))
+                val appsText = if (apps == 1) "1 app" else "$apps apps"
+                val detail = if (rule.dailyMinutes == 0) "Blocked, $appsText" else "${minutes(rule.dailyMinutes)} a day, $appsText"
+                add(Line(rule.category.ifBlank { "App limit" }.replaceFirstChar { it.uppercase() }, detail))
             }
         }
         val schedule = policy.lockSchedule
@@ -121,7 +123,6 @@ object ChildView {
     }
 
     private fun minutes(value: Int): String = when {
-        value == 0 -> "Blocked"
         value < 60 -> "$value min"
         value % 60 == 0 -> "${value / 60} h"
         else -> "${value / 60} h ${value % 60} min"

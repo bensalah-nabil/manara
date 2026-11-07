@@ -199,7 +199,7 @@ class SyncManager(
      * resolves to acked|failed instead of sitting pending/delivered.
      *
      * `request_location` is acked but is **not actually a one-off fix
-     * today** -- `LocationEnforcer`/`LocationNoticeService` only support a
+     * today** -- `LocationEnforcer`/`LocationSharing` only support a
      * running periodic service, no "get one fix right now" entry point
      * exists yet. Acking it as a no-op rather than "failed" because the
      * policy-level periodic location (when enabled) already covers the

@@ -59,7 +59,7 @@ class HomeModelTest {
     @Test
     fun zeroMinutesReadsAsBlocked() {
         val policy = Policy(version = 1, timeLimits = Policy.TimeLimits(true, listOf(Policy.TimeLimits.Rule("Social", listOf("x"), 0))))
-        assertEquals("Blocked a day, 1 app", ChildView.rules(policy)[0].detail)
+        assertEquals(ChildView.Line("Social", "Blocked, 1 app"), ChildView.rules(policy)[0])
     }
 
     @Test

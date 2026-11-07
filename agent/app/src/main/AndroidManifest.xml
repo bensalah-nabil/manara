@@ -20,18 +20,20 @@
     <!-- Guided setup finds the phone's own Wi-Fi address for wireless debugging. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- LocationEnforcer (architecture.md §2.2). ACCESS_FINE_LOCATION is
-         self-granted by OwnerReceiver (ordinary dangerous-level permission,
-         unlike PACKAGE_USAGE_STATS) so this never depends on a prompt.
-         FOREGROUND_SERVICE_LOCATION is required to declare the service's
-         foregroundServiceType below on API 34+. -->
+    <!-- Location sharing the parent turns on (LocationSharing). The device owner grants these
+         to itself (OwnerReceiver): allowed because guided setup sets the owner over adb, which
+         AOSP's setDeviceOwner marks as able to grant sensor permissions. Fixes arrive in the
+         background; a distinct notice shows the whole time. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- usesCleartextTraffic is set by the build: true only when MANARA_API_URL is a plain
          http:// dev server (adb reverse to localhost). Any https:// server builds with false,
          as architecture.md §6 requires TLS in transit. -->
+    <!-- Google Play: designates Manara as a parental-control monitoring app (Stalkerware policy). -->
+    <meta-data android:name="isMonitoringTool" android:value="child_monitoring" />
+
     <application
         android:allowBackup="false"
         android:label="@string/app_name"
@@ -84,11 +86,10 @@
                 android:value="Shows the permanent 'this device is managed' notice." />
         </service>
 
-        <!-- LocationEnforcer's visible foreground service (ADR-0001). -->
-        <service
-            android:name=".location.LocationNoticeService"
-            android:exported="false"
-            android:foregroundServiceType="location" />
+        <!-- Receives location fixes for LocationSharing. -->
+        <receiver
+            android:name=".location.LocationUpdatesReceiver"
+            android:exported="false" />
 
         <!-- Guided setup: visible while it runs, asks for the pairing code in its notification. -->
         <service

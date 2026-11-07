@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -134,7 +134,7 @@ private fun Busy() {
 
 /** First screen of a new phone, and the screen a parent's move opens. */
 @Composable
-fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -> Unit, onCode: (String) -> Unit) {
+fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -> Unit, onCode: (String) -> Unit, onPrivacy: () -> Unit) {
     var code by remember { mutableStateOf("") }
     Page {
         Header(
@@ -147,7 +147,7 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
                 else "On the parent's phone or computer, open the Manara console and choose Add a phone. Then scan the code it shows.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Scan the code") }
+            Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Scan the code") }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             OutlinedTextField(
                 value = code,
@@ -169,6 +169,7 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        TextButton(onClick = onPrivacy, contentPadding = PaddingValues(0.dp)) { Text("Privacy policy") }
     }
 }
 
@@ -189,7 +190,7 @@ fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit) {
             if (running) {
                 Note("Setup is running. Follow Manara's notification.")
             } else {
-                Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Start guided setup") }
+                Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Start guided setup") }
             }
         }
     }
@@ -214,7 +215,7 @@ private fun Step(number: Int, text: String) {
 // ---- Managed -----------------------------------------------------------------
 
 @Composable
-fun ManagedScreen(view: ChildView.View, refreshing: Boolean, onFix: (ChildView.Fix) -> Unit, onRefresh: () -> Unit, onRelease: () -> Unit) {
+fun ManagedScreen(view: ChildView.View, refreshing: Boolean, onFix: (ChildView.Fix) -> Unit, onRefresh: () -> Unit, onRelease: () -> Unit, onPrivacy: () -> Unit) {
     Page {
         Header("This phone is managed", "By your parent, with Manara.")
 
@@ -246,7 +247,11 @@ fun ManagedScreen(view: ChildView.View, refreshing: Boolean, onFix: (ChildView.F
             if (refreshing) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
             else TextButton(onClick = onRefresh) { Text("Check now") }
         }
-        TextButton(onClick = onRelease, contentPadding = PaddingValues(0.dp)) { Text("Release this phone") }
+        Row {
+            TextButton(onClick = onRelease, contentPadding = PaddingValues(0.dp)) { Text("Release this phone") }
+            Spacer(Modifier.size(20.dp))
+            TextButton(onClick = onPrivacy, contentPadding = PaddingValues(0.dp)) { Text("Privacy policy") }
+        }
     }
 }
 
@@ -279,13 +284,13 @@ fun ReleaseScreen(step: ReleaseStep, message: String?, onCode: (String) -> Unit,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (message != null) Note(message, warning = true)
-                Button(onClick = { onCode(code) }, enabled = code.length == 8, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Continue") }
+                Button(onClick = { onCode(code) }, enabled = code.length == 8, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Continue") }
                 TextButton(onClick = onBack) { Text("Back") }
             }
             ReleaseStep.Choose -> Section("What should happen?") {
-                Button(onClick = onMove, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Move to another parent account") }
+                Button(onClick = onMove, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Move to another parent account") }
                 Text("Keeps everything set up. For the next 30 minutes the phone accepts the new account's code.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Remove Manara from this phone") }
+                OutlinedButton(onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Remove Manara from this phone") }
                 Text("Lifts every rule and stops managing the phone. Manara can then be uninstalled.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onBack) { Text("Cancel") }
             }

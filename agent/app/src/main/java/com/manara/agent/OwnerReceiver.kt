@@ -55,14 +55,19 @@ class OwnerReceiver : DeviceAdminReceiver() {
                 }
                 add(android.Manifest.permission.ACCESS_FINE_LOCATION)
                 add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                // After the foreground ones: background location is only granted on top of them.
+                add(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
+            // From target API 35, a sensor permission the owner may not grant throws instead of
+            // returning quietly (AOSP THROW_SECURITY_EXCEPTION_FOR_SENSOR_PERMISSIONS). Guided
+            // setup sets the owner over adb, which allows it; a failure here is logged, never fatal,
+            // and shows up as a missing permission in the location health check.
             for (permission in permissions) {
-                dpm.setPermissionGrantState(
-                    admin,
-                    context.packageName,
-                    permission,
-                    DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
-                )
+                runCatching {
+                    dpm.setPermissionGrantState(admin, context.packageName, permission, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+                }.onSuccess { granted ->
+                    if (!granted) android.util.Log.w("ManaraOwner", "Not granted: $permission")
+                }.onFailure { android.util.Log.w("ManaraOwner", "Cannot grant $permission", it) }
             }
         }
     }

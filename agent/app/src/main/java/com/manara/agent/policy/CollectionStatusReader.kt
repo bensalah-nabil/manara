@@ -1,8 +1,6 @@
 package com.manara.agent.policy
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.util.Log
 import com.manara.agent.enforcers.DailyUsageReader
 import com.manara.agent.enforcers.LocationEnforcer
@@ -32,9 +30,7 @@ internal class CollectionStatusReader(private val context: Context, private val 
 
     private suspend fun readLocation(): CollectionStatusSummary.LocationStatus {
         val toggle = attempt("location setting") { LocationEnforcer.isLocationOn(context) }
-        val permission = attempt("location permission") {
-            context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        }
+        val permission = attempt("location permission") { com.manara.agent.location.LocationSharing.hasPermissions(context) }
         val history = attempt("saved location history") {
             val saved = db.locationObservationDao().get()
             CollectionStatusSummary.LocationStatus(historyKnown = true, lastSample = saved?.let {

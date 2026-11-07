@@ -87,6 +87,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun openPrivacyPolicy() {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(BuildConfig.PRIVACY_URL))) }
+    }
+
     private enum class Route { HOME, RELEASE, RELEASED }
 
     @Composable
@@ -164,6 +168,7 @@ class MainActivity : ComponentActivity() {
                     .addOnFailureListener { message = "The scanner couldn't start. Type the code instead." }
             },
             onCode = ::enroll,
+            onPrivacy = ::openPrivacyPolicy,
         )
     }
 
@@ -236,6 +241,7 @@ class MainActivity : ComponentActivity() {
                 }
             },
             onRelease = onRelease,
+            onPrivacy = ::openPrivacyPolicy,
         )
     }
 
