@@ -42,16 +42,16 @@ class SetupService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (running) return START_NOT_STICKY
         running = true
-        pairing = CompletableDeferred()
         finished = false
         onPairingInput = { valid ->
             if (valid) show("Pairing with wireless debugging...", askForCode = false)
-            else show("That was not a 6-digit code and a port. Enter both, e.g. 123456 41235.", askForCode = true)
+            else show("That wasn't a 6-digit code. Enter the Wi-Fi pairing code shown on the pairing screen.", askForCode = true)
         }
         scope.launch {
             try {
-                val device = AdbSetupDevice(this@SetupService, pairingInput = {
-                    show("Enter the pairing code and port from Wireless debugging.", askForCode = true)
+                val device = AdbSetupDevice(this@SetupService, pairingInput = { retry ->
+                    pairing = CompletableDeferred()
+                    show(retry ?: ASK_FOR_CODE, askForCode = true)
                     pairing.await()
                 }, parentFinished = { finished })
                 SetupRunner(device, report = ::report).run()
@@ -127,7 +127,7 @@ class SetupService : Service() {
                 )
             )
         if (askForCode) {
-            val input = RemoteInput.Builder(KEY_PAIRING).setLabel("Code and port, e.g. 123456 41235").build()
+            val input = RemoteInput.Builder(KEY_PAIRING).setLabel("6-digit pairing code").build()
             val reply = PendingIntent.getBroadcast(
                 this, 0, Intent(this, SetupInputReceiver::class.java).setAction(ACTION_PAIRING),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
@@ -166,6 +166,8 @@ class SetupService : Service() {
         private const val CHANNEL_ID = "manara_guided_setup"
         private const val NOTIFICATION_ID = 1003
         private const val KEY_PAIRING = "pairing"
+        private const val ASK_FOR_CODE =
+            "In Wireless debugging, tap Pair device with pairing code. Keep it open, then tap Enter code here and type its 6-digit code."
         private const val ACTION_PAIRING = "com.manara.agent.setup.PAIRING"
         private const val ACTION_FINISH = "com.manara.agent.setup.FINISH"
         private const val ACTION_DISMISSED = "com.manara.agent.setup.DISMISSED"

@@ -10,10 +10,12 @@ import com.flyfishxu.kadb.cert.KadbCert
 import com.flyfishxu.kadb.cert.KadbCertPolicy
 import com.flyfishxu.kadb.cert.OkioFilePrivateKeyStore
 import com.manara.agent.setup.AccountDump.Account
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import okio.Path.Companion.toPath
 import java.io.File
 import java.net.Inet4Address
@@ -27,7 +29,8 @@ import kotlin.coroutines.resume
  */
 class AdbSetupDevice(
     private val context: Context,
-    private val pairingInput: suspend () -> SetupInput.Pairing,
+    /** Asks for the pairing code; [retry] says why the last one didn't work, null the first time. */
+    private val pairingInput: suspend (retry: String?) -> SetupInput.Pairing,
     private val parentFinished: () -> Boolean,
 ) : SetupDevice {
 
@@ -43,12 +46,34 @@ class AdbSetupDevice(
             policy = KadbCertPolicy(),
             additionalPrivateKeysPem = emptyList(),
         )
-        val pairing = pairingInput()
-        Kadb.pair(host.hostAddress!!, pairing.port, pairing.code)
-        val port = withTimeout(CONNECT_DISCOVERY_MILLIS) { connectPort(host) }
+        pair(host)
+        val port = withTimeout(CONNECT_DISCOVERY_MILLIS) { servicePort(CONNECT_SERVICE, host) }
         kadb = Kadb.create(host.hostAddress!!, port)
         val id = shell("id")
         check(id.startsWith("uid=2000(shell)")) { "Connected, but not as the adb shell user." }
+    }
+
+    /** Each "Pair device with pairing code" tap shows a new code, so a failed one is simply asked for again. */
+    private suspend fun pair(host: InetAddress) {
+        var retry: String? = null
+        repeat(SetupInput.PAIRING_ATTEMPTS) {
+            val pairing = pairingInput(retry)
+            val port = pairing.port ?: withTimeoutOrNull(PAIRING_DISCOVERY_MILLIS) { servicePort(PAIRING_SERVICE, host) }
+            if (port == null) {
+                retry = "Manara couldn't find the pairing screen. Tap Pair device with pairing code, keep it open, and enter its code."
+                return@repeat
+            }
+            try {
+                Kadb.pair(host.hostAddress!!, port, pairing.code)
+                return
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.w(TAG, "pairing failed", error)
+                retry = "That code didn't work. Tap Pair device with pairing code again and enter the new code."
+            }
+        }
+        error("Pairing didn't work after ${SetupInput.PAIRING_ATTEMPTS} codes. Start guided setup again.")
     }
 
     override suspend fun listAccounts(): SetupFlow.Event.Accounts = withContext(Dispatchers.IO) {
@@ -121,11 +146,15 @@ class AdbSetupDevice(
         return properties.linkAddresses.map { it.address }.filterIsInstance<Inet4Address>().firstOrNull { !it.isLoopbackAddress }
     }
 
-    /** Finds this phone's own `_adb-tls-connect._tcp` service (developer.android.com/tools/adb). */
-    private suspend fun connectPort(host: InetAddress): Int {
+    /**
+     * Finds the port of this phone's own wireless-debugging service of [type]: `_adb-tls-connect._tcp`
+     * (developer.android.com/tools/adb), or `_adb-tls-pairing._tcp` while the pairing dialog is open
+     * (`ADB_MDNS_TLS_PAIRING_TYPE` in AOSP's adb_mdns.h).
+     */
+    private suspend fun servicePort(type: String, host: InetAddress): Int {
         val nsd = context.getSystemService(NsdManager::class.java)
         while (true) {
-            for (service in discover(nsd)) {
+            for (service in discover(nsd, type)) {
                 val resolved = resolve(nsd, service) ?: continue
                 @Suppress("DEPRECATION")
                 if (resolved.host == host) return resolved.port
@@ -133,7 +162,7 @@ class AdbSetupDevice(
         }
     }
 
-    private suspend fun discover(nsd: NsdManager): List<NsdServiceInfo> = suspendCancellableCoroutine { continuation ->
+    private suspend fun discover(nsd: NsdManager, type: String): List<NsdServiceInfo> = suspendCancellableCoroutine { continuation ->
         val found = mutableListOf<NsdServiceInfo>()
         val listener = object : NsdManager.DiscoveryListener {
             override fun onServiceFound(service: NsdServiceInfo) { synchronized(found) { found += service } }
@@ -149,7 +178,7 @@ class AdbSetupDevice(
                 if (continuation.isActive) continuation.resume(synchronized(found) { found.toList() })
             }
         }
-        nsd.discoverServices(CONNECT_SERVICE, NsdManager.PROTOCOL_DNS_SD, listener)
+        nsd.discoverServices(type, NsdManager.PROTOCOL_DNS_SD, listener)
         val stop = Runnable { runCatching { nsd.stopServiceDiscovery(listener) } }
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         handler.postDelayed(stop, DISCOVERY_WINDOW_MILLIS)
@@ -168,6 +197,8 @@ class AdbSetupDevice(
     private companion object {
         const val TAG = "ManaraSetup"
         const val CONNECT_SERVICE = "_adb-tls-connect._tcp"
+        const val PAIRING_SERVICE = "_adb-tls-pairing._tcp"
+        const val PAIRING_DISCOVERY_MILLIS = 15_000L
         const val DISCOVERY_WINDOW_MILLIS = 3_000L
         const val CONNECT_DISCOVERY_MILLIS = 30_000L
     }

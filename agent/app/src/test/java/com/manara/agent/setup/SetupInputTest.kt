@@ -17,8 +17,14 @@ class SetupInputTest {
     }
 
     @Test
+    fun `the code alone is enough, and setup finds the port`() {
+        assertEquals(SetupInput.Pairing("123456"), SetupInput.parsePairing("123456"))
+        assertEquals(SetupInput.Pairing("042137"), SetupInput.parsePairing("  042137 "))
+    }
+
+    @Test
     fun `pairing input rejects anything else`() {
-        for (text in listOf("", "123456", "12345 41235", "1234567 41235", "123456 0", "123456 70000", "abcdef 41235", "123456 41235; rm -rf /")) {
+        for (text in listOf("", "12345", "12345 41235", "1234567", "1234567 41235", "123456 0", "123456 70000", "abcdef 41235", "123456 41235; rm -rf /")) {
             assertNull(text, SetupInput.parsePairing(text))
         }
     }
