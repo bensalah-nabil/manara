@@ -96,6 +96,27 @@ object ChildView {
             )
         }
         if (blocked.isNotEmpty()) add(Line("Settings you can't change", blocked.joinToString(", ").replaceFirstChar { it.uppercase() }))
+        browserRules(policy.browser)?.let { add(Line("Chrome", it)) }
+    }
+
+    /** Every Chrome rule in one sentence, or null when Chrome is left alone. */
+    fun browserRules(browser: Policy.Browser): String? {
+        val sites = com.manara.agent.enforcers.BrowserPolicyDecision.sites(browser.blockedSites).size
+        val parts = listOfNotNull(
+            "SafeSearch on Google".takeIf { browser.safeSearch },
+            when (com.manara.agent.enforcers.BrowserPolicyDecision.youtubeLevel(browser.youtube)) {
+                1 -> "YouTube Restricted Mode"
+                2 -> "YouTube strict Restricted Mode"
+                else -> null
+            },
+            "Chrome's own secure DNS is off, so the website filter applies".takeIf { browser.secureDnsOff },
+            when (sites) {
+                0 -> null
+                1 -> "1 website blocked"
+                else -> "$sites websites blocked"
+            },
+        )
+        return parts.takeIf { it.isNotEmpty() }?.joinToString(". ")?.plus(".")
     }
 
     fun attention(

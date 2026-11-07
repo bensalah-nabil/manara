@@ -7,16 +7,18 @@ import com.manara.agent.push.PushManager
 import com.manara.agent.sync.SyncWorker
 
 /**
- * Restarts the visible managed-device notice after a reboot.
+ * Restarts the visible managed-device notice after a reboot, and after Manara itself is
+ * updated: an update stops the app, and on the SM-A045F nothing brought the notice back
+ * until someone opened Manara. A Play update would do the same on every phone.
  *
- * Phase 0 survival test: the notice must come back on its own after the phone
- * is restarted, without the user opening the app. Manufacturer background
- * limits (Xiaomi, Samsung, ...) are exactly what this is probing.
+ * Both broadcasts may start a foreground service from the background (developer.android.com,
+ * "Restrictions on starting a foreground service from the background": ACTION_BOOT_COMPLETED
+ * and ACTION_MY_PACKAGE_REPLACED are listed exemptions, and so are device owners).
  */
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+        if (intent.action in RESTART_ACTIONS) {
             // A released phone is an ordinary app: no managed notice, no syncing.
             val dpm = context.getSystemService(android.app.admin.DevicePolicyManager::class.java)
             if (!dpm.isDeviceOwnerApp(context.packageName)) return
@@ -28,5 +30,9 @@ class BootReceiver : BroadcastReceiver() {
             // "resilient" design goal over trusting a single code path.
             SyncWorker.schedule(context)
         }
+    }
+
+    companion object {
+        val RESTART_ACTIONS = setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED)
     }
 }

@@ -76,6 +76,8 @@ object PolicySummary {
             "Developer options".takeIf { restrictions.blockDebugging }
         )
         lines += requested.ifEmpty { listOf("None") }
+        lines += ""
+        lines += "Chrome: " + (com.manara.agent.ui.ChildView.browserRules(policy.browser) ?: "no rules")
         return lines.joinToString("\n")
     }
 

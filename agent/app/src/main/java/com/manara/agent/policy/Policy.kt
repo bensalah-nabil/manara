@@ -19,8 +19,21 @@ data class Policy(
     val callLog: CallLog = CallLog(),
     val lockSchedule: LockSchedule? = null,
     val restrictions: Restrictions = Restrictions(),
-    val usageReport: UsageReport = UsageReport()
+    val usageReport: UsageReport = UsageReport(),
+    val browser: Browser = Browser()
 ) {
+    /**
+     * Chrome's managed configuration (capability-plan.md B2). All off by default, so Chrome is
+     * left alone. [youtube] is "off", "moderate" or "strict"; anything else counts as off.
+     */
+    @Serializable
+    data class Browser(
+        val safeSearch: Boolean = false,
+        val youtube: String = "off",
+        val secureDnsOff: Boolean = false,
+        val blockedSites: List<String> = emptyList()
+    )
+
     @Serializable
     data class TimeLimits(
         val enabled: Boolean = false,

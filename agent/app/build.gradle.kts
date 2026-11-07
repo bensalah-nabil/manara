@@ -44,6 +44,21 @@ val checkReleaseApiUrl by tasks.registering {
 }
 tasks.configureEach { if (name == "preReleaseBuild") dependsOn(checkReleaseApiUrl) }
 
+// Android 17 blocks local network access for apps targeting API 37 unless they hold
+// ACCESS_LOCAL_NETWORK (developer.android.com, Local network permission). Guided setup connects
+// to the phone's own Wi-Fi address and uses NsdManager, so raising the target without the
+// permission would break setup silently. docs/play-store.md has what setup must change.
+val checkLocalNetworkPermission by tasks.registering {
+    val target = android.defaultConfig.targetSdk ?: 0
+    val manifest = file("src/main/AndroidManifest.xml")
+    doLast {
+        check(target < 37 || manifest.readText().contains("android.permission.ACCESS_LOCAL_NETWORK")) {
+            "targetSdk $target needs ACCESS_LOCAL_NETWORK for guided setup: see docs/play-store.md, Local network permission"
+        }
+    }
+}
+tasks.configureEach { if (name == "preBuild") dependsOn(checkLocalNetworkPermission) }
+
 android {
     namespace = "com.manara.agent"
     // Kadb requires compileSdk 37.

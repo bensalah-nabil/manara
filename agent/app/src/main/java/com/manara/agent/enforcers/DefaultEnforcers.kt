@@ -16,6 +16,7 @@ fun defaultEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegist
         SiteFilterEnforcer(context),
         LocationEnforcer(context),
         RestrictionsEnforcer(context),
-        UsageReportEnforcer(context)
+        UsageReportEnforcer(context),
+        BrowserPolicyEnforcer(context)
     )
 )

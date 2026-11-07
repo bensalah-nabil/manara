@@ -18,6 +18,7 @@ object NoticeSummary {
             val count = listOf(blockVpnConfig, blockPrivateDnsConfig, blockFactoryReset, blockSafeBoot, blockAddUser, blockDebugging).count { it }
             if (count > 0) lines += "Settings restrictions requested: $count"
         }
+        if (com.manara.agent.enforcers.BrowserPolicyDecision.restrictions(policy.browser).isNotEmpty()) lines += "Chrome rules set by your parent"
         if (lines.isEmpty()) lines += "No limits or collection configured"
         lines += "Call logs: not collected"
         return lines

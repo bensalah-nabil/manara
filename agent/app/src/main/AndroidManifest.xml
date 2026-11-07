@@ -68,12 +68,13 @@
             </intent-filter>
         </receiver>
 
-        <!-- Restart the visible notice after a reboot (Phase 0 survival test). -->
+        <!-- Restart the visible notice after a reboot, and after Manara is updated. -->
         <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
