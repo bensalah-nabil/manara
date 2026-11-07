@@ -98,13 +98,30 @@ with `assembleRelease`, a signed APK for direct download.
   apps, and makes Manara device owner. Nothing official allows or forbids
   this. The closed test's review is the first real answer: keep the signed
   APK on the site as the fallback until then.
-- **Local network permission.** Android 16 makes local-network access opt-in
-  and says it will be enforced in a later release. Guided setup connects to
-  the phone's own Wi-Fi address, so it will need the Nearby devices permission
-  then ([source](https://developer.android.com/about/versions/16/behavior-changes-16)).
-- **Account deletion.** There is no self-service deletion of a parent
-  account yet; requests go to the contact email.
-- **Release build on a real phone.** The release build hasn't run on a
-  phone yet. It can't be installed over a debug build (different signature),
-  and a device-owner app can't be uninstalled, so it needs a phone that isn't
-  already enrolled, or an emulator.
+- **Local network permission (when targeting API 37).** Checked 2026-11-07
+  against [Local network permission](https://developer.android.com/privacy-and-security/local-network-permission):
+  enforcement starts with Android 17, and only for apps that target API 37.
+  At target 36, "local network access is implicitly granted using the
+  INTERNET permission", and the page says not to declare or request
+  `ACCESS_LOCAL_NETWORK` before targeting 37. So nothing changes now. On the
+  day the target goes to 37, guided setup breaks unless it is updated:
+  - it opens TCP connections to the phone's own Wi-Fi address (pairing, then
+    adb), and outgoing TCP to a local address needs the permission;
+  - it discovers the pairing and connect ports with `NsdManager` (mDNS),
+    which needs it too, unless it moves to the system picker
+    (`DiscoveryRequest.FLAG_SHOW_PICKER`);
+  - setup runs before Manara is device owner, so it cannot grant itself the
+    permission: setup must declare `ACCESS_LOCAL_NETWORK` and ask for it
+    (Nearby devices) before pairing, and explain why;
+  - the server connection is Internet traffic and is not affected.
+  `app/build.gradle.kts` fails the build at target 37 until the manifest
+  declares `ACCESS_LOCAL_NETWORK`, so this can't be missed.
+- **Account deletion.** Done: the console's Account page deletes the account
+  and all its data (after every phone is released or removed), and
+  [delete-account.html](../controller/public/delete-account.html) is the
+  public page Play's Data safety form asks for.
+- **Release build on a real phone.** Done on the SM-A045F (2026-11-07). It
+  found two release-only bugs that debug builds hide: R8 removed WorkManager's
+  input merger, so a push never woke the phone, and a build without
+  `-PMANARA_API_URL` talked to localhost. Both are fixed, and the second now
+  fails the build.

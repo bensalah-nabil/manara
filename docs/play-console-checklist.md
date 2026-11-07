@@ -41,7 +41,11 @@ only says what to do and where.
 Fill each section with the answers in [`play-store.md`](play-store.md#play-console-by-hand):
 
 - [ ] **Privacy policy:** `https://manara-front.netlify.app/privacy.html`
-- [ ] **Data safety**
+- [ ] **Data safety**. For "Data deletion", answer that users can request
+  deletion, with the in-app path (console, Account, Delete your account) and
+  the web link `https://manara-front.netlify.app/delete-account.html`. Add
+  Brevo (email) to the data shared with service providers: the parent's email
+  address, for password reset and alerts.
 - [ ] **Target audience:** 18 and over
 - [ ] **Sensitive permissions and APIs:**
   - background location, which needs a short video of the disclosure;
@@ -60,8 +64,13 @@ Fill each section with the answers in [`play-store.md`](play-store.md#play-conso
 ## Still needed from the phone
 
 The screenshots and the background-location video both come from a run of the
-store build on a real phone. It is installed on the SM-A045F, but guided setup
-against the Render account hasn't been run on it yet.
+store build on a real phone. The SM-A045F runs it, enrolled with the Render
+account (guided setup finished 2026-11-07), so its Home, managed notice and
+Chrome rules can be captured from it. The Connect and Setup screens need a
+phone that isn't enrolled yet (the A52).
+
+- [ ] **Upload the AAB as version 2 or later**: any build made before
+  2026-11-07 can't be woken by a push (R8 removed WorkManager's input merger).
 
 ## After 14 days
 
