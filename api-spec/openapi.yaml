@@ -174,6 +174,17 @@ paths:
                   type: array
                   maxItems: 100
                   items: { $ref: '#/components/schemas/SetupAccount' }
+                pairing:
+                  description: >
+                    Only with step `pairing`: the one-time name and password the
+                    console's QR code carries (ADR-0005). Sending one starts a new
+                    setup: fresh account lists, no pending code, Finish cleared.
+                    Cleared as soon as a report leaves the pairing step.
+                  type: object
+                  required: [name, password]
+                  properties:
+                    name: { type: string, pattern: '^manara-[a-z0-9]{4,16}$' }
+                    password: { type: string, pattern: '^[A-Za-z0-9]{8,32}$' }
       responses:
         '200':
           description: Stored. The device's setup state after this report.
@@ -184,7 +195,37 @@ paths:
           description: >
             `bad_request` (unreadable body, over 64 KB) or
             `invalid_setup_report` (unknown step or status, `done` step
-            without `done` status or the reverse, or a field over its limit).
+            without `done` status or the reverse, a field over its limit, or a
+            `pairing` outside the pairing step or not matching its patterns).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /agent/setup/input:
+    get:
+      tags: [agent-sync]
+      summary: Read what the parent typed in the console for the step the phone waits at
+      description: >
+        Polled by the phone during guided setup only (ADR-0005): every input is
+        typed in the console so the phone can stay on its Wireless debugging
+        screen. `pairingCode` is the latest code the parent sent; `pairingCodeSeq`
+        grows with each one so the phone tries every code once. `finish` is set
+        once the parent chooses Finish setup while the phone is reconnecting.
+      security: [{ deviceToken: [] }]
+      responses:
+        '200':
+          description: The input, empty when there is none.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pairingCodeSeq, finish]
+                properties:
+                  pairingCode: { type: string, pattern: '^[0-9]{6}$' }
+                  pairingCodeSeq: { type: integer, minimum: 0 }
+                  finish: { type: boolean }
+        '401':
+          description: Unknown device token.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -431,6 +472,78 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/devices/{deviceId}/setup/pairing-code:
+    post:
+      tags: [console]
+      summary: Send the code the phone's "Pair device with pairing code" screen shows
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: 'Six digits; surrounding spaces are ignored.' }
+      responses:
+        '202':
+          description: Stored; the phone reads it within a few seconds.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sent]
+                properties:
+                  sent: { type: boolean }
+        '400':
+          description: "`bad_request` or `invalid_pairing_code` (not six digits)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: "`setup_not_waiting`: the phone isn't waiting to pair."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/devices/{deviceId}/setup/finish:
+    post:
+      tags: [console]
+      summary: Finish guided setup without waiting for every account to be signed back in to
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '202':
+          description: Stored; the phone ends setup within a few seconds.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sent]
+                properties:
+                  sent: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: "`setup_not_waiting`: the phone isn't at the reconnect step."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -732,3 +845,11 @@ components:
           items: { $ref: '#/components/schemas/SetupAccount' }
         startedAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        pairingQr:
+          type: string
+          description: >
+            Only while the phone waits to pair: what Android's "Pair device with
+            QR code" scans, `WIFI:T:ADB;S:<name>;P:<password>;;`.
+        finishRequested:
+          type: boolean
+          description: The parent chose Finish setup and the phone hasn't ended yet.

@@ -25,6 +25,10 @@ export interface DeviceSetup {
     currentAccounts: SetupAccount[]
     startedAt: string
     updatedAt: string
+    /** What the phone's "Pair device with QR code" scans; only while it waits to pair. */
+    pairingQr?: string
+    /** The parent chose Finish setup and the phone hasn't ended yet. */
+    finishRequested: boolean
 }
 
 /** Same order as domain.SetupSteps on the server. */
@@ -88,4 +92,20 @@ export function accountTypeName(type: string): string {
 
 export function isActive(setup: Pick<DeviceSetup, 'status'>): boolean {
     return setup.status === 'in_progress' || setup.status === 'waiting_for_parent'
+}
+
+/** The phone waits for the parent to pair it, from this console (ADR-0005). */
+export function waitingToPair(setup: Pick<DeviceSetup, 'step' | 'status' | 'pairingQr'>): boolean {
+    return setup.step === 'pairing' && setup.status === 'waiting_for_parent' && !!setup.pairingQr
+}
+
+/** The phone is managed and waits while the parent signs back in to the accounts they want. */
+export function canFinish(setup: Pick<DeviceSetup, 'step' | 'status' | 'finishRequested'>): boolean {
+    return setup.step === 'reconnecting' && setup.status === 'waiting_for_parent' && !setup.finishRequested
+}
+
+/** The six digits from "Pair device with pairing code", spaces allowed; null if it isn't that. */
+export function pairingCode(text: string): string | null {
+    const digits = text.replace(/\s+/g, '')
+    return /^[0-9]{6}$/.test(digits) ? digits : null
 }

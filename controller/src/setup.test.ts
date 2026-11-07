@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { SETUP_STEPS, accountTypeName, isActive, reconnectChecklist, stepStates } from './setup.ts'
+import { SETUP_STEPS, accountTypeName, canFinish, isActive, pairingCode, reconnectChecklist, stepStates, waitingToPair } from './setup.ts'
 
 test('steps before the current one are done, the current one reflects the status, later ones are pending', () => {
     const states = stepStates({ step: 'waiting_for_accounts', status: 'waiting_for_parent' })
@@ -54,4 +54,24 @@ test('only running or waiting setups are active (the page keeps refreshing for t
     assert.equal(isActive({ status: 'waiting_for_parent' }), true)
     assert.equal(isActive({ status: 'failed' }), false)
     assert.equal(isActive({ status: 'done' }), false)
+})
+
+test('the console offers pairing only while the phone waits for it, with a QR code', () => {
+    const qr = 'WIFI:T:ADB;S:manara-ab12;P:pw;;'
+    assert.equal(waitingToPair({ step: 'pairing', status: 'waiting_for_parent', pairingQr: qr }), true)
+    assert.equal(waitingToPair({ step: 'pairing', status: 'in_progress', pairingQr: qr }), false)
+    assert.equal(waitingToPair({ step: 'pairing', status: 'waiting_for_parent' }), false)
+    assert.equal(waitingToPair({ step: 'checking_accounts', status: 'waiting_for_parent', pairingQr: qr }), false)
+})
+
+test('Finish setup is offered while reconnecting, once', () => {
+    assert.equal(canFinish({ step: 'reconnecting', status: 'waiting_for_parent', finishRequested: false }), true)
+    assert.equal(canFinish({ step: 'reconnecting', status: 'waiting_for_parent', finishRequested: true }), false)
+    assert.equal(canFinish({ step: 'waiting_for_accounts', status: 'waiting_for_parent', finishRequested: false }), false)
+})
+
+test('a pairing code is six digits, spaces allowed', () => {
+    assert.equal(pairingCode('123456'), '123456')
+    assert.equal(pairingCode(' 123 456 '), '123456')
+    for (const bad of ['', '12345', '1234567', '12a456', '123-456']) assert.equal(pairingCode(bad), null, bad)
 })

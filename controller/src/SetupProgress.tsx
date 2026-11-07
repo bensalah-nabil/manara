@@ -2,7 +2,8 @@ import { useEffect, useState } from 'preact/hooks'
 import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { errorText, lastSeenText } from './format.ts'
-import { accountTypeName, isActive, reconnectChecklist, stepStates } from './setup.ts'
+import { PairPhone } from './PairPhone.tsx'
+import { accountTypeName, canFinish, isActive, reconnectChecklist, stepStates, waitingToPair } from './setup.ts'
 import type { DeviceSetup, StepState } from './setup.ts'
 
 const REFRESH_MS = 3000
@@ -22,6 +23,7 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
     const [error, setError] = useState('')
     const [tick, setTick] = useState(0)
     const [clearing, setClearing] = useState(false)
+    const [finishing, setFinishing] = useState(false)
 
     useEffect(() => {
         let current = true
@@ -62,6 +64,19 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
         }
     }
 
+    async function finish() {
+        setFinishing(true)
+        try {
+            await api.finishSetup(device.deviceId)
+            setTick((count) => count + 1)
+        } catch (caught) {
+            if (isSessionError(caught)) onSessionExpired()
+            else setError(errorText(caught))
+        } finally {
+            setFinishing(false)
+        }
+    }
+
     // Phones set up before the guided flow never report, so they show nothing here.
     if (!setup) return error ? <p role="alert" class="error">{error}</p> : null
 
@@ -87,6 +102,10 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
             <p class="hint">Last update from the phone {lastSeenText(setup.updatedAt)}.</p>
             <p role="alert" class="error">{error}</p>
 
+            {waitingToPair(setup) && setup.pairingQr && (
+                <PairPhone api={api} deviceId={device.deviceId} qr={setup.pairingQr} onSessionExpired={onSessionExpired} />
+            )}
+
             {removing && setup.currentAccounts.length > 0 && (
                 <div class="stack">
                     <strong>Still on the phone ({setup.currentAccounts.length})</strong>
@@ -110,7 +129,11 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
 
             {AFTER_REMOVAL.has(setup.step) && checklist.length > 0 && (
                 <div class="stack">
-                    <strong>Sign back in to these accounts</strong>
+                    <strong>Sign back in to the accounts you want</strong>
+                    <p class="hint">
+                        Manara now manages the phone. Sign back in only to the accounts you want to keep on it; you don't
+                        need all of them.
+                    </p>
                     <ul class="reports">
                         {checklist.map((account) => (
                             <li key={`${account.type}\n${account.name}`} class={account.back ? 'restored' : undefined}>
@@ -119,6 +142,15 @@ export function SetupProgress({ api, device, onSessionExpired }: Props) {
                             </li>
                         ))}
                     </ul>
+                </div>
+            )}
+
+            {setup.step === 'reconnecting' && setup.status === 'waiting_for_parent' && (
+                <div class="stack">
+                    <button type="button" class="primary" onClick={finish} disabled={finishing || !canFinish(setup)}>
+                        {setup.finishRequested ? 'Finishing...' : finishing ? 'Sending...' : 'Finish setup'}
+                    </button>
+                    <p class="hint">Finish when the accounts you want are back. You can sign in to others later.</p>
                 </div>
             )}
 

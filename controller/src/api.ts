@@ -180,6 +180,8 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
                 message: typeof setup.message === 'string' ? setup.message : '',
                 initialAccounts: Array.isArray(setup.initialAccounts) ? setup.initialAccounts : [],
                 currentAccounts: Array.isArray(setup.currentAccounts) ? setup.currentAccounts : [],
+                pairingQr: typeof setup.pairingQr === 'string' && setup.pairingQr ? setup.pairingQr : undefined,
+                finishRequested: setup.finishRequested === true,
             }
         },
 
@@ -200,6 +202,16 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         /** Removes the phone from the account. It stays managed until it has been released. */
         async deleteDevice(deviceId: string): Promise<void> {
             await request('DELETE', `/console/devices/${encodeURIComponent(deviceId)}`, undefined, true)
+        },
+
+        /** The code the phone's "Pair device with pairing code" screen shows; the phone reads it. */
+        async sendPairingCode(deviceId: string, code: string): Promise<void> {
+            await request('POST', devicePath(deviceId, 'setup/pairing-code'), { code }, true)
+        },
+
+        /** Ends setup once the parent has signed back in to the accounts they want. */
+        async finishSetup(deviceId: string): Promise<void> {
+            await request('POST', devicePath(deviceId, 'setup/finish'), undefined, true)
         },
 
         async clearSetupAccounts(deviceId: string): Promise<void> {

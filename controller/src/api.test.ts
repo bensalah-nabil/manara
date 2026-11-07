@@ -216,3 +216,26 @@ test('network failures and malformed success bodies are distinct errors', async 
     })
     await assert.rejects(badList.listDevices(), (error: ApiError) => error.code === 'bad_response')
 })
+
+test('getSetup passes the pairing QR on only when it is a non-empty string', async () => {
+    const withQr = recorder(() => jsonResponse(200, { deviceId: 'd', step: 'pairing', status: 'waiting_for_parent', pairingQr: 'WIFI:T:ADB;S:manara-ab12;P:pw;;', finishRequested: false }))
+    const setup = await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl: withQr.fetchImpl }).getSetup('d')
+    assert.equal(setup?.pairingQr, 'WIFI:T:ADB;S:manara-ab12;P:pw;;')
+    assert.equal(setup?.finishRequested, false)
+    const odd = recorder(() => jsonResponse(200, { deviceId: 'd', step: 'pairing', status: 'waiting_for_parent', pairingQr: 7, finishRequested: 'yes' }))
+    const other = await createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl: odd.fetchImpl }).getSetup('d')
+    assert.equal(other?.pairingQr, undefined)
+    assert.equal(other?.finishRequested, false)
+})
+
+test('sendPairingCode and finishSetup post to that device', async () => {
+    const { calls, fetchImpl } = recorder(() => jsonResponse(202, { sent: true }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    await api.sendPairingCode('d 1', '123456')
+    assert.equal(calls[0].url, 'http://x/console/devices/d%201/setup/pairing-code')
+    assert.equal(calls[0].init.method, 'POST')
+    assert.equal(calls[0].init.body, JSON.stringify({ code: '123456' }))
+    await api.finishSetup('d1')
+    assert.equal(calls[1].url, 'http://x/console/devices/d1/setup/finish')
+    assert.equal(calls[1].init.method, 'POST')
+})
