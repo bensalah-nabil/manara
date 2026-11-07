@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"manara/backend/internal/domain"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
-	"manara/backend/internal/domain"
 )
 
 type ParentRepository struct{ db *DB }
