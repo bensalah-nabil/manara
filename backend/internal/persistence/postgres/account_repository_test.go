@@ -181,3 +181,45 @@ func TestSilentPhonesAreListedOncePerSilence(t *testing.T) {
 		t.Fatal("a new silence after a check-in was not listed")
 	}
 }
+
+func TestSessionsExpireAndCanBeRevoked(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	p := newParent(t, db, uniqueEmail("session"), "password one")
+	sessions := NewParentSessionRepository(db)
+
+	live, _ := sessions.Issue(ctx, p.ID)
+	if _, ok, _ := sessions.Resolve(ctx, live); !ok {
+		t.Fatal("a new session doesn't resolve")
+	}
+	if err := sessions.Revoke(ctx, live); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := sessions.Resolve(ctx, live); ok {
+		t.Fatal("a revoked session still resolves")
+	}
+
+	old, _ := sessions.Issue(ctx, p.ID)
+	if _, err := db.Pool.Exec(ctx, `UPDATE parent_sessions SET created_at = now() - interval '31 days' WHERE token_hash = $1`, hashToken(old)); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := sessions.Resolve(ctx, old); ok {
+		t.Fatal("a 31-day-old session still resolves")
+	}
+	if n, err := sessions.PurgeExpired(ctx); err != nil || n < 1 {
+		t.Fatalf("purge: %d, %v", n, err)
+	}
+}
+
+func TestLoginTakesBcryptTimeForAnUnknownEmailToo(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	auth := NewAuthRepository(db)
+	start := time.Now()
+	if _, err := auth.Login(ctx, uniqueEmail("nobody"), "whatever"); !errors.Is(err, domain.ErrInvalidCredentials) {
+		t.Fatal(err)
+	}
+	if d := time.Since(start); d < 20*time.Millisecond {
+		t.Fatalf("unknown email answered in %v: faster than a bcrypt compare, so timing tells", d)
+	}
+}

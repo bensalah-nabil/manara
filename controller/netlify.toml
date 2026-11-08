@@ -14,3 +14,9 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
+    # Scripts only from this site; styles may be inline (style attributes, the public
+    # pages' <style> blocks); the only other origin is the API. Checked with no
+    # violations on every page (2026-11-08). Change connect-src if VITE_API_URL changes.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://manara-api-pvu4.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+    Strict-Transport-Security = "max-age=31536000"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"

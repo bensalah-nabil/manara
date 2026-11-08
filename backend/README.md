@@ -135,6 +135,19 @@ hashed. Using it ends every session of that account. A reset request answers
 the same way for any address, so it can't be used to find out who has an
 account.
 
+### Security settings
+
+```bash
+TRUSTED_IP_HEADER=CF-Connecting-IP   # on Render (Cloudflare in front); unset elsewhere
+```
+
+Login, sign-up, password reset and enrollment are rate limited per client, and
+login per email too (`internal/transport/guard`, docs/security.md). The client
+address comes from `TRUSTED_IP_HEADER` when it holds exactly one valid address,
+else from the connection. Never point it at `X-Forwarded-For`: a client writes
+its first entry. The limits are in memory, so they assume one server instance.
+Sessions last 30 days; `POST /console/auth/logout` ends one early.
+
 ### Silent-phone alerts
 
 With any alert destination (email, ntfy or webhook), the server checks every

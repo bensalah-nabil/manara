@@ -47,6 +47,8 @@ export function authErrorText(code: string): string {
             return 'Please choose the phone brand again.'
         case 'invalid_browser_rules':
             return 'One of the Chrome rules is not valid. Check the website list.'
+        case 'rate_limited':
+            return 'Too many attempts. Wait a few minutes, then try again.'
         case 'weak_password':
             return 'Choose a password of at least 8 characters.'
         case 'invalid_reset_token':

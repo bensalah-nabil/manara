@@ -19,6 +19,10 @@ func (f fakeSessions) Resolve(_ context.Context, token string) (string, bool, er
 	id, ok := f.tokens[token]
 	return id, ok, nil
 }
+func (f fakeSessions) Revoke(_ context.Context, token string) error {
+	delete(f.tokens, token)
+	return nil
+}
 
 type fakeDevices struct{ byID map[string]*domain.Device }
 

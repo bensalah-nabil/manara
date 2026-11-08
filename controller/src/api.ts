@@ -104,6 +104,8 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             throw new ApiError(response.status, code, message)
         }
 
+        // 204 No Content (logout) has no body to read.
+        if (response.status === 204) return null
         try {
             return await response.json()
         } catch {
@@ -138,6 +140,11 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
 
         async signUp(email: string, password: string): Promise<AuthResponse> {
             return toAuth(await request('POST', '/console/auth/signup', { email, password }))
+        },
+
+        /** Ends this session on the server too, so a copied token stops working. */
+        async logout(): Promise<void> {
+            await request('POST', '/console/auth/logout', undefined, true)
         },
 
         /** Always succeeds the same way for any address; the link only goes to a real account. */

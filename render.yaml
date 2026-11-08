@@ -28,3 +28,8 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
+      # Render runs Cloudflare in front of every service: CF-Connecting-IP is the real
+      # client address, and Cloudflare refuses requests that set it themselves. Rate
+      # limits count per client with it; without it every parent shares one count.
+      - key: TRUSTED_IP_HEADER
+        value: CF-Connecting-IP

@@ -155,6 +155,9 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
                 label = { Text("Or type the code") },
                 singleLine = true,
                 enabled = !busy,
+                // A one-time secret: a password-type field, so the keyboard neither suggests nor learns it
+                // (MASVS-STORAGE-2, keyboard cache).
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedButton(onClick = { onCode(code) }, enabled = !busy && code.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Connect") }

@@ -366,7 +366,11 @@ export default function App() {
     return signedIn ? (
         <Console
             api={api}
-            onSignOut={() => signOut()}
+            onSignOut={() => {
+                // Best effort: the session ends here whether or not the server answers.
+                api.logout().catch(() => undefined)
+                signOut()
+            }}
             onExpired={expire}
             onDeleted={() => { go(''); signOut('Your account and all its data were deleted.') }}
         />

@@ -281,6 +281,20 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /console/auth/logout:
+    post:
+      tags: [console]
+      summary: End this session on the server
+      description: >
+        Revokes the bearer token, so a copied token stops working. Sessions
+        also expire after 30 days.
+      security: [{ parentSession: [] }]
+      responses:
+        '204':
+          description: Signed out.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /console/auth/password-reset:
     post:
       tags: [console]
@@ -808,6 +822,15 @@ components:
       schema: { type: string, format: uuid }
 
   responses:
+    RateLimited:
+      description: >
+        `rate_limited`: too many attempts. Login, sign-up, password reset and
+        enrollment allow 20 requests per 10 minutes per client; login also
+        allows 10 attempts per email per 15 minutes. `Retry-After` says when to
+        try again.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
     Unauthorized:
       description: Missing or invalid credentials.
       content:

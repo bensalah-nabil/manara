@@ -21,6 +21,7 @@ import (
 	"manara/backend/internal/persistence/postgres"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
+	"manara/backend/internal/transport/guard"
 )
 
 func main() {
@@ -77,6 +78,7 @@ func main() {
 		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Releases: releases,
 		Notifier: notifier, PushEnabled: !pushOff, Profiles: devices,
 		Parents: parents, Accounts: accounts, Resets: accounts, ConsoleURL: consoleURL(),
+		LoginLimiter: guard.NewLimiter(10, 15*time.Minute),
 	}
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
@@ -95,14 +97,22 @@ func main() {
 		w.Header().Set("Content-Type", "text/plain")
 		_, _ = w.Write([]byte("ok\n"))
 	})
-	mux.HandleFunc("POST /api/v1/enroll", agentHandlers.Enroll)
+	// Endpoints that can be used to guess a secret (a password, a reset link,
+	// an enrollment code) are limited per client. TRUSTED_IP_HEADER names the
+	// header the hosting proxy sets to the real client address.
+	ipHeader := os.Getenv("TRUSTED_IP_HEADER")
+	guessable := guard.NewLimiter(20, 10*time.Minute)
+	limited := func(h http.HandlerFunc) http.HandlerFunc { return guard.PerClient(guessable, ipHeader, h) }
+
+	mux.HandleFunc("POST /api/v1/enroll", limited(agentHandlers.Enroll))
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
 	mux.HandleFunc("POST /api/v1/agent/setup", agentHandlers.ReportSetup)
 	mux.HandleFunc("GET /api/v1/agent/setup/input", agentHandlers.GetSetupInput)
-	mux.HandleFunc("POST /api/v1/console/auth/signup", consoleHandlers.SignUp)
-	mux.HandleFunc("POST /api/v1/console/auth/login", consoleHandlers.Login)
-	mux.HandleFunc("POST /api/v1/console/auth/password-reset", consoleHandlers.RequestPasswordReset)
-	mux.HandleFunc("POST /api/v1/console/auth/password-reset/confirm", consoleHandlers.ConfirmPasswordReset)
+	mux.HandleFunc("POST /api/v1/console/auth/signup", limited(consoleHandlers.SignUp))
+	mux.HandleFunc("POST /api/v1/console/auth/login", limited(consoleHandlers.Login))
+	mux.HandleFunc("POST /api/v1/console/auth/logout", consoleHandlers.Logout)
+	mux.HandleFunc("POST /api/v1/console/auth/password-reset", limited(consoleHandlers.RequestPasswordReset))
+	mux.HandleFunc("POST /api/v1/console/auth/password-reset/confirm", limited(consoleHandlers.ConfirmPasswordReset))
 	mux.HandleFunc("GET /api/v1/console/account", consoleHandlers.GetAccount)
 	mux.HandleFunc("DELETE /api/v1/console/account", consoleHandlers.DeleteAccount)
 	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
@@ -121,6 +131,20 @@ func main() {
 
 	go runHeartbeatSweep(ctx, commands)
 	go runRetentionSweep(ctx, events, setups)
+	go func() {
+		for {
+			if n, err := sessions.PurgeExpired(ctx); err != nil {
+				log.Printf("session sweep: %v", err)
+			} else if n > 0 {
+				log.Printf("session sweep: deleted %d expired session(s)", n)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Hour):
+			}
+		}
+	}()
 
 	addr := os.Getenv("ADDR")
 	if addr == "" && os.Getenv("PORT") != "" {
@@ -131,7 +155,18 @@ func main() {
 		addr = ":8080"
 	}
 	log.Printf("manara-server listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, withCORS(mux)))
+	// Timeouts so a slow or stalled client can't hold connections open, and a
+	// body limit so one huge request can't exhaust memory.
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           withCORS(guard.BodyLimit(mux)),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    64 << 10,
+	}
+	log.Fatal(server.ListenAndServe())
 }
 
 // newNotifier is additive, not a hard dependency: FIREBASE_SERVICE_ACCOUNT

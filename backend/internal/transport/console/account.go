@@ -111,6 +111,21 @@ func (h *Handlers) ConfirmPasswordReset(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, authResponse{ParentID: parentID, ParentSession: session})
 }
 
+// Logout ends this session on the server; the console also forgets it.
+func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if token == "" {
+		writeError(w, http.StatusUnauthorized, "invalid_token", "")
+		return
+	}
+	if err := h.Sessions.Revoke(r.Context(), token); err != nil {
+		log.Printf("console: logout: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handlers) GetAccount(w http.ResponseWriter, r *http.Request) {
 	parentID, ok := h.requireParent(w, r)
 	if !ok {

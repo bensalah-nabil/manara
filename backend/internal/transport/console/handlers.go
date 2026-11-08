@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"manara/backend/internal/domain"
+	"manara/backend/internal/transport/guard"
 )
 
 type Handlers struct {
@@ -44,6 +45,9 @@ type Handlers struct {
 	Mailer domain.Mailer
 	// ConsoleURL is where a reset link points, e.g. https://manara-front.netlify.app
 	ConsoleURL string
+	// LoginLimiter caps attempts per email, wherever they come from, so a
+	// password can't be guessed by spreading tries over many addresses. Nil: off.
+	LoginLimiter *guard.Limiter
 }
 
 type deviceSummaryDTO struct {
@@ -188,6 +192,12 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
+	}
+	if h.LoginLimiter != nil {
+		if ok, wait := h.LoginLimiter.Allow(domain.NormalizeEmail(req.Email), time.Now()); !ok {
+			guard.Refuse(w, wait)
+			return
+		}
 	}
 
 	parent, err := h.Auth.Login(r.Context(), req.Email, req.Password)

@@ -253,3 +253,12 @@ test('setPolicy reports a push wake-up without putting it in the policy', async 
     const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
     assert.deepEqual(await api.setPolicy('d1', { version: 4 }), { policy: { version: 5, lock: {} }, woken: true })
 })
+
+test('logout ends the session on the server', async () => {
+    const { calls, fetchImpl } = recorder(() => new Response(null, { status: 204 }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    await api.logout()
+    assert.equal(calls[0].url, 'http://x/console/auth/logout')
+    assert.equal(calls[0].init.method, 'POST')
+    assert.equal((calls[0].init.headers as Record<string, string>).Authorization, 'Bearer tok')
+})

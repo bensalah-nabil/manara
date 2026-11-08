@@ -52,8 +52,16 @@ type AuthRepository interface {
 // lifetimes, not interchangeable just because the storage pattern matches.
 type ParentSessionRepository interface {
 	Issue(ctx context.Context, parentID string) (token string, err error)
+	// Resolve is false for an unknown, revoked or expired (SessionLifetime) token.
 	Resolve(ctx context.Context, token string) (parentID string, ok bool, err error)
+	// Revoke ends a session on the server: signing out must not leave a token
+	// that still works if it was copied.
+	Revoke(ctx context.Context, token string) error
 }
+
+// SessionLifetime is how long a sign-in lasts. The console holds the keys to a
+// child's phone, so a forgotten browser tab must not stay signed in for ever.
+const SessionLifetime = 30 * 24 * time.Hour
 
 // EnrollmentTokenRepository: single-use, per api-spec/openapi.yaml's own
 // description ("one-time enrollment token"). Consume both validates and

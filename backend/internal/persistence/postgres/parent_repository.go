@@ -85,6 +85,9 @@ func (r *AuthRepository) Login(ctx context.Context, email, password string) (*do
 		`SELECT id, email, password_hash, created_at FROM parents WHERE email = $1`, email,
 	).Scan(&p.ID, &p.Email, &p.PasswordHash, &p.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
+		// Same bcrypt work as a real account, so the answer's timing doesn't
+		// tell whether the address is registered.
+		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return nil, domain.ErrInvalidCredentials
 	}
 	if err != nil {
@@ -128,7 +131,8 @@ func (r *ParentSessionRepository) Issue(ctx context.Context, parentID string) (s
 func (r *ParentSessionRepository) Resolve(ctx context.Context, token string) (string, bool, error) {
 	var parentID string
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT parent_id FROM parent_sessions WHERE token_hash = $1`, hashToken(token),
+		`SELECT parent_id FROM parent_sessions WHERE token_hash = $1 AND created_at > now() - make_interval(secs => $2)`,
+		hashToken(token), domain.SessionLifetime.Seconds(),
 	).Scan(&parentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", false, nil
@@ -138,6 +142,26 @@ func (r *ParentSessionRepository) Resolve(ctx context.Context, token string) (st
 	}
 	return parentID, true, nil
 }
+
+func (r *ParentSessionRepository) Revoke(ctx context.Context, token string) error {
+	if _, err := r.db.Pool.Exec(ctx, `DELETE FROM parent_sessions WHERE token_hash = $1`, hashToken(token)); err != nil {
+		return fmt.Errorf("revoke parent session: %w", err)
+	}
+	return nil
+}
+
+// PurgeExpired deletes sessions past SessionLifetime; Resolve already refuses them.
+func (r *ParentSessionRepository) PurgeExpired(ctx context.Context) (int64, error) {
+	tag, err := r.db.Pool.Exec(ctx,
+		`DELETE FROM parent_sessions WHERE created_at <= now() - make_interval(secs => $1)`, domain.SessionLifetime.Seconds())
+	if err != nil {
+		return 0, fmt.Errorf("purge expired sessions: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}
+
+// dummyHash is compared against when an email is unknown (Login).
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("manara-timing-equalizer"), bcrypt.DefaultCost)
 
 type EnrollmentTokenRepository struct{ db *DB }
 
