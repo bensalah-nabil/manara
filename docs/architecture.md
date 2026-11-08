@@ -162,9 +162,14 @@ The server only holds the setup state and the parent's inputs (pairing code,
 Finish); it never sends commands. The console shows the state as a live
 timeline and is where the parent pairs (QR code or code) and finishes, so the
 phone can stay on its Wireless debugging screen
-([ADR-0005](decisions/0005-setup-inputs-in-the-console.md)). Apps that hold an
-account are uninstalled last, only when nothing else blocks, and put back
-whatever happens; the account list survives a failed run.
+([ADR-0005](decisions/0005-setup-inputs-in-the-console.md)). Nothing is
+uninstalled and no account removed: apps that hold an account are paused for
+a few seconds (`pm disable-user`), Android is made to recount accounts, and
+the apps are turned back on once Manara is the manager, with their accounts
+and data as they were
+([ADR-0006](decisions/0006-pause-apps-instead-of-removing-accounts.md)). The
+account list survives a failed run, and a cut-off run turns paused apps back
+on at the next pairing.
 
 ### 3.6 Alerts and email
 

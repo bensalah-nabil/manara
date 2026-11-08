@@ -107,6 +107,19 @@
         <receiver
             android:name=".setup.SetupService$SetupInputReceiver"
             android:exported="false" />
+        <!-- Guided setup adds and at once removes one account of this type, only so Android
+             recounts accounts before set-device-owner (docs/decisions/0006). It never holds one.
+             Not exported: only the system binds an authenticator. -->
+        <service
+            android:name=".setup.RecountAuthenticatorService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/recount_authenticator" />
+        </service>
 
         <!-- Only ever instantiated by the OS when Firebase is actually
              initialized (PushConfig.isConfigured); harmless to declare

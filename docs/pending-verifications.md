@@ -38,10 +38,16 @@ they resolve, not left buried in a chat log. Cross-reference:
 - **Date and time lock:** restriction and automatic time applied on the
   Android 14 emulator (matrix); not yet seen on a phone.
 
-**Not yet run on a phone:** setup's new order (apps last), the account list
-carried over from a failed run, and the restore and retry fixes (proven by
-the chaos test only); the date and time lock; email delivery; makers other
-than Samsung.
+- **Pause instead of uninstall (Android 14 emulator):** with an app holding
+  an account, `set-device-owner` was refused; with the app disabled it was
+  still refused until Manara refreshed Android's account count, then it
+  succeeded, and the app came back with its account and data. An orphaned
+  account didn't block either. `PauseForOwnerTest` passed (ADR-0006).
+
+**Not yet run on a phone:** guided setup pausing apps (ADR-0006), above all
+Google Play services and Samsung's account app, which a maker may refuse to
+let the shell turn off; the account list carried over from a failed run;
+the date and time lock; email delivery; makers other than Samsung.
 
 ### Manara using the phone's own wireless debugging (SM-A528B, 2026-11-06)
 

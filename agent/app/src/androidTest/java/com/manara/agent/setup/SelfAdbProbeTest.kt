@@ -41,8 +41,7 @@ class SelfAdbProbeTest {
                 val accounts = device.listAccounts()
                 report.putString("accounts", accounts.accounts.size.toString())
                 report.putString("owned", accounts.accounts.count { it.type in accounts.owners }.toString())
-                report.putString("userAppAccounts", accounts.accounts.count { accounts.owners[it.type] in accounts.userApps }.toString())
-                report.putString("userApps", accounts.userApps.size.toString())
+                report.putString("keepRunning", accounts.keepRunning.joinToString())
                 report.putString("otherUsers", accounts.otherUsers.toString())
             }
         } finally {

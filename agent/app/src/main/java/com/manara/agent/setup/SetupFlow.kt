@@ -35,15 +35,19 @@ object SetupFlow {
     sealed interface Action {
         data object WaitForPairingCode : Action
         data object ListAccounts : Action
-        /** Save each app's APKs on the phone, then uninstall it; that deletes the accounts it manages. */
-        data class BackUpAndUninstall(val packages: List<String>) : Action
+        /**
+         * Turn these apps off for a moment (`pm disable-user`), then make Android recount accounts.
+         * A disabled app's accounts stay on the phone, but Android stops counting them.
+         */
+        data class PauseApps(val packages: List<String>) : Action
         /** List again after a pause, while the parent removes accounts in Settings. */
         data object WaitThenListAccounts : Action
         data object SetDeviceOwner : Action
-        data class RestoreApps(val packages: List<String>) : Action
+        /** Turn the paused apps back on: their accounts and data come back as they were. */
+        data class ResumeApps(val packages: List<String>) : Action
         /** Turn wireless debugging off and delete Manara's adb key. */
         data object TurnOffWirelessDebugging : Action
-        /** After a failure: put back [packages] (best effort), then turn wireless debugging off. */
+        /** After a failure: turn [packages] back on (best effort), then turn wireless debugging off. */
         data class Recover(val packages: List<String>) : Action
         /** Read accounts through AccountManager; adb is already off by now. */
         data object WatchAccounts : Action
@@ -53,38 +57,44 @@ object SetupFlow {
     sealed interface Event {
         data object Paired : Event
         /**
-         * [owners] maps account type to the app that registered it; [userApps] are apps the user
-         * installed (`pm list packages -3`); [otherUsers] counts users besides the main one.
+         * [owners] maps each account type to the app currently registered for it: Android counts
+         * only those accounts. [keepRunning] are apps never paused (the keyboard, home screen,
+         * phone and SMS apps in use); [otherUsers] counts users besides the main one.
          */
         data class Accounts(
             val accounts: List<Account>,
             val owners: Map<String, String> = emptyMap(),
-            val userApps: Set<String> = emptySet(),
+            val keepRunning: Set<String> = emptySet(),
             val otherUsers: Int = 0,
         ) : Event
-        data class AppsRemoved(val packages: List<String>) : Event
+        /** [refused]: apps Android would not turn off; their accounts go to the parent instead. */
+        data class AppsPaused(val paused: List<String>, val refused: List<String> = emptyList()) : Event
         data class DeviceOwnerOutput(val output: String) : Event
-        data object AppsRestored : Event
+        data object AppsResumed : Event
         data object WirelessDebuggingOff : Event
         /** The parent chose to finish without every account back. */
         data object ParentFinished : Event
-        data object Recovered : Event
+        /** [stillPaused]: apps recovery could not turn back on; the parent is told which. */
+        data class Recovered(val stillPaused: List<String> = emptyList()) : Event
         data class Failed(val message: String) : Event
     }
 
     data class State(
         val step: Step,
         val initialAccounts: List<Account>? = null,
-        val removedApps: List<String> = emptyList(),
+        /** Apps turned off by this run and not yet back on: recovery turns these on. */
+        val pausedApps: List<String> = emptyList(),
+        /** Apps Android refused to turn off. */
+        val cannotPause: Set<String> = emptySet(),
+        /** Account types of the paused apps: they come back by themselves after resuming. */
+        val pausedTypes: Set<String> = emptySet(),
         val failure: String? = null,
         /** Times `set-device-owner` was refused for an account Android still counts. */
         val ownerRetries: Int = 0,
         /** What the phone had before an earlier run that didn't finish (from the server). */
         val earlierAccounts: List<Account> = emptyList(),
-        /** Account types of the apps this run uninstalled: Android deletes those accounts after a delay. */
-        val removedTypes: Set<String> = emptySet(),
-        /** Checks spent waiting for those accounts to go. */
-        val lingerChecks: Int = 0,
+        /** Checks spent waiting for the paused apps' accounts to show again. */
+        val returnChecks: Int = 0,
     )
 
     data class Transition(val state: State, val action: Action, val report: Report)
@@ -92,6 +102,15 @@ object SetupFlow {
     const val MAX_MESSAGE = 300
     const val MAX_ACCOUNTS = 100
     private const val DEVICE_OWNER_SUCCESS = "Success: Device owner set to package "
+
+    /**
+     * Never turned off, even for a moment: Android itself, its Settings and phone, and Manara.
+     * An account of theirs (rare) is left to the parent.
+     */
+    val NEVER_PAUSE = setOf(
+        "android", "com.android.systemui", "com.android.settings", "com.android.phone",
+        "com.android.shell", "com.manara.agent",
+    )
 
     /** [earlierAccounts]: what an earlier, unfinished run found, so the parent can sign back in to all of it. */
     fun start(earlierAccounts: List<Account> = emptyList()): Transition = Transition(
@@ -117,11 +136,15 @@ object SetupFlow {
             }
             Step.CHECKING_ACCOUNTS, Step.REMOVING_APP_ACCOUNTS, Step.WAITING_FOR_ACCOUNTS -> when (event) {
                 is Event.Accounts -> onAccounts(state, event)
-                is Event.AppsRemoved -> if (state.step == Step.REMOVING_APP_ACCOUNTS) {
+                is Event.AppsPaused -> if (state.step == Step.REMOVING_APP_ACCOUNTS) {
                     Transition(
-                        state.copy(removedApps = (state.removedApps + event.packages).distinct()),
+                        // Every app was recorded as paused before trying; the refused ones are not off.
+                        state.copy(
+                            pausedApps = state.pausedApps - event.refused.toSet(),
+                            cannotPause = state.cannotPause + event.refused,
+                        ),
                         Action.ListAccounts,
-                        report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS, "Apps saved and removed. Checking accounts again."),
+                        report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS, "Apps paused. Checking that Android no longer counts their accounts."),
                     )
                 } else {
                     unexpected(state, event)
@@ -131,17 +154,16 @@ object SetupFlow {
             Step.DEVICE_OWNER -> when (event) {
                 is Event.DeviceOwnerOutput -> if (deviceOwnerSucceeded(event.output)) {
                     val next = state.copy(step = Step.RESTORING_APPS)
-                    if (state.removedApps.isEmpty()) {
+                    if (state.pausedApps.isEmpty()) {
                         Transition(next, Action.TurnOffWirelessDebugging,
                             report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Manara now manages the phone. Turning wireless debugging off."))
                     } else {
-                        Transition(next, Action.RestoreApps(state.removedApps),
-                            report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Manara now manages the phone. Putting the apps back."))
+                        Transition(next, Action.ResumeApps(state.pausedApps),
+                            report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Manara now manages the phone. Turning the paused apps back on."))
                     }
                 } else if (refusedForAccounts(event.output) && state.ownerRetries < MAX_OWNER_RETRIES) {
-                    // Seen on the SM-A528B: the account list was empty, yet set-device-owner still
-                    // counted an account a moment later (an uninstalled app's account is deleted
-                    // after a delay). Look again instead of failing; a real account shows up there.
+                    // Android answers from a count it refreshes in the background
+                    // (DevicePolicyManagerService.mHasIncompatibleAccounts): look again shortly.
                     Transition(
                         state.copy(step = Step.CHECKING_ACCOUNTS, ownerRetries = state.ownerRetries + 1),
                         Action.WaitThenListAccounts,
@@ -153,10 +175,10 @@ object SetupFlow {
                 else -> unexpected(state, event)
             }
             Step.RESTORING_APPS -> when (event) {
-                Event.AppsRestored -> Transition(
-                    state.copy(removedApps = emptyList()),
+                Event.AppsResumed -> Transition(
+                    state.copy(pausedApps = emptyList()),
                     Action.TurnOffWirelessDebugging,
-                    report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Apps put back. Turning wireless debugging off."),
+                    report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Apps back on. Turning wireless debugging off."),
                 )
                 Event.WirelessDebuggingOff -> if (state.initialAccounts.isNullOrEmpty()) {
                     finished(state, emptyList())
@@ -164,8 +186,7 @@ object SetupFlow {
                     Transition(
                         state.copy(step = Step.RECONNECTING),
                         Action.WatchAccounts,
-                        report(Step.RECONNECTING, Status.WAITING_FOR_PARENT,
-                            "Sign back in to the accounts you want to keep on this phone, then choose Finish setup in the console. You don't need to sign back in to all of them."),
+                        report(Step.RECONNECTING, Status.IN_PROGRESS, "Checking that every account is back."),
                     )
                 }
                 else -> unexpected(state, event)
@@ -173,12 +194,16 @@ object SetupFlow {
             Step.RECONNECTING -> when (event) {
                 is Event.Accounts -> {
                     val current = event.accounts.distinct()
-                    if (state.initialAccounts.orEmpty().all { it in current }) {
-                        finished(state, current)
-                    } else {
-                        Transition(state, Action.WatchAccounts,
-                            report(Step.RECONNECTING, Status.WAITING_FOR_PARENT,
-                                "Sign back in to the accounts you want to keep on this phone, then choose Finish setup in the console. You don't need to sign back in to all of them.", current))
+                    val missing = state.initialAccounts.orEmpty().filter { it !in current }
+                    when {
+                        missing.isEmpty() -> finished(state, current)
+                        // A resumed app's accounts reappear by themselves, a moment later.
+                        missing.all { it.type in state.pausedTypes } && state.returnChecks < MAX_RETURN_CHECKS -> Transition(
+                            state.copy(returnChecks = state.returnChecks + 1), Action.WatchAccounts,
+                            report(Step.RECONNECTING, Status.IN_PROGRESS, "Checking that every account is back.", current),
+                        )
+                        else -> Transition(state, Action.WatchAccounts,
+                            report(Step.RECONNECTING, Status.WAITING_FOR_PARENT, RECONNECT_MESSAGE, current))
                     }
                 }
                 Event.ParentFinished -> finished(state, null)
@@ -187,6 +212,12 @@ object SetupFlow {
             Step.LINKED, Step.DONE -> unexpected(state, event)
         }
     }
+
+    private const val RECONNECT_MESSAGE =
+        "Sign back in to the accounts you removed and want to keep on this phone, then choose Finish setup in the console. You don't need to sign back in to all of them."
+
+    /** Checks (one per watch, 5 s apart) a resumed app's accounts get to show again. */
+    const val MAX_RETURN_CHECKS = 6
 
     /** How many times a refusal for accounts is checked again before setup fails (5 s apart). */
     const val MAX_OWNER_RETRIES = 6
@@ -206,72 +237,54 @@ object SetupFlow {
     }
 
     /**
-     * Uninstalling an app is the only way to remove its account, and it deletes the app's data, so
-     * it is done last: only once nothing else blocks (no account the parent must remove, no other
-     * user), right before Manara becomes the manager. A run that stops earlier, or a parent who
-     * gives up, leaves every app as it was. (A failed run on the SM-A528B lost app data.)
+     * Android counts only accounts whose app is registered right now (AOSP
+     * AccountManagerService.getTypesVisibleToCaller), so an app turned off stops counting while
+     * its accounts and data stay (validateAccountsInternal deletes nothing of an installed app).
+     * Apps are paused only once nothing else blocks, right before device owner, to keep that
+     * moment short. Verified on an Android 14 emulator, 2026-11-08 (docs/decisions/0006).
      */
     private fun onAccounts(state: State, event: Event.Accounts): Transition {
         val accounts = event.accounts.distinct()
-        val withInitial = if (state.initialAccounts == null) {
-            state.copy(initialAccounts = (state.earlierAccounts + accounts).distinct())
-        } else {
-            state
+        if (state.initialAccounts == null) {
+            // The server keeps the first list it gets as "what was on the phone": send all of it once.
+            return Transition(
+                state.copy(initialAccounts = (state.earlierAccounts + accounts).distinct()),
+                Action.ListAccounts,
+                report(Step.CHECKING_ACCOUNTS, Status.IN_PROGRESS, "Found ${accounts.size} account(s) on the phone.", accounts),
+            )
         }
-        // Uninstalling an app deletes the accounts its authenticator registered (AccountManagerService).
-        // An app this run uninstalled: its account goes by itself, a little later.
-        val lingering = accounts.filter { it.type in state.removedTypes }
-        val appHeld = accounts.filter { account ->
-            account.type !in state.removedTypes && event.owners[account.type]?.let { it in event.userApps } == true
-        }
-        val removable = appHeld.mapNotNull { event.owners[it.type] }.filter { it !in state.removedApps }.distinct()
-        // Seen on a real phone: an account that outlived its app, with no Settings entry to remove it.
-        val orphaned = accounts.filter { it.type !in event.owners && it.type !in state.removedTypes }
-        val manual = accounts - appHeld.toSet() - lingering.toSet() - orphaned.toSet()
+        // An account with no registered app (orphaned, or its app paused) is not counted by Android.
+        val counted = accounts.filter { it.type in event.owners }
+        fun canPause(pkg: String) = pkg !in NEVER_PAUSE && pkg !in event.keepRunning && pkg !in state.cannotPause
+        val manual = counted.filter { !canPause(event.owners.getValue(it.type)) }
+        val toPause = counted.map { event.owners.getValue(it.type) }.filter(::canPause).distinct() - state.pausedApps.toSet()
         return when {
-            manual.isNotEmpty() || orphaned.isNotEmpty() || event.otherUsers > 0 -> Transition(
-                withInitial.copy(step = Step.WAITING_FOR_ACCOUNTS),
+            manual.isNotEmpty() || event.otherUsers > 0 -> Transition(
+                state.copy(step = Step.WAITING_FOR_ACCOUNTS),
                 Action.WaitThenListAccounts,
-                report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT,
-                    waitingMessage(manual.size, orphaned.size, event.otherUsers, appHeld.size), accounts),
+                report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT, waitingMessage(manual.size, event.otherUsers), manual),
             )
-            // Recorded before any is touched: if the batch fails halfway, the apps already
-            // uninstalled must still be put back (the chaos test lost one otherwise).
-            removable.isNotEmpty() -> Transition(
-                withInitial.copy(
+            // Recorded before any is touched: if the batch fails halfway, recovery turns them all back on.
+            toPause.isNotEmpty() -> Transition(
+                state.copy(
                     step = Step.REMOVING_APP_ACCOUNTS,
-                    removedTypes = withInitial.removedTypes + appHeld.map { it.type },
-                    removedApps = (withInitial.removedApps + removable).distinct(),
+                    pausedApps = state.pausedApps + toPause,
+                    pausedTypes = state.pausedTypes + counted.filter { event.owners[it.type] in toPause }.map { it.type },
                 ),
-                Action.BackUpAndUninstall(removable),
+                Action.PauseApps(toPause),
                 report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,
-                    "Saving and removing ${removable.size} app(s) that hold an account. They come back at the end; their data on the phone does not, except what the app backs up itself.",
-                    accounts),
-            )
-            lingering.isNotEmpty() && state.lingerChecks < MAX_OWNER_RETRIES -> Transition(
-                withInitial.copy(step = Step.REMOVING_APP_ACCOUNTS, lingerChecks = state.lingerChecks + 1),
-                Action.WaitThenListAccounts,
-                report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,
-                    "Waiting for Android to forget the accounts of the removed apps.", accounts),
-            )
-            lingering.isNotEmpty() -> Transition(
-                withInitial.copy(step = Step.WAITING_FOR_ACCOUNTS),
-                Action.WaitThenListAccounts,
-                report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT,
-                    waitingMessage(0, lingering.size, event.otherUsers, 0), accounts),
+                    "Pausing ${toPause.size} app(s) that hold an account for a few seconds. Nothing is deleted: they come back on with their accounts and data."),
             )
             else -> Transition(
-                withInitial.copy(step = Step.DEVICE_OWNER),
+                state.copy(step = Step.DEVICE_OWNER),
                 Action.SetDeviceOwner,
-                report(Step.DEVICE_OWNER, Status.IN_PROGRESS, "No accounts left. Making Manara the phone manager.", accounts),
+                report(Step.DEVICE_OWNER, Status.IN_PROGRESS, "Making Manara the phone manager."),
             )
         }
     }
 
-    private fun waitingMessage(manual: Int, orphaned: Int, otherUsers: Int, appHeld: Int): String = buildList {
-        if (manual > 0) add("Write down each password, then remove the $manual account(s) listed in the console from Settings, Accounts.")
-        if (appHeld > 0) add("Leave the $appHeld app account(s) alone: Manara removes those apps last, only once the rest is done.")
-        if (orphaned > 0) add("$orphaned account(s) belong to an app that is gone and cannot be removed from Settings; they need the orphan account cleaner tool.")
+    private fun waitingMessage(manual: Int, otherUsers: Int): String = buildList {
+        if (manual > 0) add("Write down each password, then remove the $manual account(s) listed in the console from Settings, Accounts. Manara can't pause the app that holds them.")
         // A second user (e.g. Secure Folder) also blocks device owner, even with no accounts.
         if (otherUsers > 0) add("Remove Secure Folder and any other user or profile on the phone.")
     }.joinToString(" ")
@@ -288,13 +301,17 @@ object SetupFlow {
         // Before pairing there is no adb key; from reconnecting on, wireless debugging is already off.
         val action = when (state.step) {
             Step.PAIRING, Step.RECONNECTING, Step.DONE -> Action.Stop
-            else -> Action.Recover(state.removedApps)
+            else -> Action.Recover(state.pausedApps)
         }
         return Transition(failed, action, report(state.step, Status.FAILED, message))
     }
 
     private fun recovering(state: State, event: Event): Transition = when (event) {
-        Event.Recovered -> Transition(state.copy(removedApps = emptyList()), Action.Stop, report(state.step, Status.FAILED, state.failure!!))
+        is Event.Recovered -> {
+            val message = if (event.stillPaused.isEmpty()) state.failure!! else
+                "These apps may still be off: turn each back on in Settings, Apps: ${event.stillPaused.joinToString()}. ${state.failure}"
+            Transition(state.copy(pausedApps = emptyList(), failure = message), Action.Stop, report(state.step, Status.FAILED, message))
+        }
         else -> Transition(state, Action.Stop, report(state.step, Status.FAILED, state.failure!!))
     }
 

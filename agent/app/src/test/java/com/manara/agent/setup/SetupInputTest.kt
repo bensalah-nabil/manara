@@ -43,4 +43,23 @@ class SetupInputTest {
         assertFalse(SetupInput.pmSucceeded("Failure [DELETE_FAILED_INTERNAL_ERROR]"))
         assertFalse(SetupInput.pmSucceeded("Failure [not Success]"))
     }
+
+    @Test
+    fun `pm's new-state line is matched exactly, for the right app`() {
+        // As printed on the Android 14 emulator.
+        assertTrue(SetupInput.pmNewState("Package com.manara.fixture new state: disabled-user\n", "com.manara.fixture", "disabled-user"))
+        assertTrue(SetupInput.pmNewState("Package com.manara.fixture new state: enabled", "com.manara.fixture", "enabled"))
+        assertFalse(SetupInput.pmNewState("Package com.other new state: disabled-user", "com.manara.fixture", "disabled-user"))
+        assertFalse(SetupInput.pmNewState("Exception occurred while executing 'disable-user':\njava.lang.SecurityException", "com.x", "disabled-user"))
+        assertFalse(SetupInput.pmNewState("Package com.x new state: enabled", "com.x", "disabled-user"))
+    }
+
+    @Test
+    fun `the keyboard and role holders are read as package names only`() {
+        assertEquals("com.samsung.android.honeyboard", SetupInput.imePackage("com.samsung.android.honeyboard/.service.HoneyBoardService\n"))
+        assertEquals(null, SetupInput.imePackage("null"))
+        assertEquals(null, SetupInput.imePackage(""))
+        assertEquals(listOf("com.sec.android.app.launcher"), SetupInput.roleHolders("com.sec.android.app.launcher\n\n"))
+        assertEquals(emptyList<String>(), SetupInput.roleHolders("Error: unknown role\n"))
+    }
 }

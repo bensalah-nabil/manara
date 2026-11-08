@@ -17,18 +17,22 @@ can catch cheaply.
 Pure logic (decisions, the setup flow) is unit-tested; Android calls are thin
 wrappers around it (CLAUDE.md). On top of that, `SetupChaosTest` runs guided
 setup through 5,000 random simulated phones and parents in about a second:
-any step can fail, accounts linger after an app is uninstalled, the parent
-adds an account mid-way or leaves, extra users come and go, uninstall and
-restore fail halfway. After every step it checks the rules that protect a
-family:
+any step can fail, Android answers from a stale account count, an app
+refuses to be paused, the parent adds an account mid-way or leaves, extra
+users come and go, pausing and resuming fail halfway. The simulated phone
+counts accounts the way Android does (ADR-0006). After every step it checks
+the rules that protect a family:
 
-- no app is uninstalled while an account the parent must remove, an orphaned
-  account or another user remains;
-- device owner is only attempted after an empty account list;
-- every uninstalled app is put back, unless every attempt failed (counted);
+- setup never deletes an account and never uninstalls an app;
+- nothing is paused while the parent still has an account to remove or
+  another user remains, and the keyboard, home, phone and SMS apps and
+  Android itself are never paused;
+- device owner is only attempted after a list in which Android counts nothing;
+- every paused app is turned back on, unless every attempt failed, and then
+  the parent is told which;
 - wireless debugging is always turned off;
-- the sign-back-in list keeps everything the phone had;
-- nothing destructive happens after a failure; "done" means device owner.
+- the "what was on the phone" list keeps everything the phone had;
+- nothing is paused after a failure; "done" means device owner.
 
 A failure prints its seed; set the loop to that seed to replay the exact run.
 It found three ways to lose a parent's app in its first minutes (commit
@@ -54,6 +58,13 @@ five. Android 14 passed 4 of 4; the other versions still have to be run.
 
 It refuses to run on a real phone, and on any phone Manara already manages:
 it changes the rules and releases the phone at the end.
+
+`PauseForOwnerTest` (same folder) checks guided setup's way to device owner
+with the commands setup sends: an app holding an account is paused, Manara
+makes Android recount, `set-device-owner` succeeds, the app is turned back on
+with its account and data intact. It needs
+[`tools/account-fixture`](../tools/account-fixture) installed and skips
+without it. Android 14 passed (2026-11-08).
 
 What it can't cover: guided setup itself (there is no Wireless debugging
 screen to drive), makers' changes to Android (emulators are stock Android),

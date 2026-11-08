@@ -23,6 +23,9 @@ week than after building a backend.
       `scripts/enroll-preflight.sh` / `enroll-backup-apps.sh` /
       `enroll-restore-apps.sh` and `tools/orphan-account-cleaner`, and
       `agent/README.md`'s "Account-tied apps can be backed up..." section.
+      Since 2026-11-08 guided setup pauses those apps for a few seconds
+      instead, and removes nothing
+      ([ADR-0006](decisions/0006-pause-apps-instead-of-removing-accounts.md)).
 - [ ] Enroll via the **QR provisioning** flow — the real path for parents
       (enrollment-token-based manual/QR entry into the *backend*, via
       `EnrollmentActivity`, is done and verified; this item is specifically

@@ -268,6 +268,18 @@ Without it the build falls back to the dev `http://localhost:8080`, and a
 real phone on that build cannot check in at all. It happened installing an
 update on the A045F. `preReleaseBuild` now fails unless the URL is HTTPS.
 
+## `set-device-owner` over adb answers from a cached account count
+
+`DevicePolicyManagerService` reads `mHasIncompatibleAccounts`, refreshed only
+at boot and on `LOGIN_ACCOUNTS_CHANGED_ACTION` (AOSP android14/15-release).
+Disabling an app hides its accounts from `getAccounts()` without deleting
+them, but sends no broadcast, so device owner kept being refused on the
+emulator until an account was added and removed to refresh the count. It
+also explains "list empty, still refused" on the SM-A528B. `dumpsys account`
+shows raw rows: an account whose app is disabled or gone is listed there but
+not counted. Guided setup relies on this (ADR-0006); `PauseForOwnerTest`
+checks it.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

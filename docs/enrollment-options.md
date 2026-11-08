@@ -30,6 +30,12 @@ the backing research.
 - Restore-after-reset is incomplete (see F).
 
 ### B. Device Owner via account removal, no reset — **chosen, see ADR-0003**
+
+> Since 2026-11-08 guided setup doesn't remove accounts at all: it pauses the
+> apps that hold them for a few seconds, which Android doesn't count, and
+> turns them back on
+> ([ADR-0006](decisions/0006-pause-apps-instead-of-removing-accounts.md)).
+> The backup, uninstall and orphan-cleaner steps below are history.
 - Zero data loss: nothing is ever wiped, so there's nothing to restore. SMS,
   call log, Wi-Fi, settings, files, photos, every installed app's data stays
   exactly where it was.

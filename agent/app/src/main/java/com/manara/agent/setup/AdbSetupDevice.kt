@@ -33,7 +33,13 @@ class AdbSetupDevice(
 ) : SetupDevice {
 
     private val keyDir = File(context.noBackupFilesDir, "setup-adb")
-    private val backupDir = File(context.noBackupFilesDir, "setup-apks")
+    /** APK copies an earlier version saved before uninstalling an app; put back once, then deleted. */
+    private val legacyBackupDir = File(context.noBackupFilesDir, "setup-apks")
+    /**
+     * Apps this setup turned off and has not yet turned back on, written before each is touched:
+     * a run cut off mid-way (the phone restarted, Manara was stopped) turns them on next time.
+     */
+    private val pausedFile = File(context.noBackupFilesDir, "setup-paused.txt")
     private var kadb: Kadb? = null
 
     override suspend fun pairAndConnect() = withContext(Dispatchers.IO) {
@@ -49,6 +55,29 @@ class AdbSetupDevice(
         kadb = Kadb.create(host.hostAddress!!, port)
         val id = shell("id")
         check(id.startsWith("uid=2000(shell)")) { "Connected, but not as the adb shell user." }
+        putBackLeftovers()
+    }
+
+    /** Best effort: what an earlier, cut-off run left off or uninstalled comes back before anything else. */
+    private fun putBackLeftovers() {
+        val paused = readPaused()
+        if (paused.isNotEmpty()) {
+            runCatching { resumeNow(paused) }.onFailure { android.util.Log.w(TAG, "could not turn back on $paused", it) }
+        }
+        val saved = legacyBackupDir.listFiles { file -> file.isDirectory }.orEmpty()
+        for (dir in saved) {
+            runCatching {
+                val pkg = dir.name
+                requireSafePackage(pkg)
+                if (!installed(pkg)) {
+                    val files = dir.listFiles { file -> file.name.endsWith(".apk") }.orEmpty().sortedBy { it.name }
+                    check(files.isNotEmpty()) { "No saved copy of $pkg." }
+                    if (files.size == 1) connection().install(files[0]) else connection().installMultiple(files)
+                    check(installed(pkg)) { "$pkg did not come back." }
+                }
+                dir.deleteRecursively()
+            }.onFailure { android.util.Log.w(TAG, "could not put back ${dir.name}", it) }
+        }
     }
 
     /**
@@ -105,51 +134,63 @@ class AdbSetupDevice(
     override suspend fun listAccounts(): SetupFlow.Event.Accounts = withContext(Dispatchers.IO) {
         val users = AccountDump.parse(shell("dumpsys account"))
         val main = users.firstOrNull { it.userId == 0 } ?: error("No main user in the account list.")
-        val userApps = SetupInput.packageLines(shell("pm list packages -3 --user 0")).toSet() - context.packageName
-        SetupFlow.Event.Accounts(main.accounts, main.owners, userApps, otherUsers = users.size - 1)
+        SetupFlow.Event.Accounts(main.accounts, main.owners, keepRunning(), otherUsers = users.size - 1)
     }
 
-    override suspend fun backUpAndUninstall(packages: List<String>) = withContext(Dispatchers.IO) {
-        for (pkg in packages) {
-            requireSafePackage(pkg)
-            val paths = SetupInput.packageLines(shell("pm path $pkg"))
-            check(paths.isNotEmpty() && paths.all(SetupInput::isSafeApkPath)) { "Cannot find the files of $pkg." }
-            val dir = File(backupDir, pkg).apply { deleteRecursively(); mkdirs() }
-            paths.forEach { path -> connection().pull(File(dir, File(path).name), path) }
-            check(dir.listFiles().orEmpty().size == paths.size) { "Could not save all files of $pkg." }
-            val result = shell("pm uninstall $pkg")
-            check(SetupInput.pmSucceeded(result)) { "Could not remove $pkg: ${result.take(120)}" }
+    /**
+     * Apps the phone is using as its keyboard, home screen, phone and SMS app: turning one off,
+     * even for seconds, can make Android pick another default. Their accounts go to the parent.
+     */
+    private fun keepRunning(): Set<String> = buildSet {
+        SetupInput.imePackage(connection().shell("settings get secure default_input_method").output)?.let(::add)
+        for (role in listOf("android.app.role.HOME", "android.app.role.SMS", "android.app.role.DIALER")) {
+            // `cmd role` is Android 10+ (RoleShellCommand); an older phone answers with an error, ignored.
+            val response = connection().shell("cmd role get-role-holders --user 0 $role")
+            if (response.exitCode == 0) addAll(SetupInput.roleHolders(response.output))
         }
+    }
+
+    override suspend fun pauseApps(packages: List<String>): List<String> = withContext(Dispatchers.IO) {
+        packages.forEach(::requireSafePackage)
+        writePaused(readPaused() + packages)
+        val refused = packages.filter { pkg ->
+            val output = connection().shell("pm disable-user --user 0 $pkg").allOutput
+            !SetupInput.pmNewState(output, pkg, "disabled-user").also { ok ->
+                if (!ok) android.util.Log.w(TAG, "could not pause $pkg: ${output.take(200)}")
+            }
+        }
+        writePaused(readPaused() - refused.toSet())
+        AccountRecount.trigger(context)
+        refused
     }
 
     override suspend fun setDeviceOwner(): String = withContext(Dispatchers.IO) {
+        // Android answers from a count it refreshes in the background: refresh it, give it a moment.
+        AccountRecount.trigger(context)
+        kotlinx.coroutines.delay(RECOUNT_SETTLE_MILLIS)
         connection().shell("dpm set-device-owner ${context.packageName}/.OwnerReceiver").allOutput
     }
 
-    override suspend fun restoreApps(packages: List<String>) = withContext(Dispatchers.IO) {
-        val failed = mutableListOf<String>()
-        for (pkg in packages) {
-            try {
+    override suspend fun resumeApps(packages: List<String>) = withContext(Dispatchers.IO) { resumeNow(packages) }
+
+    private fun resumeNow(packages: List<String>) {
+        val failed = packages.filter { pkg ->
+            runCatching {
                 requireSafePackage(pkg)
-                if (installed(pkg)) {
-                    // Never removed (its batch failed first), or already put back.
-                    File(backupDir, pkg).deleteRecursively()
-                    continue
-                }
-                val files = File(backupDir, pkg).listFiles { file -> file.name.endsWith(".apk") }.orEmpty().sortedBy { it.name }
-                check(files.isNotEmpty()) { "No saved copy of $pkg to put back." }
-                if (files.size == 1) connection().install(files[0]) else connection().installMultiple(files)
-                check(installed(pkg)) { "$pkg did not come back." }
-                File(backupDir, pkg).deleteRecursively()
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                // One app must not stop the others from coming back.
-                android.util.Log.w(TAG, "could not put $pkg back", error)
-                failed += pkg
-            }
+                val output = connection().shell("pm enable $pkg").allOutput
+                check(SetupInput.pmNewState(output, pkg, "enabled")) { output.take(200) }
+            }.onFailure { android.util.Log.w(TAG, "could not turn $pkg back on", it) }.isFailure
         }
-        check(failed.isEmpty()) { "Could not put back: ${failed.joinToString()}." }
+        writePaused(readPaused() - (packages.toSet() - failed.toSet()))
+        check(failed.isEmpty()) { "Could not turn back on: ${failed.joinToString()}." }
+    }
+
+    private fun readPaused(): List<String> =
+        if (pausedFile.exists()) pausedFile.readLines().map { it.trim() }.filter(SetupInput::isSafePackageName).distinct() else emptyList()
+
+    private fun writePaused(packages: List<String>) {
+        val list = packages.distinct()
+        if (list.isEmpty()) pausedFile.delete() else pausedFile.writeText(list.joinToString("\n"))
     }
 
     /** `pm path` exits non-zero for a package that isn't installed, so it isn't run through [shell]. */
@@ -273,5 +314,7 @@ class AdbSetupDevice(
         const val DISCOVERY_WINDOW_MILLIS = 3_000L
         const val CONNECT_DISCOVERY_MILLIS = 30_000L
         const val RESOLVE_MILLIS = 3_000L
+        /** On the emulator the recount finished within 50 ms; set-device-owner retries if it's slower. */
+        const val RECOUNT_SETTLE_MILLIS = 1_500L
     }
 }

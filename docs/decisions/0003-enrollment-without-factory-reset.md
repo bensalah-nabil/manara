@@ -1,6 +1,9 @@
 # ADR-0003: Device-owner enrollment via account removal, not factory reset
 
-- Status: Accepted
+- Status: Accepted. Its account handling (remove every account, uninstall
+  apps that hold one) is replaced by
+  [ADR-0006](0006-pause-apps-instead-of-removing-accounts.md): apps are paused,
+  nothing is removed.
 - Date: 2026-11-02
 
 ## Context

@@ -37,20 +37,20 @@ class SetupRunner(
     }
 
     /**
-     * Steps that only read, or that are safe to repeat (putting back skips what is installed,
-     * turning wireless debugging off twice is harmless), get [ATTEMPTS] tries: one dropped adb
-     * reply must not end a setup, or leave an app uninstalled (found by SetupChaosTest).
-     * Uninstalling and set-device-owner are not repeated blindly.
+     * Steps that only read, or that are safe to repeat (turning an app off or on twice, or
+     * wireless debugging off twice, is harmless), get [ATTEMPTS] tries: one dropped adb reply
+     * must not end a setup, or leave an app off (found by SetupChaosTest).
+     * set-device-owner is not repeated blindly.
      */
     private suspend fun perform(action: Action): Event = when (action) {
         Action.WaitForPairingCode -> { device.pairAndConnect(); Event.Paired }
         Action.ListAccounts -> retrying("list accounts") { device.listAccounts() }
         Action.WaitThenListAccounts -> { delay(pollMillis); retrying("list accounts") { device.listAccounts() } }
-        is Action.BackUpAndUninstall -> { device.backUpAndUninstall(action.packages); Event.AppsRemoved(action.packages) }
+        is Action.PauseApps -> Event.AppsPaused(action.packages, retrying("pause apps") { device.pauseApps(action.packages) })
         Action.SetDeviceOwner -> Event.DeviceOwnerOutput(device.setDeviceOwner())
-        is Action.RestoreApps -> { retrying("put apps back") { device.restoreApps(action.packages) }; Event.AppsRestored }
+        is Action.ResumeApps -> { retrying("turn apps back on") { device.resumeApps(action.packages) }; Event.AppsResumed }
         Action.TurnOffWirelessDebugging -> { retrying("turn wireless debugging off") { device.turnOffWirelessDebugging() }; Event.WirelessDebuggingOff }
-        is Action.Recover -> { recover(action.packages); Event.Recovered }
+        is Action.Recover -> Event.Recovered(recover(action.packages))
         Action.WatchAccounts -> {
             delay(pollMillis)
             retrying("watch accounts") { device.watchAccounts() }?.let { Event.Accounts(it) } ?: Event.ParentFinished
@@ -74,16 +74,22 @@ class SetupRunner(
         throw last!!
     }
 
-    // Best effort: each step is tried even if the one before failed, and every failure is logged.
-    private suspend fun recover(packages: List<String>) {
+    /**
+     * Best effort: each step is tried even if the one before failed, and every failure is logged.
+     * Returns the apps still off, so the parent is told which to turn back on in Settings.
+     */
+    private suspend fun recover(packages: List<String>): List<String> {
+        var stillPaused = emptyList<String>()
         if (packages.isNotEmpty()) {
-            try { retrying("recovery: put apps back") { device.restoreApps(packages) } } catch (cancelled: CancellationException) { throw cancelled } catch (error: Exception) {
-                log("recovery: could not restore $packages", error)
+            try { retrying("recovery: turn apps back on") { device.resumeApps(packages) } } catch (cancelled: CancellationException) { throw cancelled } catch (error: Exception) {
+                log("recovery: could not turn $packages back on", error)
+                stillPaused = packages
             }
         }
         try { retrying("recovery: turn wireless debugging off") { device.turnOffWirelessDebugging() } } catch (cancelled: CancellationException) { throw cancelled } catch (error: Exception) {
             log("recovery: could not turn wireless debugging off", error)
         }
+        return stillPaused
     }
 
     companion object {

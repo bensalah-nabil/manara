@@ -26,4 +26,19 @@ object SetupInput {
 
     /** `pm install` and `pm uninstall` print a line that is exactly "Success" when they succeed. */
     fun pmSucceeded(output: String): Boolean = output.lineSequence().any { it.trim() == "Success" }
+
+    /**
+     * `pm disable-user` and `pm enable` print "Package <pkg> new state: <state>" (AOSP
+     * PackageManagerShellCommand.runSetEnabledSetting); seen on an Android 14 emulator.
+     */
+    fun pmNewState(output: String, pkg: String, state: String): Boolean =
+        output.lineSequence().any { it.trim() == "Package $pkg new state: $state" }
+
+    /** The package of `settings get secure default_input_method` ("pkg/.Service"), or null. */
+    fun imePackage(setting: String): String? =
+        setting.trim().substringBefore('/').takeIf { '/' in setting && isSafePackageName(it) }
+
+    /** `cmd role get-role-holders` prints one package per line. */
+    fun roleHolders(output: String): List<String> =
+        output.lineSequence().map { it.trim() }.filter(::isSafePackageName).toList()
 }

@@ -13,15 +13,17 @@ class SetupRunnerTest {
     private val owners = mapOf("com.whatsapp" to "com.whatsapp", "com.google" to "com.google.android.gms")
     private val ownerOk = "Success: Device owner set to package com.manara.agent/.OwnerReceiver\n"
 
+    /** A paused app's account stays listed, but its type loses its owner, as on the emulator. */
     private class FakeDevice(
         val accountLists: ArrayDeque<List<Account>>,
         val owners: Map<String, String>,
-        var userApps: Set<String>,
         val ownerOutput: String,
         val watched: ArrayDeque<List<Account>?> = ArrayDeque(),
         val failOn: String? = null,
+        val keepRunning: Set<String> = emptySet(),
     ) : SetupDevice {
         val calls = mutableListOf<String>()
+        val paused = mutableSetOf<String>()
 
         private fun call(name: String) {
             calls += name
@@ -31,11 +33,11 @@ class SetupRunnerTest {
         override suspend fun pairAndConnect() = call("pair")
         override suspend fun listAccounts(): SetupFlow.Event.Accounts {
             call("list")
-            return SetupFlow.Event.Accounts(accountLists.removeFirst(), owners, userApps)
+            return SetupFlow.Event.Accounts(accountLists.removeFirst(), owners.filterValues { it !in paused }, keepRunning)
         }
-        override suspend fun backUpAndUninstall(packages: List<String>) { call("remove $packages"); userApps = userApps - packages.toSet() }
+        override suspend fun pauseApps(packages: List<String>): List<String> { call("pause $packages"); paused += packages; return emptyList() }
         override suspend fun setDeviceOwner(): String { call("owner"); return ownerOutput }
-        override suspend fun restoreApps(packages: List<String>) = call("restore $packages")
+        override suspend fun resumeApps(packages: List<String>) { call("resume $packages"); paused -= packages.toSet() }
         override suspend fun turnOffWirelessDebugging() = call("adb off")
         override suspend fun watchAccounts(): List<Account>? { call("watch"); return watched.removeFirst() }
     }
@@ -48,15 +50,16 @@ class SetupRunnerTest {
 
     @Test
     fun `runs the fixed actions in order and reports each step once`() {
+        val both = listOf(google, whatsapp)
         val device = FakeDevice(
-            accountLists = ArrayDeque(listOf(listOf(google, whatsapp), listOf(whatsapp), emptyList())),
-            owners = owners, userApps = setOf("com.whatsapp"), ownerOutput = ownerOk,
-            watched = ArrayDeque(listOf(listOf(google), listOf(google, whatsapp))),
+            accountLists = ArrayDeque(listOf(both, both, both)),
+            owners = owners, ownerOutput = ownerOk,
+            watched = ArrayDeque(listOf(both)),
         )
         val (state, reports) = run(device)
         assertEquals(
-            "the app is removed only after the parent removed Google",
-            listOf("pair", "list", "list", "remove [com.whatsapp]", "list", "owner", "restore [com.whatsapp]", "adb off", "watch", "watch"),
+            listOf("pair", "list", "list", "pause [com.google.android.gms, com.whatsapp]", "list", "owner",
+                "resume [com.google.android.gms, com.whatsapp]", "adb off", "watch"),
             device.calls,
         )
         assertEquals(SetupFlow.Step.DONE, state.step)
@@ -65,38 +68,44 @@ class SetupRunnerTest {
     }
 
     @Test
-    fun `a failing action is reported and removed apps are put back before stopping`() {
+    fun `a failing action is reported and paused apps are turned back on before stopping`() {
         val device = FakeDevice(
-            accountLists = ArrayDeque(listOf(listOf(whatsapp), emptyList())),
-            owners = owners, userApps = setOf("com.whatsapp"), ownerOutput = ownerOk, failOn = "owner",
+            accountLists = ArrayDeque(listOf(listOf(whatsapp), listOf(whatsapp), listOf(whatsapp))),
+            owners = owners, ownerOutput = ownerOk, failOn = "owner",
         )
         val (state, reports) = run(device)
-        assertEquals(listOf("pair", "list", "remove [com.whatsapp]", "list", "owner", "restore [com.whatsapp]", "adb off"), device.calls)
+        assertEquals(listOf("pair", "list", "list", "pause [com.whatsapp]", "list", "owner", "resume [com.whatsapp]", "adb off"), device.calls)
         assertEquals(SetupFlow.Status.FAILED, reports.last().status)
         assertEquals("owner broke", reports.last().message)
         assertEquals("owner broke", state.failure)
     }
 
     @Test
-    fun `recovery still turns wireless debugging off when putting apps back fails`() {
-        val device = object : SetupDevice by FakeDevice(ArrayDeque(), owners, emptySet(), ownerOk) {
+    fun `recovery still turns wireless debugging off, and names the apps it could not turn back on`() {
+        val device = object : SetupDevice by FakeDevice(ArrayDeque(), owners, ownerOk) {
             val calls = mutableListOf<String>()
+            var lists = 0
             override suspend fun pairAndConnect() { calls += "pair" }
-            override suspend fun listAccounts() = error("cannot list")
-            override suspend fun restoreApps(packages: List<String>) = error("cannot restore")
+            override suspend fun listAccounts(): SetupFlow.Event.Accounts {
+                if (++lists > 2) error("cannot list")
+                return SetupFlow.Event.Accounts(listOf(whatsapp), owners)
+            }
+            override suspend fun pauseApps(packages: List<String>): List<String> { calls += "pause"; return emptyList() }
+            override suspend fun resumeApps(packages: List<String>) = error("cannot resume")
             override suspend fun turnOffWirelessDebugging() { calls += "adb off" }
         }
         val reports = mutableListOf<SetupFlow.Report>()
         runBlocking { SetupRunner(device, report = { reports += it }, pollMillis = 0, log = { _, _ -> }).run() }
-        assertEquals(listOf("pair", "adb off"), device.calls)
+        assertEquals(listOf("pair", "pause", "adb off"), device.calls)
         assertTrue(reports.last().message.contains("cannot list"))
+        assertTrue(reports.last().message.contains("Settings, Apps: com.whatsapp"))
     }
 
     @Test
     fun `the parent finishing the reconnect step ends setup`() {
         val device = FakeDevice(
-            accountLists = ArrayDeque(listOf(listOf(google), emptyList())),
-            owners = owners, userApps = emptySet(), ownerOutput = ownerOk,
+            accountLists = ArrayDeque(listOf(listOf(google), listOf(google), emptyList())),
+            owners = owners, ownerOutput = ownerOk, keepRunning = setOf("com.google.android.gms"),
             watched = ArrayDeque(listOf(emptyList(), null)),
         )
         val (state, reports) = run(device)

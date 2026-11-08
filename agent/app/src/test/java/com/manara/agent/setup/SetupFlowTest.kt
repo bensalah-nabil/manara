@@ -16,23 +16,29 @@ class SetupFlowTest {
     private val google = Account("com.google", "kid@gmail.com")
     private val samsung = Account("com.osp.app.signin", "kid@samsung")
     private val whatsapp = Account("com.whatsapp", "WhatsApp")
-    private val installed = setOf("com.whatsapp", "com.android.chrome")
+    private val gms = "com.google.android.gms"
     // Owners as `dumpsys account` reported them on the A52.
     private val owners = mapOf(
-        "com.google" to "com.google.android.gms",
+        "com.google" to gms,
         "com.osp.app.signin" to "com.osp.app.signin",
         "com.whatsapp" to "com.whatsapp",
         "www.instagram.com" to "com.instagram.android",
     )
-    private val ownerOk = "Success: Device owner set to package com.manara.agent/.ManaraDeviceAdminReceiver\n" +
-        "Active admin set to component com.manara.agent/.ManaraDeviceAdminReceiver\n"
+    private val ownerOk = "Success: Device owner set to package com.manara.agent/.OwnerReceiver\n" +
+        "Active admin set to component com.manara.agent/.OwnerReceiver\n"
+    private val refusedForAccounts =
+        "Exception occurred while executing 'set-device-owner':\n" +
+            "java.lang.IllegalStateException: Not allowed to set the device owner because there are already some accounts on the device.\n"
 
     private fun listed(
         accounts: List<Account>,
-        userApps: Set<String> = installed,
         owners: Map<String, String> = this.owners,
+        keepRunning: Set<String> = emptySet(),
         otherUsers: Int = 0,
-    ) = Event.Accounts(accounts, owners, userApps, otherUsers)
+    ) = Event.Accounts(accounts, owners, keepRunning, otherUsers)
+
+    /** A paused app's authenticator is no longer registered, so its type has no owner. */
+    private fun withoutOwners(vararg packages: String) = owners.filterValues { it !in packages }
 
     private fun run(vararg events: Event): SetupFlow.Transition {
         var transition = SetupFlow.start()
@@ -49,124 +55,156 @@ class SetupFlowTest {
     }
 
     @Test
-    fun `full path with an app account and manual accounts`() {
-        var t = run(Event.Paired)
+    fun `the first list is sent whole, once, for the server to keep`() {
+        val t = run(Event.Paired, listed(listOf(google, whatsapp)))
         assertEquals(Action.ListAccounts, t.action)
-
-        // The parent's accounts come first; no app is touched while they remain.
-        t = SetupFlow.next(t.state, listed(listOf(google, samsung, whatsapp)))
-        assertEquals(Action.WaitThenListAccounts, t.action)
-        assertEquals(Step.WAITING_FOR_ACCOUNTS, t.report.step)
-        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
-        assertTrue(t.report.message.contains("removes those apps last"))
-        assertEquals(listOf(google, samsung, whatsapp), t.report.accounts)
-        assertEquals(listOf(google, samsung, whatsapp), t.state.initialAccounts)
-
-        t = SetupFlow.next(t.state, listed(listOf(google, whatsapp)))
-        assertEquals(Action.WaitThenListAccounts, t.action)
         assertEquals(listOf(google, whatsapp), t.report.accounts)
+        assertEquals(listOf(google, whatsapp), t.state.initialAccounts)
+        assertEquals("nothing touched yet", emptyList<String>(), t.state.pausedApps)
+    }
 
-        // Only app accounts left: now, and only now, the app is saved and removed.
-        t = SetupFlow.next(t.state, listed(listOf(whatsapp)))
-        assertEquals(Action.BackUpAndUninstall(listOf("com.whatsapp")), t.action)
+    @Test
+    fun `full path, apps holding accounts are paused, never uninstalled, and nothing needs signing back in`() {
+        val all = listOf(google, whatsapp)
+        var t = run(Event.Paired, listed(all), listed(all))
+        assertEquals(Action.PauseApps(listOf(gms, "com.whatsapp")), t.action)
         assertEquals(Step.REMOVING_APP_ACCOUNTS, t.report.step)
-        assertEquals("the first list is kept for the reconnect checklist", listOf(google, samsung, whatsapp), t.state.initialAccounts)
+        assertTrue(t.report.message.contains("Nothing is deleted"))
+        assertEquals("recorded before anything is touched", listOf(gms, "com.whatsapp"), t.state.pausedApps)
 
-        t = SetupFlow.next(t.state, Event.AppsRemoved(listOf("com.whatsapp")))
+        t = SetupFlow.next(t.state, Event.AppsPaused(listOf(gms, "com.whatsapp")))
         assertEquals(Action.ListAccounts, t.action)
 
-        t = SetupFlow.next(t.state, listed(emptyList(), installed - "com.whatsapp"))
+        // Still in the list, but no longer counted: their apps are off.
+        t = SetupFlow.next(t.state, listed(all, withoutOwners(gms, "com.whatsapp")))
         assertEquals(Action.SetDeviceOwner, t.action)
-        assertEquals(emptyList<Account>(), t.report.accounts)
 
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
-        assertEquals(Action.RestoreApps(listOf("com.whatsapp")), t.action)
+        assertEquals(Action.ResumeApps(listOf(gms, "com.whatsapp")), t.action)
         assertEquals(Step.RESTORING_APPS, t.report.step)
 
-        t = SetupFlow.next(t.state, Event.AppsRestored)
+        t = SetupFlow.next(t.state, Event.AppsResumed)
         assertEquals(Action.TurnOffWirelessDebugging, t.action)
+        assertEquals(emptyList<String>(), t.state.pausedApps)
 
         t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
         assertEquals(Action.WatchAccounts, t.action)
         assertEquals(Step.RECONNECTING, t.report.step)
-        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertEquals("checking, not asking the parent for anything", Status.IN_PROGRESS, t.report.status)
 
-        t = SetupFlow.next(t.state, Event.Accounts(listOf(whatsapp, google)))
-        assertEquals(Action.WatchAccounts, t.action)
-        assertEquals(listOf(whatsapp, google), t.report.accounts)
-
-        t = SetupFlow.next(t.state, Event.Accounts(listOf(whatsapp, google, samsung)))
+        t = SetupFlow.next(t.state, Event.Accounts(all))
         assertEquals(Action.Stop, t.action)
         assertEquals(Step.DONE, t.report.step)
         assertEquals(Status.DONE, t.report.status)
     }
 
     @Test
+    fun `a resumed app's account that is slow to show is waited for, then handed to the parent`() {
+        var t = run(
+            Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")),
+            listed(listOf(whatsapp), withoutOwners("com.whatsapp")), Event.DeviceOwnerOutput(ownerOk),
+            Event.AppsResumed, Event.WirelessDebuggingOff,
+        )
+        repeat(SetupFlow.MAX_RETURN_CHECKS) {
+            t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
+            assertEquals(Status.IN_PROGRESS, t.report.status)
+        }
+        t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertTrue(t.report.message.contains("Finish setup"))
+    }
+
+    @Test
     fun `a phone with no accounts goes straight to device owner and finishes without a reconnect step`() {
-        var t = run(Event.Paired, listed(emptyList()))
+        var t = run(Event.Paired, listed(emptyList()), listed(emptyList()))
         assertEquals(Action.SetDeviceOwner, t.action)
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
-        assertEquals("nothing was removed, so nothing to restore", Action.TurnOffWirelessDebugging, t.action)
+        assertEquals("nothing was paused, so nothing to turn back on", Action.TurnOffWirelessDebugging, t.action)
         t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
         assertEquals(Step.DONE, t.report.step)
         assertEquals(Action.Stop, t.action)
     }
 
     @Test
+    fun `an account no app is registered for does not block, Android doesn't count it`() {
+        val orphan = Account("com.gone.app", "orphan")
+        val t = run(Event.Paired, listed(listOf(orphan)), listed(listOf(orphan)))
+        assertEquals(Action.SetDeviceOwner, t.action)
+    }
+
+    @Test
+    fun `the keyboard, home screen, phone and SMS apps are never paused, their accounts go to the parent`() {
+        val t = run(Event.Paired, listed(listOf(google, whatsapp)), listed(listOf(google, whatsapp), keepRunning = setOf(gms)))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(Step.WAITING_FOR_ACCOUNTS, t.report.step)
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertEquals("only what the parent must remove", listOf(google), t.report.accounts)
+        assertTrue(t.report.message.contains("Settings, Accounts"))
+        assertEquals("nothing paused while the parent still has work", emptyList<String>(), t.state.pausedApps)
+    }
+
+    @Test
+    fun `Android itself and Manara are never paused`() {
+        val system = Account("com.android.system.thing", "x")
+        val t = run(Event.Paired, listed(listOf(system)), listed(listOf(system), owners = mapOf(system.type to "android")))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(listOf(system), t.report.accounts)
+        assertTrue("com.manara.agent" in SetupFlow.NEVER_PAUSE)
+    }
+
+    @Test
+    fun `an app Android refuses to turn off hands its account to the parent`() {
+        var t = run(Event.Paired, listed(listOf(google, samsung)), listed(listOf(google, samsung)))
+        assertEquals(Action.PauseApps(listOf(gms, "com.osp.app.signin")), t.action)
+        t = SetupFlow.next(t.state, Event.AppsPaused(listOf(gms), refused = listOf("com.osp.app.signin")))
+        assertEquals("the refused app is not off, so not resumed or recovered", listOf(gms), t.state.pausedApps)
+        t = SetupFlow.next(t.state, listed(listOf(google, samsung), withoutOwners(gms)))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(listOf(samsung), t.report.accounts)
+        // The parent removes it in Settings; setup goes on and still turns Google back on.
+        t = SetupFlow.next(t.state, listed(listOf(google), withoutOwners(gms)))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
+        assertEquals(Action.ResumeApps(listOf(gms)), t.action)
+    }
+
+    @Test
     fun `the parent can finish without every account back`() {
         var t = run(
-            Event.Paired, listed(listOf(google)), listed(emptyList()),
-            Event.DeviceOwnerOutput(ownerOk), Event.WirelessDebuggingOff,
+            Event.Paired, listed(listOf(google)), listed(listOf(google), keepRunning = setOf(gms)),
+            listed(emptyList()), Event.DeviceOwnerOutput(ownerOk), Event.WirelessDebuggingOff,
         )
         assertEquals(Step.RECONNECTING, t.report.step)
+        t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
+        assertEquals("removed by the parent: it does not come back by itself", Status.WAITING_FOR_PARENT, t.report.status)
         t = SetupFlow.next(t.state, Event.ParentFinished)
         assertEquals(Status.DONE, t.report.status)
         assertNull("the stored lists are left as they are", t.report.accounts)
     }
 
     @Test
-    fun `only apps the user installed are uninstalled, found by the account's real owner`() {
-        val instagram = Account("www.instagram.com", "kid_insta")
-        val t = run(Event.Paired, listed(listOf(whatsapp, instagram), userApps = setOf("com.whatsapp", "com.instagram.android")))
-        assertEquals(Action.BackUpAndUninstall(listOf("com.whatsapp", "com.instagram.android")), t.action)
-    }
-
-    @Test
-    fun `no app is removed while an account the parent must remove is still there`() {
-        val t = run(Event.Paired, listed(listOf(whatsapp, google)))
-        assertEquals(Action.WaitThenListAccounts, t.action)
-        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
-        assertEquals(emptyList<String>(), t.state.removedApps)
-    }
-
-    @Test
-    fun `no app is removed while another user is on the phone`() {
-        val t = run(Event.Paired, listed(listOf(whatsapp), otherUsers = 1))
+    fun `nothing is paused while another user is on the phone`() {
+        val t = run(Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp), otherUsers = 1))
         assertEquals(Action.WaitThenListAccounts, t.action)
         assertTrue(t.report.message.contains("Secure Folder"))
+        assertEquals(emptyList<String>(), t.state.pausedApps)
     }
 
     @Test
-    fun `an app already removed is not removed again, its account is waited out`() {
-        val t = run(
-            Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
-            listed(listOf(whatsapp)),
-        )
+    fun `a second user blocks device owner even with no accounts`() {
+        var t = run(Event.Paired, listed(emptyList()), listed(emptyList(), otherUsers = 1))
         assertEquals(Action.WaitThenListAccounts, t.action)
-        assertEquals("not the parent's job", Status.IN_PROGRESS, t.report.status)
-        assertEquals(Step.REMOVING_APP_ACCOUNTS, t.report.step)
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        t = SetupFlow.next(t.state, listed(emptyList()))
+        assertEquals(Action.SetDeviceOwner, t.action)
     }
 
     @Test
-    fun `a removed app's account that never goes is handed to the parent, not failed`() {
-        var t = run(Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")))
-        repeat(SetupFlow.MAX_OWNER_RETRIES) {
-            t = SetupFlow.next(t.state, listed(listOf(whatsapp), installed - "com.whatsapp", owners - "com.whatsapp"))
-            assertEquals(Status.IN_PROGRESS, t.report.status)
-        }
-        t = SetupFlow.next(t.state, listed(listOf(whatsapp), installed - "com.whatsapp", owners - "com.whatsapp"))
-        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
-        assertTrue(t.report.message.contains("orphan account cleaner"))
+    fun `an app already paused is not paused again`() {
+        var t = run(Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")))
+        // Android still lists it as registered a moment after: device owner is tried, not a second pause.
+        t = SetupFlow.next(t.state, listed(listOf(whatsapp)))
+        assertEquals(Action.SetDeviceOwner, t.action)
     }
 
     @Test
@@ -174,52 +212,21 @@ class SetupFlowTest {
         var t = SetupFlow.start(earlierAccounts = listOf(google, samsung))
         t = SetupFlow.next(t.state, Event.Paired)
         t = SetupFlow.next(t.state, listed(emptyList()))
-        assertEquals(Action.SetDeviceOwner, t.action)
         assertEquals(listOf(google, samsung), t.state.initialAccounts)
+        t = SetupFlow.next(t.state, listed(emptyList()))
+        assertEquals(Action.SetDeviceOwner, t.action)
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
         t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
         assertEquals("not finished: there is something to sign back in to", Step.RECONNECTING, t.report.step)
-    }
-
-    @Test
-    fun `an account with no app behind it gets its own message, not 'remove it in Settings'`() {
-        val t = run(Event.Paired, listed(listOf(whatsapp), owners = owners - "com.whatsapp"))
-        assertEquals(Action.WaitThenListAccounts, t.action)
-        assertTrue(t.report.message.contains("orphan account cleaner"))
-        assertFalse(t.report.message.contains("Settings, Accounts"))
-    }
-
-    @Test
-    fun `the waiting message covers every kind of blocker at once`() {
-        val t = run(Event.Paired, listed(listOf(google), owners = owners - "com.google" + ("x" to "y"), otherUsers = 1))
-        assertTrue(t.report.message.contains("orphan account cleaner"))
-        assertTrue(t.report.message.contains("Secure Folder"))
-        val both = run(Event.Paired, listed(listOf(google, samsung), owners = owners - "com.google"))
-        assertTrue(both.report.message.contains("remove the 1 account(s)"))
-        assertTrue(both.report.message.contains("1 account(s) belong to an app that is gone"))
-    }
-
-    @Test
-    fun `a second user blocks device owner even with no accounts`() {
-        var t = run(Event.Paired, listed(emptyList(), otherUsers = 1))
-        assertEquals(Action.WaitThenListAccounts, t.action)
+        t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
         assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
-        assertTrue(t.report.message.contains("Secure Folder"))
-        t = SetupFlow.next(t.state, listed(emptyList()))
-        assertEquals(Action.SetDeviceOwner, t.action)
     }
 
     @Test
-    fun `Google and Samsung accounts are never uninstalled, only waited on`() {
-        val t = run(Event.Paired, listed(listOf(google, samsung)))
-        assertEquals(Action.WaitThenListAccounts, t.action)
-    }
-
-    @Test
-    fun `a failed device owner command fails the setup and puts removed apps back`() {
+    fun `a failed device owner command fails the setup and turns paused apps back on`() {
         val t = run(
-            Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
-            listed(emptyList(), installed - "com.whatsapp"),
+            Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")),
+            listed(listOf(whatsapp), withoutOwners("com.whatsapp")),
             Event.DeviceOwnerOutput(
                 "Exception occurred while executing 'set-device-owner':\n" +
                     "java.lang.IllegalStateException: example reason\n" +
@@ -232,38 +239,49 @@ class SetupFlowTest {
         assertEquals("Could not make Manara the phone manager: example reason", t.report.message)
     }
 
-    private val refusedForAccounts =
-        "Exception occurred while executing 'set-device-owner':\n" +
-            "java.lang.IllegalStateException: Not allowed to set the device owner because there are already some accounts on the device.\n"
+    @Test
+    fun `a failure while pausing turns back on every app recorded, even those not reached`() {
+        val t = run(Event.Paired, listed(listOf(google, whatsapp)), listed(listOf(google, whatsapp)), Event.Failed("adb dropped"))
+        assertEquals(Action.Recover(listOf(gms, "com.whatsapp")), t.action)
+    }
+
+    @Test
+    fun `apps recovery could not turn back on are named to the parent`() {
+        var t = run(Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.Failed("adb dropped"))
+        t = SetupFlow.next(t.state, Event.Recovered(stillPaused = listOf("com.whatsapp")))
+        assertEquals(Action.Stop, t.action)
+        assertEquals(Status.FAILED, t.report.status)
+        assertTrue(t.report.message.contains("Settings, Apps: com.whatsapp"))
+        assertTrue(t.report.message.contains("adb dropped"))
+    }
 
     @Test
     fun `a refusal for an account Android still counts is checked again, not failed`() {
         var t = run(
-            Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
-            listed(emptyList(), installed - "com.whatsapp"),
+            Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")),
+            listed(listOf(whatsapp), withoutOwners("com.whatsapp")),
             Event.DeviceOwnerOutput(refusedForAccounts),
         )
         assertEquals(Action.WaitThenListAccounts, t.action)
         assertEquals(Status.IN_PROGRESS, t.report.status)
         assertEquals(1, t.state.ownerRetries)
 
-        // The account is gone a moment later: device owner is tried again, then setup goes on.
-        t = SetupFlow.next(t.state, listed(emptyList(), installed - "com.whatsapp"))
+        t = SetupFlow.next(t.state, listed(listOf(whatsapp), withoutOwners("com.whatsapp")))
         assertEquals(Action.SetDeviceOwner, t.action)
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
-        assertEquals(Action.RestoreApps(listOf("com.whatsapp")), t.action)
+        assertEquals(Action.ResumeApps(listOf("com.whatsapp")), t.action)
     }
 
     @Test
-    fun `a refusal that keeps coming back fails after the last check and puts apps back`() {
+    fun `a refusal that keeps coming back fails after the last check and turns apps back on`() {
         var t = run(
-            Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
-            listed(emptyList(), installed - "com.whatsapp"),
+            Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")),
+            listed(listOf(whatsapp), withoutOwners("com.whatsapp")),
         )
         repeat(SetupFlow.MAX_OWNER_RETRIES) {
             t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
             assertEquals(Action.WaitThenListAccounts, t.action)
-            t = SetupFlow.next(t.state, listed(emptyList(), installed - "com.whatsapp"))
+            t = SetupFlow.next(t.state, listed(listOf(whatsapp), withoutOwners("com.whatsapp")))
             assertEquals(Action.SetDeviceOwner, t.action)
         }
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
@@ -272,21 +290,18 @@ class SetupFlowTest {
     }
 
     @Test
-    fun `an account that really came back is shown to the parent again`() {
-        var t = run(
-            Event.Paired, listed(listOf(google)), listed(emptyList()),
-            Event.DeviceOwnerOutput(refusedForAccounts),
-        )
-        t = SetupFlow.next(t.state, listed(listOf(google)))
-        assertEquals(Step.WAITING_FOR_ACCOUNTS, t.report.step)
-        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+    fun `an account added during setup is handled like the others`() {
+        var t = run(Event.Paired, listed(emptyList()), listed(emptyList()), Event.DeviceOwnerOutput(refusedForAccounts))
+        t = SetupFlow.next(t.state, listed(listOf(whatsapp)))
+        assertEquals(Action.PauseApps(listOf("com.whatsapp")), t.action)
     }
 
     @Test
     fun `a failure once wireless debugging is off does not try to use it`() {
         val t = run(
-            Event.Paired, listed(listOf(google)), listed(emptyList()),
-            Event.DeviceOwnerOutput(ownerOk), Event.WirelessDebuggingOff, Event.Failed("cannot read accounts"),
+            Event.Paired, listed(listOf(google)), listed(listOf(google)), Event.AppsPaused(listOf(gms)),
+            listed(listOf(google), withoutOwners(gms)), Event.DeviceOwnerOutput(ownerOk), Event.AppsResumed,
+            Event.WirelessDebuggingOff, Event.Failed("cannot read accounts"),
         )
         assertEquals(Action.Stop, t.action)
         assertEquals(Step.RECONNECTING, t.report.step)
@@ -297,7 +312,7 @@ class SetupFlowTest {
     fun `after recovery the failure stays reported and nothing else runs`() {
         var t = run(Event.Paired, Event.Failed("adb connection lost"))
         assertEquals(Action.Recover(emptyList()), t.action)
-        t = SetupFlow.next(t.state, Event.Recovered)
+        t = SetupFlow.next(t.state, Event.Recovered())
         assertEquals(Action.Stop, t.action)
         assertEquals(Status.FAILED, t.report.status)
         assertEquals("adb connection lost", t.report.message)
@@ -317,7 +332,7 @@ class SetupFlowTest {
     fun `an event out of order fails safely instead of skipping ahead`() {
         val t = SetupFlow.next(SetupFlow.start().state, Event.DeviceOwnerOutput(ownerOk))
         assertEquals(Status.FAILED, t.report.status)
-        assertFalse(t.action is Action.RestoreApps)
+        assertFalse(t.action is Action.ResumeApps)
         assertTrue(t.report.message.contains("pairing"))
     }
 

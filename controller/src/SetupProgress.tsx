@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
-import { deviceName, errorText, lastSeenText } from './format.ts'
+import { agoText, deviceName, errorText, lastSeenText } from './format.ts'
 import { PairPhone } from './PairPhone.tsx'
 import { accountTypeName, canFinish, isActive, reconnectChecklist, stepStates, waitingToPair } from './setup.ts'
 import type { DeviceSetup, SetupAccount, SetupStepKey, StepState } from './setup.ts'
@@ -170,7 +170,12 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
             case 'reconnecting':
                 return (
                     <>
-                        <p>Manara now manages the phone. Sign back in only to the accounts you want to keep on it; you don't need all of them.</p>
+                        {state === 'current' ? (
+                            // The phone is checking by itself that the paused apps' accounts came back.
+                            message
+                        ) : (
+                            <p>Manara now manages the phone. Sign back in only to the accounts you removed and want to keep on it; you don't need all of them.</p>
+                        )}
                         <ul class="reports">
                             {checklist.map((account) => (
                                 <li key={`${account.type}\n${account.name}`} class={account.back ? 'restored' : undefined}>
@@ -179,10 +184,14 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                                 </li>
                             ))}
                         </ul>
-                        <button type="button" class="primary" onClick={finish} disabled={finishing || !canFinish(shown)}>
-                            {shown.finishRequested ? 'Finishing...' : finishing ? 'Sending...' : 'Finish setup'}
-                        </button>
-                        <p class="hint">Finish when the accounts you want are back. You can sign in to others later.</p>
+                        {state === 'waiting' && (
+                            <>
+                                <button type="button" class="primary" onClick={finish} disabled={finishing || !canFinish(shown)}>
+                                    {shown.finishRequested ? 'Finishing...' : finishing ? 'Sending...' : 'Finish setup'}
+                                </button>
+                                <p class="hint">Finish when the accounts you want are back. You can sign in to others later.</p>
+                            </>
+                        )}
                     </>
                 )
             default:
@@ -190,9 +199,10 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
         }
     }
 
-    return (
+    const done = setup.status === 'done'
+    const body = (
         <div class="stack">
-            {setup.status !== 'done' && (
+            {!done && (
                 <div class="consent">
                     <h3>This is your child's phone: {deviceName(device)}</h3>
                     <p>Everything below is happening on that phone. Make sure it is your child's phone, not your own.</p>
@@ -252,5 +262,13 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                 </div>
             )}
         </div>
+    )
+    // Once the phone is set up, the timeline is history: one closed line, opened only on demand.
+    if (!done) return body
+    return (
+        <details class="setup-done">
+            <summary title={lastSeenText(setup.updatedAt)}>✓ Guided setup finished {agoText(setup.updatedAt)}</summary>
+            {body}
+        </details>
     )
 }

@@ -358,6 +358,8 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 .danger-zone { border-color: var(--danger); }
 
 /* Guided setup as a live timeline: the step the phone is on opens with what it needs. */
+details.setup-done > summary { cursor: pointer; color: var(--muted); }
+details.setup-done[open] > summary { margin-bottom: 12px; }
 .timeline-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .live { display: inline-flex; align-items: center; gap: 8px; color: var(--ok); font-size: 0.9rem; }
 .live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); animation: live-pulse 1.6s ease-in-out infinite; }
