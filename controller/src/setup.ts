@@ -99,9 +99,13 @@ export function waitingToPair(setup: Pick<DeviceSetup, 'step' | 'status' | 'pair
     return setup.step === 'pairing' && setup.status === 'waiting_for_parent' && !!setup.pairingQr
 }
 
-/** The phone is managed and waits while the parent signs back in to the accounts they want. */
-export function canFinish(setup: Pick<DeviceSetup, 'step' | 'status' | 'finishRequested'>): boolean {
-    return setup.step === 'reconnecting' && setup.status === 'waiting_for_parent' && !setup.finishRequested
+/**
+ * The phone is managed and waits while the parent signs back in to the accounts they want. The
+ * server finishes at once, phone or not; a run stuck from before that (the phone was off and never
+ * read the request) can be finished again.
+ */
+export function canFinish(setup: Pick<DeviceSetup, 'step' | 'status'>): boolean {
+    return setup.step === 'reconnecting' && setup.status === 'waiting_for_parent'
 }
 
 /** The six digits from "Pair device with pairing code", spaces allowed; null if it isn't that. */

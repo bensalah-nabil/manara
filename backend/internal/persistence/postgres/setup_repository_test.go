@@ -64,3 +64,56 @@ func TestANewSetupRunKeepsWhatThePhoneHadUntilARunFinishes(t *testing.T) {
 		t.Fatalf("a run after a finished one kept the old list: %+v", s.InitialAccounts)
 	}
 }
+
+// Seen on the SM-A045F: the parent chose Finish while the phone was off, and
+// the console showed "Finishing..." with no end, waiting for the phone.
+func TestFinishEndsTheRunWithoutThePhoneAndALateReportCannotReopenIt(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	p := newParent(t, db, uniqueEmail("finish"), "password one")
+	id := "00000000-0000-4000-b000-" + time.Now().Format("150405000000")[:12]
+	if err := NewDeviceRepository(db).Create(ctx, &domain.Device{ID: id, ParentID: p.ID, CreatedAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	setups := NewSetupRepository(db)
+	report := func(rep domain.SetupReport) *domain.DeviceSetup {
+		t.Helper()
+		s, err := setups.Report(ctx, id, rep)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	report(domain.SetupReport{Step: domain.SetupPairing, Status: domain.SetupWaitingForParent, Pairing: &domain.QRPairing{Name: "manara-ffff01", Password: "abcdefgh12345678"}})
+	report(domain.SetupReport{Step: domain.SetupReconnecting, Status: domain.SetupWaitingForParent})
+
+	if err := setups.RequestFinish(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	s, err := setups.Get(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Step != domain.SetupDone || s.Status != domain.SetupFinished {
+		t.Fatalf("finish waited for the phone: %s %s", s.Step, s.Status)
+	}
+	if err := setups.RequestFinish(ctx, id); err != domain.ErrSetupNotWaiting {
+		t.Fatalf("a second finish: %v", err)
+	}
+
+	// The phone, still watching, reports once more before it reads the finish.
+	if s := report(domain.SetupReport{Step: domain.SetupReconnecting, Status: domain.SetupWaitingForParent}); s.Step != domain.SetupDone {
+		t.Fatalf("a late report reopened a finished run: %s %s", s.Step, s.Status)
+	}
+	if in, _ := setups.Input(ctx, id); !in.Finish {
+		t.Fatal("the phone isn't told to finish")
+	}
+	// Its own done report is still taken; a new run starts over.
+	if s := report(domain.SetupReport{Step: domain.SetupDone, Status: domain.SetupFinished}); s.Step != domain.SetupDone {
+		t.Fatalf("the phone's done: %s", s.Step)
+	}
+	s = report(domain.SetupReport{Step: domain.SetupPairing, Status: domain.SetupWaitingForParent, Pairing: &domain.QRPairing{Name: "manara-ffff02", Password: "abcdefgh12345678"}})
+	if s.Step != domain.SetupPairing || s.FinishRequested {
+		t.Fatalf("a new run didn't start over: %s finish=%v", s.Step, s.FinishRequested)
+	}
+}

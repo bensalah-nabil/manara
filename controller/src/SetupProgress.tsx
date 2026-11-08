@@ -218,7 +218,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                         {state === 'waiting' && (
                             <>
                                 <button type="button" class="primary" onClick={finish} disabled={finishing || !canFinish(shown)}>
-                                    {shown.finishRequested ? 'Finishing...' : finishing ? 'Sending...' : 'Finish setup'}
+                                    {finishing ? 'Finishing...' : 'Finish setup'}
                                 </button>
                                 <p class="hint">
                                     On the phone, Manara's setup notice has a button that opens the sign-in for what is missing (Google

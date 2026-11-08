@@ -855,7 +855,7 @@ paths:
       parameters: [{ $ref: '#/components/parameters/DeviceId' }]
       responses:
         '202':
-          description: Stored; the phone ends setup within a few seconds.
+          description: Setup is finished at once, even if the phone is off; the phone stops watching accounts when it next checks.
           content:
             application/json:
               schema:
@@ -1243,4 +1243,4 @@ components:
             QR code" scans, `WIFI:T:ADB;S:<name>;P:<password>;;`.
         finishRequested:
           type: boolean
-          description: The parent chose Finish setup and the phone hasn't ended yet.
+          description: The parent chose Finish setup; the run is then already done, and this tells the phone to stop watching accounts.

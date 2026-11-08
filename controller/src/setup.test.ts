@@ -64,10 +64,10 @@ test('the console offers pairing only while the phone waits for it, with a QR co
     assert.equal(waitingToPair({ step: 'checking_accounts', status: 'waiting_for_parent', pairingQr: qr }), false)
 })
 
-test('Finish setup is offered while reconnecting, once', () => {
-    assert.equal(canFinish({ step: 'reconnecting', status: 'waiting_for_parent', finishRequested: false }), true)
-    assert.equal(canFinish({ step: 'reconnecting', status: 'waiting_for_parent', finishRequested: true }), false)
-    assert.equal(canFinish({ step: 'waiting_for_accounts', status: 'waiting_for_parent', finishRequested: false }), false)
+test('Finish setup is offered while reconnecting, even after an earlier request the phone never read', () => {
+    assert.equal(canFinish({ step: 'reconnecting', status: 'waiting_for_parent' }), true)
+    assert.equal(canFinish({ step: 'waiting_for_accounts', status: 'waiting_for_parent' }), false)
+    assert.equal(canFinish({ step: 'done', status: 'done' }), false)
 })
 
 test('a pairing code is six digits, spaces allowed', () => {

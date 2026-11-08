@@ -64,6 +64,9 @@ func (r *SetupRepository) Report(ctx context.Context, deviceID string, rep domai
 				ELSE device_setup.finish_requested END,
 			started_at = CASE WHEN $6::text IS NOT NULL THEN now() ELSE device_setup.started_at END,
 			updated_at = now()
+		-- A finished run stays finished: a late report from the same run (the phone still
+		-- watching accounts after the parent chose Finish) can't reopen it. Only a new run can.
+		WHERE device_setup.step <> 'done' OR $6::text IS NOT NULL OR EXCLUDED.step = 'done'
 	`, deviceID, string(rep.Step), string(rep.Status), rep.Message, current, name, password)
 	if err != nil {
 		return nil, fmt.Errorf("store setup report: %w", err)
@@ -141,7 +144,9 @@ func (r *SetupRepository) SendPairingCode(ctx context.Context, deviceID, code st
 
 func (r *SetupRepository) RequestFinish(ctx context.Context, deviceID string) error {
 	tag, err := r.db.Pool.Exec(ctx, `
-		UPDATE device_setup SET finish_requested = true, updated_at = now()
+		UPDATE device_setup SET step = 'done', status = 'done',
+			message = 'Setup finished. Manara now manages this phone.',
+			finish_requested = true, updated_at = now()
 		WHERE device_id = $1 AND step = 'reconnecting' AND status <> 'failed'
 	`, deviceID)
 	if err != nil {

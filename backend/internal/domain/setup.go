@@ -117,7 +117,7 @@ type DeviceSetup struct {
 	UpdatedAt       time.Time      `json:"updatedAt"`
 	// PairingQR is set only while the phone waits to pair.
 	PairingQR string `json:"pairingQr,omitempty"`
-	// FinishRequested: the parent chose Finish setup and the phone hasn't ended yet.
+	// FinishRequested: the parent chose Finish setup (the run is already done); tells the phone to stop watching accounts.
 	FinishRequested bool `json:"finishRequested"`
 }
 
@@ -178,7 +178,10 @@ type SetupRepository interface {
 	Input(ctx context.Context, deviceID string) (SetupInput, error)
 	// SendPairingCode stores a code for a phone in the pairing step, else ErrSetupNotWaiting.
 	SendPairingCode(ctx context.Context, deviceID, code string) error
-	// RequestFinish ends the reconnect step, else ErrSetupNotWaiting.
+	// RequestFinish ends the reconnect step, else ErrSetupNotWaiting. The run is
+	// done at once: by then the phone has nothing left to undo, and it may be off
+	// (seen on the SM-A045F: "Finishing..." forever). A finished run is not
+	// reopened by a late report of the same run, only by a new run's Pairing.
 	RequestFinish(ctx context.Context, deviceID string) error
 	// Get returns nil when the device has never reported a setup step.
 	Get(ctx context.Context, deviceID string) (*DeviceSetup, error)
