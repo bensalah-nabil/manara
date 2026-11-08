@@ -41,12 +41,12 @@ Status: **meets** (with the evidence), **gap** (with the action), **explain**
 | 1.4.1.1-3 | Encrypted traffic, good TLS, verified endpoint | meets / explain | Release builds allow HTTPS only (cleartext only for a plain-http dev URL); OkHttp's default TLS and CA checks; no custom trust in Manara's code. Explain: during setup, Kadb opens TLS to the phone's own adb, authenticated by the pairing (SPAKE2), not a CA |
 | 1.5.1.1 | Content providers | meets | None exported (Firebase and androidx providers are not exported) |
 | 1.5.1.2 | Verified links | n/a | No deep links |
-| 1.5.1.3 | IPC exposed only as intended | explain, verify | `OwnerReceiver`: `BIND_DEVICE_ADMIN` permission. `BootReceiver`: exported, no permission, acts only on `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED`, which only the system can send. **Action:** check in AOSP whether it can be `exported="false"` and still receive them |
-| 1.5.1.4 | PendingIntents immutable or justified | explain, verify | Setup notice: immutable. Location: `FLAG_MUTABLE`, because the location provider writes the fix into it. **Action:** cite the official reference for that |
+| 1.5.1.3 | IPC exposed only as intended | meets | Exported: `MainActivity` (the launcher) and `OwnerReceiver` (guarded by `BIND_DEVICE_ADMIN`). `BootReceiver` is not exported (2026-11-08): AOSP's `ActivityManager.canAccessUnexportedComponents` lets the system UID, which sends `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED`, reach unexported receivers. Verified on the SM-A045F: installing version 1.0.4 without opening Manara, the system (uid 1000) delivered `MY_PACKAGE_REPLACED` to it and the notice came back |
+| 1.5.1.4 | PendingIntents immutable or justified | explain | Setup notice: immutable. Location: `FLAG_MUTABLE`, because the fused location provider writes the fix into the delivered Intent (`LocationResult.extractResult`). It names its receiver class explicitly, the mitigation Android's PendingIntent guidance gives, so a filler can't redirect it. Not given an action or package on purpose: that would change its identity and strand the registration made by older versions |
 | 1.5.2.1-2 | WebView | n/a | No WebView |
 | 1.5.3.1 | Mask sensitive data in the UI | meets | Code fields are password-type; the release code is never displayed on the phone |
 | 1.6.1.1 | Up-to-date targetSdk | meets | 36 |
-| 1.6.2.1 | No components with known vulnerabilities | gap | Server: `govulncheck` clean; console: `npm audit` clean (2026-11-08). **Action:** scan the Android libraries (OSV scanner or OWASP dependency-check) and add all three to CI |
+| 1.6.2.1 | No components with known vulnerabilities | meets | 2026-11-08: the app's 169 release libraries clean on OSV.dev (`tools/security/osv_check.py`, shown to flag BouncyCastle 1.60), the server clean with `govulncheck`, the console with `npm audit`. All three run in CI (`.github/workflows/ci.yml`) on every push |
 | 1.6.3.1 | Compiler security features | meets | Only native library: Google's `libandroidx.graphics.path.so` |
 | 1.6.3.2 | Injection in content providers | n/a | No providers |
 | 1.6.3.3 | No arbitrary redirects in WebViews | n/a | No WebView |
@@ -86,9 +86,9 @@ retention limits on collected data.
 
 ## Open, in order
 
-1. **Android dependency scan** and CI for all three scans (MASA 1.6.2.1).
-2. **The two "verify" items** above (`BootReceiver` export, location
-   PendingIntent), from AOSP or the official reference.
+1. ~~Android dependency scan and CI~~ (done 2026-11-08; watch the first CI run).
+2. ~~The two "verify" items~~ (done; the unexported `BootReceiver` verified on
+   a phone).
 3. **Two-factor sign-in for parents** (TOTP; capability-plan E2). Not a MASA
    requirement, but the console controls a child's phone.
 4. **Threat model** of the sync and console APIs (STRIDE per endpoint), then an

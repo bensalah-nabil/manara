@@ -1,0 +1,80 @@
+# Every push and pull request: tests and known-vulnerability scans for the three
+# parts (docs/testing.md, docs/security.md). The emulator matrix and real-phone
+# runs stay manual: they need emulators or device farms.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: manara
+          POSTGRES_PASSWORD: manara
+          POSTGRES_DB: manara_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U manara" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - run: go vet ./...
+      - name: Tests, database tests included
+        env:
+          MANARA_TEST_DATABASE_URL: postgres://manara:manara@localhost:5432/manara_test
+        run: go test ./...
+      - name: Known vulnerabilities in code the server calls
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: controller
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: controller/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - name: Known vulnerabilities in what ships
+        run: npm audit --omit=dev --audit-level=moderate
+
+  agent:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Unit tests, the setup chaos test included
+        run: ./gradlew testDebugUnitTest --no-daemon
+      - name: Known vulnerabilities in the release build's libraries (OSV.dev)
+        run: |
+          ./gradlew -q :app:dependencies --configuration releaseRuntimeClasspath --no-daemon > deps.txt
+          python3 ../tools/security/osv_check.py deps.txt

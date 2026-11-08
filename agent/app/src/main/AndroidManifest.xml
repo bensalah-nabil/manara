@@ -68,10 +68,13 @@
             </intent-filter>
         </receiver>
 
-        <!-- Restart the visible notice after a reboot, and after Manara is updated. -->
+        <!-- Restart the visible notice after a reboot, and after Manara is updated. Not exported:
+             only the system sends these, and the system may deliver to an unexported receiver
+             (AOSP ActivityManager.canAccessUnexportedComponents: root and system UID), so no
+             other app can reach it (MASA 1.5.1.3). -->
         <receiver
             android:name=".BootReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
