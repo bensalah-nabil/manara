@@ -11,10 +11,12 @@ class SetupRunner(
     private val device: SetupDevice,
     private val report: suspend (SetupFlow.Report) -> Unit,
     private val pollMillis: Long = 5_000,
+    /** What an earlier, unfinished run found on the phone (SetupFlow.start). */
+    private val earlierAccounts: List<AccountDump.Account> = emptyList(),
     private val log: (String, Throwable?) -> Unit = { message, error -> Log.w(TAG, message, error) },
 ) {
     suspend fun run(): SetupFlow.State {
-        var transition = SetupFlow.start()
+        var transition = SetupFlow.start(earlierAccounts)
         var lastReport: SetupFlow.Report? = null
         while (true) {
             if (transition.report != lastReport) {

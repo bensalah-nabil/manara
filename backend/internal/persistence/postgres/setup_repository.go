@@ -32,7 +32,9 @@ func (r *SetupRepository) Report(ctx context.Context, deviceID string, rep domai
 		name, password = &rep.Pairing.Name, &rep.Pairing.Password
 	}
 	// A NULL $5 keeps the stored lists; initial_accounts is filled only while it is still empty.
-	// A non-NULL $6 (the phone's new QR name) starts a new setup: fresh lists and inputs.
+	// A non-NULL $6 (the phone's new QR name) starts a new setup: fresh inputs, but the list of
+	// what the phone had is kept unless the last run finished. A run that failed after removing
+	// accounts must not erase what the parent needs to sign back in to (seen on the SM-A528B).
 	// Leaving the pairing step clears everything pairing needed.
 	_, err := r.db.Pool.Exec(ctx, `
 		INSERT INTO device_setup (device_id, step, status, message, initial_accounts, current_accounts, pairing_name, pairing_password)
@@ -45,7 +47,7 @@ func (r *SetupRepository) Report(ctx context.Context, deviceID string, rep domai
 				WHEN $6::text IS NOT NULL THEN COALESCE($5::jsonb, '[]')
 				ELSE COALESCE($5::jsonb, device_setup.current_accounts) END,
 			initial_accounts = CASE
-				WHEN $6::text IS NOT NULL THEN COALESCE($5::jsonb, '[]')
+				WHEN $6::text IS NOT NULL AND device_setup.step = 'done' THEN COALESCE($5::jsonb, '[]')
 				WHEN device_setup.initial_accounts = '[]'::jsonb AND $5::jsonb IS NOT NULL THEN $5::jsonb
 				ELSE device_setup.initial_accounts END,
 			pairing_name = CASE
@@ -102,9 +104,12 @@ func (r *SetupRepository) Get(ctx context.Context, deviceID string) (*domain.Dev
 func (r *SetupRepository) Input(ctx context.Context, deviceID string) (domain.SetupInput, error) {
 	var in domain.SetupInput
 	var code *string
-	err := r.db.Pool.QueryRow(ctx,
-		`SELECT pairing_code, pairing_code_seq, finish_requested FROM device_setup WHERE device_id = $1`, deviceID,
-	).Scan(&code, &in.PairingCodeSeq, &in.Finish)
+	var earlier []byte
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT pairing_code, pairing_code_seq, finish_requested,
+			CASE WHEN step = 'done' THEN '[]'::jsonb ELSE initial_accounts END
+		FROM device_setup WHERE device_id = $1`, deviceID,
+	).Scan(&code, &in.PairingCodeSeq, &in.Finish, &earlier)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return in, nil
 	}
@@ -113,6 +118,9 @@ func (r *SetupRepository) Input(ctx context.Context, deviceID string) (domain.Se
 	}
 	if code != nil {
 		in.PairingCode = *code
+	}
+	if err := json.Unmarshal(earlier, &in.EarlierAccounts); err != nil {
+		return in, fmt.Errorf("decode earlier accounts: %w", err)
 	}
 	return in, nil
 }

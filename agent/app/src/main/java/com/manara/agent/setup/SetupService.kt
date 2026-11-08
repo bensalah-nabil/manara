@@ -59,7 +59,9 @@ class SetupService : Service() {
                     override suspend fun pairingStatus(message: String) =
                         report(SetupFlow.Report(SetupFlow.Step.PAIRING, SetupFlow.Status.WAITING_FOR_PARENT, message, null))
                 }
-                SetupRunner(AdbSetupDevice(this@SetupService, console), report = ::report).run()
+                // Read before the first report: a failed run's accounts must survive this one.
+                val earlier = readInput()?.earlierAccounts.orEmpty().map { AccountDump.Account(it.type, it.name) }
+                SetupRunner(AdbSetupDevice(this@SetupService, console), report = ::report, earlierAccounts = earlier).run()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {

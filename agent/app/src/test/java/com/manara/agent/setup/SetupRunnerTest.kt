@@ -49,13 +49,14 @@ class SetupRunnerTest {
     @Test
     fun `runs the fixed actions in order and reports each step once`() {
         val device = FakeDevice(
-            accountLists = ArrayDeque(listOf(listOf(google, whatsapp), listOf(google), emptyList())),
+            accountLists = ArrayDeque(listOf(listOf(google, whatsapp), listOf(whatsapp), emptyList())),
             owners = owners, userApps = setOf("com.whatsapp"), ownerOutput = ownerOk,
             watched = ArrayDeque(listOf(listOf(google), listOf(google, whatsapp))),
         )
         val (state, reports) = run(device)
         assertEquals(
-            listOf("pair", "list", "remove [com.whatsapp]", "list", "list", "owner", "restore [com.whatsapp]", "adb off", "watch", "watch"),
+            "the app is removed only after the parent removed Google",
+            listOf("pair", "list", "list", "remove [com.whatsapp]", "list", "owner", "restore [com.whatsapp]", "adb off", "watch", "watch"),
             device.calls,
         )
         assertEquals(SetupFlow.Step.DONE, state.step)

@@ -4,7 +4,7 @@ import { SETUP_STEPS, accountTypeName, canFinish, isActive, pairingCode, reconne
 
 test('steps before the current one are done, the current one reflects the status, later ones are pending', () => {
     const states = stepStates({ step: 'waiting_for_accounts', status: 'waiting_for_parent' })
-    assert.deepEqual(states.map((s) => s.state), ['done', 'done', 'done', 'done', 'waiting', 'pending', 'pending', 'pending', 'pending'])
+    assert.deepEqual(states.map((s) => s.state), ['done', 'done', 'done', 'waiting', 'pending', 'pending', 'pending', 'pending', 'pending'])
     assert.equal(stepStates({ step: 'device_owner', status: 'in_progress' })[5].state, 'current')
     assert.equal(stepStates({ step: 'device_owner', status: 'failed' })[5].state, 'failed')
 })
@@ -19,7 +19,7 @@ test('an unknown step from a newer phone shows nothing as done rather than guess
 
 test('the step list matches the server order', () => {
     assert.deepEqual(SETUP_STEPS.map((s) => s.key), [
-        'linked', 'pairing', 'checking_accounts', 'removing_app_accounts', 'waiting_for_accounts',
+        'linked', 'pairing', 'checking_accounts', 'waiting_for_accounts', 'removing_app_accounts',
         'device_owner', 'restoring_apps', 'reconnecting', 'done',
     ])
 })

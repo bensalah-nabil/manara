@@ -48,7 +48,13 @@ data class SetupPairingDto(val name: String, val password: String)
 
 /** What the parent typed in the console; [pairingCodeSeq] numbers each code sent. */
 @Serializable
-data class SetupInputDto(val pairingCode: String? = null, val pairingCodeSeq: Int = 0, val finish: Boolean = false)
+data class SetupInputDto(
+    val pairingCode: String? = null,
+    val pairingCodeSeq: Int = 0,
+    val finish: Boolean = false,
+    /** What the phone had before an earlier run that didn't finish: still to sign back in to. */
+    val earlierAccounts: List<SetupAccountDto> = emptyList(),
+)
 
 @Serializable
 data class SetupAccountDto(val type: String, val name: String)

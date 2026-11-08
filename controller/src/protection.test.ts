@@ -87,3 +87,11 @@ test('events of other kinds, unknown statuses, and bad timestamps are ignored', 
     ]
     assert.deepEqual(summarizeProtection(events), [])
 })
+
+test('reports from before setup finished are left out', () => {
+    const failed = (at: string) => ({ id: at, kind: 'enforcement', occurredAt: at, payload: { enforcer: 'lock', status: 'failed', detail: 'SecurityException' } })
+    const events = [failed('2026-11-08T02:24:21Z')]
+    assert.equal(summarizeProtection(events).length, 1)
+    assert.equal(summarizeProtection(events, Date.parse('2026-11-08T02:46:21Z')).length, 0)
+    assert.equal(summarizeProtection([failed('2026-11-08T03:00:00Z')], Date.parse('2026-11-08T02:46:21Z')).length, 1)
+})

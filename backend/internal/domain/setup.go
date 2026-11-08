@@ -25,9 +25,11 @@ const (
 	SetupDone               SetupStep = "done"
 )
 
-// SetupSteps is the order the console shows them in.
+// SetupSteps is the order the console shows them in. The parent removes the
+// Google, Samsung and other accounts before any app is uninstalled: an app's
+// data is lost with it, so that is done last, only once nothing else blocks.
 var SetupSteps = []SetupStep{
-	SetupLinked, SetupPairing, SetupCheckingAccounts, SetupRemovingAppAccts, SetupWaitingForAccounts,
+	SetupLinked, SetupPairing, SetupCheckingAccounts, SetupWaitingForAccounts, SetupRemovingAppAccts,
 	SetupDeviceOwner, SetupRestoringApps, SetupReconnecting, SetupDone,
 }
 
@@ -94,6 +96,9 @@ type SetupInput struct {
 	PairingCodeSeq int    `json:"pairingCodeSeq"`
 	// Finish: the parent is done signing back in to accounts.
 	Finish bool `json:"finish"`
+	// EarlierAccounts is what the phone had before an earlier run that did not
+	// finish, so a new run still asks to sign back in to all of it.
+	EarlierAccounts []SetupAccount `json:"earlierAccounts,omitempty"`
 }
 
 // ErrSetupNotWaiting: the phone isn't at the step this input is for.

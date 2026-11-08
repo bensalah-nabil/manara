@@ -224,6 +224,14 @@ paths:
                   pairingCode: { type: string, pattern: '^[0-9]{6}$' }
                   pairingCodeSeq: { type: integer, minimum: 0 }
                   finish: { type: boolean }
+                  earlierAccounts:
+                    type: array
+                    description: >
+                      What the phone had before an earlier setup run that did not
+                      finish (one that failed after accounts were removed). A new
+                      run keeps this list and asks the parent to sign back in to
+                      all of it; empty once a run has finished.
+                    items: { $ref: '#/components/schemas/SetupAccount' }
         '401':
           description: Unknown device token.
           content:
@@ -1063,8 +1071,11 @@ components:
 
     SetupStep:
       type: string
-      description: Guided-setup steps, in the order the phone runs them.
-      enum: [linked, pairing, checking_accounts, removing_app_accounts, waiting_for_accounts,
+      description: >
+        Guided-setup steps, in the order the phone runs them. The parent removes
+        the accounts first; apps that hold an account are uninstalled last, since
+        their data goes with them.
+      enum: [linked, pairing, checking_accounts, waiting_for_accounts, removing_app_accounts,
              device_owner, restoring_apps, reconnecting, done]
 
     SetupStatus:

@@ -1,6 +1,6 @@
 import { colorHex, initial } from './profile.ts'
 import { ProfileEditor } from './ProfileEditor.tsx'
-import { useEffect, useState } from 'preact/hooks'
+import { useCallback, useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
@@ -14,6 +14,7 @@ import type { LimitHit } from './usageHistory.ts'
 import { minutesText, summarizeDailyUsage } from './dailyUsage.ts'
 import type { DailyUsage } from './dailyUsage.ts'
 import { SetupProgress } from './SetupProgress.tsx'
+import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
@@ -64,8 +65,10 @@ function Panel({ title, onRefresh, error, children, footnote }: { title: string;
     )
 }
 
-function ProtectionStatus(props: Props) {
-    const { value: reports, error, reload } = useEvents<ProtectionReport[]>(props, 'enforcement', summarizeProtection)
+function ProtectionStatus(props: Props & { notBefore: number }) {
+    const { notBefore } = props
+    const summarize = useCallback((events: EventItem[]) => summarizeProtection(events, notBefore), [notBefore])
+    const { value: reports, error, reload } = useEvents<ProtectionReport[]>(props, 'enforcement', summarize)
     return (
         <Panel
             title="Protection status"
@@ -208,6 +211,11 @@ const TABS: { key: Tab; label: string }[] = [
 export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: () => void }) {
     const { device } = props
     const [tab, setTab] = useState<Tab>('activity')
+    // Reports from before guided setup finished came from a phone Manara didn't manage yet.
+    const [setupDoneAt, setSetupDoneAt] = useState(0)
+    const onSetup = useCallback((setup: DeviceSetup | null) => {
+        setSetupDoneAt(setup?.status === 'done' ? Date.parse(setup.updatedAt) || 0 : 0)
+    }, [])
 
     return (
         <div class="device">
@@ -225,7 +233,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                 <LockNow {...props} />
             </header>
 
-            <SetupProgress {...props} />
+            <SetupProgress {...props} onSetup={onSetup} />
 
             <div class="tabs" role="tablist" aria-label="Phone sections">
                 {TABS.map(({ key, label }) => (
@@ -247,7 +255,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
             <div id="tab-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} class="stack">
                 {tab === 'activity' && (
                     <>
-                        <ProtectionStatus {...props} />
+                        <ProtectionStatus {...props} notBefore={setupDoneAt} />
                         <DailyUsagePanel {...props} />
                         <LimitHistory {...props} />
                     </>

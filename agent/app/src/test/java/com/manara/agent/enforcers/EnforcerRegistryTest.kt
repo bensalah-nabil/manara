@@ -70,4 +70,18 @@ class EnforcerRegistryTest {
         assertEquals(a, registry.find("time-limit"))
         assertNull(registry.find("missing"))
     }
+
+    @Test
+    fun `nothing is applied until Manara manages the phone`() {
+        val a = FakeEnforcer("a")
+        var managed = false
+        val registry = EnforcerRegistry(listOf(a), isManaged = { managed })
+
+        registry.applyAll(Policy(version = 3))
+        assertNull(a.lastAppliedVersion)
+
+        managed = true
+        registry.applyAll(Policy(version = 4))
+        assertEquals(4, a.lastAppliedVersion)
+    }
 }

@@ -356,3 +356,36 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 .button-link { text-decoration: none; display: inline-flex; align-items: center; }
 .danger-zone { border-color: var(--danger); }
+
+/* Guided setup as a live timeline: the step the phone is on opens with what it needs. */
+.timeline-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.live { display: inline-flex; align-items: center; gap: 8px; color: var(--ok); font-size: 0.9rem; }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); animation: live-pulse 1.6s ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.tl-step { display: grid; grid-template-columns: 28px 1fr; gap: 12px; position: relative; padding-bottom: 14px; }
+.tl-step:not(:last-child)::before {
+  content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--line);
+}
+.tl-step.done:not(:last-child)::before { background: var(--ok); }
+.tl-marker {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 0.8rem; font-weight: 650; background: var(--surface); border: 2px solid var(--line); color: var(--muted);
+}
+.tl-step.done .tl-marker { background: var(--ok); border-color: var(--ok); color: #fff; }
+.tl-step.current .tl-marker { border-color: var(--brand); color: var(--brand); }
+.tl-step.waiting .tl-marker { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.tl-step.failed .tl-marker { border-color: var(--danger); color: #fff; background: var(--danger); }
+.tl-body { min-width: 0; padding-top: 3px; }
+.tl-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.tl-step.pending .tl-title > span:first-child { color: var(--muted); }
+.tl-step.current .tl-title > span:first-child, .tl-step.waiting .tl-title > span:first-child, .tl-step.failed .tl-title > span:first-child { font-weight: 650; }
+.tl-state { font-size: 0.8rem; padding: 1px 8px; border-radius: 999px; background: var(--line); color: var(--muted); }
+.tl-state.done { background: var(--ok-soft); color: var(--ok); }
+.tl-state.current { background: var(--brand-soft); color: var(--brand); }
+.tl-state.waiting { background: var(--warn-soft); color: var(--warn); }
+.tl-state.failed { background: var(--danger); color: #fff; }
+.tl-detail { margin-top: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.tl-step.waiting .tl-detail { border-color: var(--warn); }
+.tl-step.failed .tl-detail { border-color: var(--danger); }

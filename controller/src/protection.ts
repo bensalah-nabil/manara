@@ -47,7 +47,11 @@ function text(value: unknown): string {
 }
 
 /** One entry per (protection, detail): its newest report wins, unresolved problems first. */
-export function summarizeProtection(events: EventItem[]): ProtectionReport[] {
+/**
+ * [notBefore]: when guided setup finished. Earlier reports come from before Manara managed the
+ * phone, when every rule fails with SecurityException; they say nothing about protection now.
+ */
+export function summarizeProtection(events: EventItem[], notBefore = 0): ProtectionReport[] {
     const latest = new Map<string, { time: number; event: EventItem }>()
 
     for (const event of events) {
@@ -55,7 +59,7 @@ export function summarizeProtection(events: EventItem[]): ProtectionReport[] {
         const status = text(event.payload?.status)
         if (status !== 'missing' && status !== 'failed' && status !== 'restored') continue
         const time = Date.parse(event.occurredAt)
-        if (Number.isNaN(time)) continue
+        if (Number.isNaN(time) || time < notBefore) continue
         const key = `${text(event.payload?.enforcer)}|${text(event.payload?.detail)}`
         const seen = latest.get(key)
         if (!seen || time > seen.time) latest.set(key, { time, event })

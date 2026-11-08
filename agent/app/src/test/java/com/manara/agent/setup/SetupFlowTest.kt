@@ -53,24 +53,27 @@ class SetupFlowTest {
         var t = run(Event.Paired)
         assertEquals(Action.ListAccounts, t.action)
 
+        // The parent's accounts come first; no app is touched while they remain.
         t = SetupFlow.next(t.state, listed(listOf(google, samsung, whatsapp)))
-        assertEquals(Action.BackUpAndUninstall(listOf("com.whatsapp")), t.action)
-        assertEquals(Step.REMOVING_APP_ACCOUNTS, t.report.step)
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(Step.WAITING_FOR_ACCOUNTS, t.report.step)
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertTrue(t.report.message.contains("removes those apps last"))
         assertEquals(listOf(google, samsung, whatsapp), t.report.accounts)
         assertEquals(listOf(google, samsung, whatsapp), t.state.initialAccounts)
 
+        t = SetupFlow.next(t.state, listed(listOf(google, whatsapp)))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(listOf(google, whatsapp), t.report.accounts)
+
+        // Only app accounts left: now, and only now, the app is saved and removed.
+        t = SetupFlow.next(t.state, listed(listOf(whatsapp)))
+        assertEquals(Action.BackUpAndUninstall(listOf("com.whatsapp")), t.action)
+        assertEquals(Step.REMOVING_APP_ACCOUNTS, t.report.step)
+        assertEquals("the first list is kept for the reconnect checklist", listOf(google, samsung, whatsapp), t.state.initialAccounts)
+
         t = SetupFlow.next(t.state, Event.AppsRemoved(listOf("com.whatsapp")))
         assertEquals(Action.ListAccounts, t.action)
-
-        t = SetupFlow.next(t.state, listed(listOf(google, samsung), installed - "com.whatsapp"))
-        assertEquals(Action.WaitThenListAccounts, t.action)
-        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
-        assertEquals(listOf(google, samsung), t.report.accounts)
-
-        t = SetupFlow.next(t.state, listed(listOf(google), installed - "com.whatsapp"))
-        assertEquals(Action.WaitThenListAccounts, t.action)
-        assertEquals(listOf(google), t.report.accounts)
-        assertEquals("the first list is kept for the reconnect checklist", listOf(google, samsung, whatsapp), t.state.initialAccounts)
 
         t = SetupFlow.next(t.state, listed(emptyList(), installed - "com.whatsapp"))
         assertEquals(Action.SetDeviceOwner, t.action)
@@ -124,17 +127,58 @@ class SetupFlowTest {
     @Test
     fun `only apps the user installed are uninstalled, found by the account's real owner`() {
         val instagram = Account("www.instagram.com", "kid_insta")
-        val t = run(Event.Paired, listed(listOf(whatsapp, instagram, google), userApps = setOf("com.whatsapp", "com.instagram.android")))
+        val t = run(Event.Paired, listed(listOf(whatsapp, instagram), userApps = setOf("com.whatsapp", "com.instagram.android")))
         assertEquals(Action.BackUpAndUninstall(listOf("com.whatsapp", "com.instagram.android")), t.action)
     }
 
     @Test
-    fun `an app already removed is not removed again`() {
+    fun `no app is removed while an account the parent must remove is still there`() {
+        val t = run(Event.Paired, listed(listOf(whatsapp, google)))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertEquals(emptyList<String>(), t.state.removedApps)
+    }
+
+    @Test
+    fun `no app is removed while another user is on the phone`() {
+        val t = run(Event.Paired, listed(listOf(whatsapp), otherUsers = 1))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertTrue(t.report.message.contains("Secure Folder"))
+    }
+
+    @Test
+    fun `an app already removed is not removed again, its account is waited out`() {
         val t = run(
             Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
             listed(listOf(whatsapp)),
         )
         assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals("not the parent's job", Status.IN_PROGRESS, t.report.status)
+        assertEquals(Step.REMOVING_APP_ACCOUNTS, t.report.step)
+    }
+
+    @Test
+    fun `a removed app's account that never goes is handed to the parent, not failed`() {
+        var t = run(Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")))
+        repeat(SetupFlow.MAX_OWNER_RETRIES) {
+            t = SetupFlow.next(t.state, listed(listOf(whatsapp), installed - "com.whatsapp", owners - "com.whatsapp"))
+            assertEquals(Status.IN_PROGRESS, t.report.status)
+        }
+        t = SetupFlow.next(t.state, listed(listOf(whatsapp), installed - "com.whatsapp", owners - "com.whatsapp"))
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertTrue(t.report.message.contains("orphan account cleaner"))
+    }
+
+    @Test
+    fun `accounts from an earlier unfinished run are still offered to sign back in to`() {
+        var t = SetupFlow.start(earlierAccounts = listOf(google, samsung))
+        t = SetupFlow.next(t.state, Event.Paired)
+        t = SetupFlow.next(t.state, listed(emptyList()))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        assertEquals(listOf(google, samsung), t.state.initialAccounts)
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
+        t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
+        assertEquals("not finished: there is something to sign back in to", Step.RECONNECTING, t.report.step)
     }
 
     @Test

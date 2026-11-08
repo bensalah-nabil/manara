@@ -9,9 +9,18 @@ import com.manara.agent.policy.Policy
  * enforcer — that's what makes adding call logging "one class + one line
  * here," nothing else (architecture.md §2.2).
  */
-class EnforcerRegistry(private val enforcers: List<PolicyEnforcer>) {
+class EnforcerRegistry(
+    private val enforcers: List<PolicyEnforcer>,
+    /**
+     * Rules need device-owner rights. Before setup has made Manara the manager, every enforcer
+     * would fail with SecurityException and report it as a broken protection (seen on the
+     * SM-A528B while its setup was still running), so nothing is applied until then.
+     */
+    private val isManaged: () -> Boolean = { true },
+) {
 
     fun applyAll(policy: Policy) {
+        if (!isManaged()) return
         enforcers.forEach { it.apply(policy) }
     }
 

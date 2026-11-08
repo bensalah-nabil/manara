@@ -18,5 +18,8 @@ fun defaultEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegist
         RestrictionsEnforcer(context),
         UsageReportEnforcer(context),
         BrowserPolicyEnforcer(context)
-    )
+    ),
+    isManaged = {
+        context.getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)
+    },
 )

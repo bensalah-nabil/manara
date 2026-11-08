@@ -77,8 +77,14 @@ object SetupFlow {
         val initialAccounts: List<Account>? = null,
         val removedApps: List<String> = emptyList(),
         val failure: String? = null,
-        /** Times `set-device-owner` was refused for an account Android still counted. */
+        /** Times `set-device-owner` was refused for an account Android still counts. */
         val ownerRetries: Int = 0,
+        /** What the phone had before an earlier run that didn't finish (from the server). */
+        val earlierAccounts: List<Account> = emptyList(),
+        /** Account types of the apps this run uninstalled: Android deletes those accounts after a delay. */
+        val removedTypes: Set<String> = emptySet(),
+        /** Checks spent waiting for those accounts to go. */
+        val lingerChecks: Int = 0,
     )
 
     data class Transition(val state: State, val action: Action, val report: Report)
@@ -87,8 +93,9 @@ object SetupFlow {
     const val MAX_ACCOUNTS = 100
     private const val DEVICE_OWNER_SUCCESS = "Success: Device owner set to package "
 
-    fun start(): Transition = Transition(
-        State(Step.PAIRING),
+    /** [earlierAccounts]: what an earlier, unfinished run found, so the parent can sign back in to all of it. */
+    fun start(earlierAccounts: List<Account> = emptyList()): Transition = Transition(
+        State(Step.PAIRING, earlierAccounts = earlierAccounts.distinct()),
         Action.WaitForPairingCode,
         report(
             Step.PAIRING, Status.WAITING_FOR_PARENT,
@@ -198,30 +205,57 @@ object SetupFlow {
         return exception ?: lines.firstOrNull() ?: "no output"
     }
 
+    /**
+     * Uninstalling an app is the only way to remove its account, and it deletes the app's data, so
+     * it is done last: only once nothing else blocks (no account the parent must remove, no other
+     * user), right before Manara becomes the manager. A run that stops earlier, or a parent who
+     * gives up, leaves every app as it was. (A failed run on the SM-A528B lost app data.)
+     */
     private fun onAccounts(state: State, event: Event.Accounts): Transition {
         val accounts = event.accounts.distinct()
-        val withInitial = if (state.initialAccounts == null) state.copy(initialAccounts = accounts) else state
+        val withInitial = if (state.initialAccounts == null) {
+            state.copy(initialAccounts = (state.earlierAccounts + accounts).distinct())
+        } else {
+            state
+        }
         // Uninstalling an app deletes the accounts its authenticator registered (AccountManagerService).
-        val removable = accounts
-            .mapNotNull { event.owners[it.type] }
-            .filter { it in event.userApps && it !in state.removedApps }
-            .distinct()
+        // An app this run uninstalled: its account goes by itself, a little later.
+        val lingering = accounts.filter { it.type in state.removedTypes }
+        val appHeld = accounts.filter { account ->
+            account.type !in state.removedTypes && event.owners[account.type]?.let { it in event.userApps } == true
+        }
+        val removable = appHeld.mapNotNull { event.owners[it.type] }.filter { it !in state.removedApps }.distinct()
         // Seen on a real phone: an account that outlived its app, with no Settings entry to remove it.
-        val orphaned = accounts.filter { it.type !in event.owners }
-        val manual = accounts.size - orphaned.size
+        val orphaned = accounts.filter { it.type !in event.owners && it.type !in state.removedTypes }
+        val manual = accounts - appHeld.toSet() - lingering.toSet() - orphaned.toSet()
         return when {
+            manual.isNotEmpty() || orphaned.isNotEmpty() || event.otherUsers > 0 -> Transition(
+                withInitial.copy(step = Step.WAITING_FOR_ACCOUNTS),
+                Action.WaitThenListAccounts,
+                report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT,
+                    waitingMessage(manual.size, orphaned.size, event.otherUsers, appHeld.size), accounts),
+            )
             removable.isNotEmpty() -> Transition(
-                withInitial.copy(step = Step.REMOVING_APP_ACCOUNTS),
+                withInitial.copy(
+                    step = Step.REMOVING_APP_ACCOUNTS,
+                    removedTypes = withInitial.removedTypes + appHeld.map { it.type },
+                ),
                 Action.BackUpAndUninstall(removable),
                 report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,
                     "Saving and removing ${removable.size} app(s) that hold an account. They come back at the end; their data on the phone does not, except what the app backs up itself.",
                     accounts),
             )
-            accounts.isNotEmpty() || event.otherUsers > 0 -> Transition(
+            lingering.isNotEmpty() && state.lingerChecks < MAX_OWNER_RETRIES -> Transition(
+                withInitial.copy(step = Step.REMOVING_APP_ACCOUNTS, lingerChecks = state.lingerChecks + 1),
+                Action.WaitThenListAccounts,
+                report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,
+                    "Waiting for Android to forget the accounts of the removed apps.", accounts),
+            )
+            lingering.isNotEmpty() -> Transition(
                 withInitial.copy(step = Step.WAITING_FOR_ACCOUNTS),
                 Action.WaitThenListAccounts,
                 report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT,
-                    waitingMessage(manual, orphaned.size, event.otherUsers), accounts),
+                    waitingMessage(0, lingering.size, event.otherUsers, 0), accounts),
             )
             else -> Transition(
                 withInitial.copy(step = Step.DEVICE_OWNER),
@@ -231,8 +265,9 @@ object SetupFlow {
         }
     }
 
-    private fun waitingMessage(manual: Int, orphaned: Int, otherUsers: Int): String = buildList {
+    private fun waitingMessage(manual: Int, orphaned: Int, otherUsers: Int, appHeld: Int): String = buildList {
         if (manual > 0) add("Write down each password, then remove the $manual account(s) listed in the console from Settings, Accounts.")
+        if (appHeld > 0) add("Leave the $appHeld app account(s) alone: Manara removes those apps last, only once the rest is done.")
         if (orphaned > 0) add("$orphaned account(s) belong to an app that is gone and cannot be removed from Settings; they need the orphan account cleaner tool.")
         // A second user (e.g. Secure Folder) also blocks device owner, even with no accounts.
         if (otherUsers > 0) add("Remove Secure Folder and any other user or profile on the phone.")
