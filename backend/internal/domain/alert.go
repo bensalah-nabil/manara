@@ -54,6 +54,13 @@ var detailSentences = map[string]string{
 	"disallow_factory_reset":      "Factory reset is no longer blocked.",
 	"disallow_safe_boot":          "Safe boot is no longer blocked.",
 	"disallow_add_user":           "Adding users is no longer blocked.",
+	// The values the phone actually reports (UserManager's constants); only Private DNS's is "disallow_".
+	"no_config_vpn":         "VPN settings are no longer locked.",
+	"no_factory_reset":      "Factory reset is no longer blocked.",
+	"no_safe_boot":          "Safe boot is no longer blocked.",
+	"no_add_user":           "Adding users is no longer blocked.",
+	"no_debugging_features": "Developer options are no longer blocked.",
+	"no_config_date_time":   "Date and time settings are no longer locked.",
 }
 
 func payloadText(e *Event, key string) string {

@@ -78,7 +78,9 @@ data class Policy(
         val blockFactoryReset: Boolean = false,
         val blockSafeBoot: Boolean = false,
         val blockAddUser: Boolean = false,
-        val blockDebugging: Boolean = false
+        val blockDebugging: Boolean = false,
+        /** Automatic date and time, and no changing it: a changed clock would escape a lock window or a daily limit. */
+        val blockDateTime: Boolean = false
     )
 
     @Serializable

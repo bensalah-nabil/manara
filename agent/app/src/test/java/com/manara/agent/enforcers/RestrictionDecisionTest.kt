@@ -13,6 +13,12 @@ class RestrictionDecisionTest {
     private val reset = UserManager.DISALLOW_FACTORY_RESET
 
     @Test
+    fun `the date and time lock is its own restriction`() {
+        val keys = RestrictionDecision.desiredKeys(Policy.Restrictions(blockDateTime = true), 34)
+        assertEquals(setOf(UserManager.DISALLOW_CONFIG_DATE_TIME), keys)
+    }
+
+    @Test
     fun `default policy wants nothing`() {
         assertTrue(RestrictionDecision.desiredKeys(Policy.Restrictions(), 34).isEmpty())
     }

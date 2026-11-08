@@ -86,6 +86,9 @@ type Restrictions struct {
 	// BlockDebugging is DISALLOW_DEBUGGING_FEATURES: no developer options or adb,
 	// so a computer can't undo the rest. The phone holds it back during guided setup.
 	BlockDebugging bool `json:"blockDebugging,omitempty"`
+	// BlockDateTime keeps the clock automatic and locked: a changed clock would
+	// escape a lock window or reset a daily limit.
+	BlockDateTime bool `json:"blockDateTime,omitempty"`
 }
 
 type TimeLimits struct {
@@ -132,7 +135,7 @@ type LockWindow struct {
 // Manara off it. The parent can turn each of these off.
 func DefaultPolicy() Policy {
 	return Policy{Version: 1, Restrictions: &Restrictions{
-		BlockFactoryReset: true, BlockSafeBoot: true, BlockAddUser: true, BlockDebugging: true,
+		BlockFactoryReset: true, BlockSafeBoot: true, BlockAddUser: true, BlockDebugging: true, BlockDateTime: true,
 	}}
 }
 

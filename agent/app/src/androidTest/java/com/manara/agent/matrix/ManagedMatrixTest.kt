@@ -81,7 +81,7 @@ class ManagedMatrixTest {
 
     private val allRestrictions = Policy.Restrictions(
         blockVpnConfig = true, blockPrivateDnsConfig = true, blockFactoryReset = true,
-        blockSafeBoot = true, blockAddUser = true,
+        blockSafeBoot = true, blockAddUser = true, blockDateTime = true,
     )
 
     @Test
@@ -95,7 +95,9 @@ class ManagedMatrixTest {
             add(UserManager.DISALLOW_FACTORY_RESET)
             add(UserManager.DISALLOW_SAFE_BOOT)
             add(UserManager.DISALLOW_ADD_USER)
+            add(UserManager.DISALLOW_CONFIG_DATE_TIME)
         }
+        assertTrue("automatic time on", dpm.getAutoTimeEnabled(admin))
         expected.forEach { assertTrue("$it on API ${Build.VERSION.SDK_INT}", active.getBoolean(it)) }
 
         registry.applyAll(Policy(version = 2))

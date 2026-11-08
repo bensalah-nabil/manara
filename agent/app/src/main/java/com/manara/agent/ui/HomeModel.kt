@@ -91,6 +91,7 @@ object ChildView {
                 "safe mode".takeIf { blockSafeBoot },
                 "new users".takeIf { blockAddUser },
                 "developer options".takeIf { blockDebugging },
+                "date and time".takeIf { blockDateTime },
                 "VPN settings".takeIf { blockVpnConfig },
                 "Private DNS settings".takeIf { blockPrivateDnsConfig },
             )

@@ -15,7 +15,7 @@ object NoticeSummary {
         val windows = policy.lockSchedule?.takeIf { it.enabled }?.windows?.size ?: 0
         if (windows > 0) lines += "Scheduled lock: $windows ${if (windows == 1) "window" else "windows"}"
         with(policy.restrictions) {
-            val count = listOf(blockVpnConfig, blockPrivateDnsConfig, blockFactoryReset, blockSafeBoot, blockAddUser, blockDebugging).count { it }
+            val count = listOf(blockVpnConfig, blockPrivateDnsConfig, blockFactoryReset, blockSafeBoot, blockAddUser, blockDebugging, blockDateTime).count { it }
             if (count > 0) lines += "Settings restrictions requested: $count"
         }
         if (com.manara.agent.enforcers.BrowserPolicyDecision.restrictions(policy.browser).isNotEmpty()) lines += "Chrome rules set by your parent"

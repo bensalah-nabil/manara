@@ -9,6 +9,7 @@ export const RESTRICTIONS = [
     { key: 'blockSafeBoot', label: 'Block safe mode', help: '' },
     { key: 'blockAddUser', label: 'Block adding users', help: '' },
     { key: 'blockDebugging', label: 'Block developer options and debugging', help: 'Stops a computer being used to undo these rules. Waits until guided setup has finished.' },
+    { key: 'blockDateTime', label: 'Lock the date and time', help: "Keeps the clock automatic, so changing it can't escape a lock window or reset a daily limit." },
 ] as const
 
 export type RestrictionKey = (typeof RESTRICTIONS)[number]['key']

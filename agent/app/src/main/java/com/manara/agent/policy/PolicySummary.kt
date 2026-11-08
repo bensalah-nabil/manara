@@ -73,7 +73,8 @@ object PolicySummary {
             "Factory reset from Settings".takeIf { restrictions.blockFactoryReset },
             "Safe boot".takeIf { restrictions.blockSafeBoot },
             "Adding users".takeIf { restrictions.blockAddUser },
-            "Developer options".takeIf { restrictions.blockDebugging }
+            "Developer options".takeIf { restrictions.blockDebugging },
+            "Date and time".takeIf { restrictions.blockDateTime }
         )
         lines += requested.ifEmpty { listOf("None") }
         lines += ""

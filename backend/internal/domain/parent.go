@@ -67,6 +67,10 @@ const SessionLifetime = 30 * 24 * time.Hour
 // description ("one-time enrollment token"). Consume both validates and
 // invalidates it in the same call, so a token can't be replayed if a
 // response is somehow intercepted or retried.
+// EnrollmentTokenLifetime: a connection code not used within a day stops
+// working, so one shown on a screen or in a photo isn't valid for ever.
+const EnrollmentTokenLifetime = 24 * time.Hour
+
 type EnrollmentTokenRepository interface {
 	// Create stores the attestation with the token; nil is only for the -seed dev shortcut.
 	Create(ctx context.Context, parentID string, attestation *GuardianAttestation) (token string, err error)

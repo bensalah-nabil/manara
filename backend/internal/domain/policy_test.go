@@ -19,7 +19,7 @@ func TestPolicyRoundTripKeepsEveryFieldTheAgentDefines(t *testing.T) {
 		"location": {"enabled": true, "intervalMinutes": 10},
 		"callLog": {"enabled": true},
 		"lockSchedule": {"enabled": true, "windows": [{"days": [6, 7], "fromHour": 22, "toHour": 7}]},
-		"restrictions": {"blockVpnConfig": true, "blockPrivateDnsConfig": true, "blockFactoryReset": true, "blockSafeBoot": true, "blockAddUser": true, "blockDebugging": true},
+		"restrictions": {"blockVpnConfig": true, "blockPrivateDnsConfig": true, "blockFactoryReset": true, "blockSafeBoot": true, "blockAddUser": true, "blockDebugging": true, "blockDateTime": true},
 		"usageReport": {"enabled": true},
 		"browser": {"safeSearch": true, "youtube": "strict", "secureDnsOff": true, "blockedSites": ["example.com"]}
 	}`

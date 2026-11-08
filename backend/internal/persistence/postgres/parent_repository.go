@@ -196,8 +196,9 @@ func (r *EnrollmentTokenRepository) Consume(ctx context.Context, token string) (
 	err := r.db.Pool.QueryRow(ctx, `
 		UPDATE enrollment_tokens SET consumed_at = now()
 		WHERE token_hash = $1 AND consumed_at IS NULL
+		  AND created_at > now() - make_interval(secs => $2)
 		RETURNING parent_id
-	`, hashToken(token)).Scan(&parentID)
+	`, hashToken(token), domain.EnrollmentTokenLifetime.Seconds()).Scan(&parentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", false, nil
 	}

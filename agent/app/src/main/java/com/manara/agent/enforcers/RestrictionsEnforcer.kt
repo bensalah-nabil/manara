@@ -49,6 +49,16 @@ class RestrictionsEnforcer(context: Context) : PolicyEnforcer {
             pendingEvents.add(enforcementEvent(id, "missing", it))
         }
 
+        // The clock: automatic time on, so the date/time restriction locks a correct clock.
+        // Only ever turned on, never off: lifting the rule leaves the phone's time setting alone.
+        if (policy.restrictions.blockDateTime) {
+            runCatching { if (!devicePolicyManager.getAutoTimeEnabled(admin)) devicePolicyManager.setAutoTimeEnabled(admin, true) }
+                .onFailure {
+                    Log.w(TAG, "setAutoTimeEnabled threw", it)
+                    pendingEvents.add(enforcementEvent(id, "failed", "auto time: ${it.javaClass.simpleName}"))
+                }
+        }
+
         val failed = mutableSetOf<String>()
         decision.toAdd.forEach { key ->
             runCatching { devicePolicyManager.addUserRestriction(admin, key) }.onFailure {

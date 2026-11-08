@@ -18,6 +18,8 @@ import com.manara.agent.policy.Policy
  *   The reference doesn't claim it covers recovery mode.
  * - `DISALLOW_SAFE_BOOT`: API 23.
  * - `DISALLOW_ADD_USER`: API 21.
+ * - `DISALLOW_CONFIG_DATE_TIME`: set by a device owner it applies to the whole device (AOSP
+ *   `UserManager`); paired with `setAutoTimeEnabled` as `DevicePolicyManager` recommends.
  */
 object RestrictionDecision {
 
@@ -39,6 +41,7 @@ object RestrictionDecision {
         if (restrictions.blockSafeBoot) add(UserManager.DISALLOW_SAFE_BOOT)
         if (restrictions.blockAddUser) add(UserManager.DISALLOW_ADD_USER)
         if (restrictions.blockDebugging && debuggingBlockAllowed) add(UserManager.DISALLOW_DEBUGGING_FEATURES)
+        if (restrictions.blockDateTime) add(UserManager.DISALLOW_CONFIG_DATE_TIME)
     }
 
     /**

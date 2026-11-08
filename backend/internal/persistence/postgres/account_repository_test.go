@@ -223,3 +223,24 @@ func TestLoginTakesBcryptTimeForAnUnknownEmailToo(t *testing.T) {
 		t.Fatalf("unknown email answered in %v: faster than a bcrypt compare, so timing tells", d)
 	}
 }
+
+func TestAnEnrollmentCodeExpiresAfterADay(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	p := newParent(t, db, uniqueEmail("enroll"), "password one")
+	tokens := NewEnrollmentTokenRepository(db)
+	fresh, _ := tokens.Create(ctx, p.ID, nil)
+	old, _ := tokens.Create(ctx, p.ID, nil)
+	if _, err := db.Pool.Exec(ctx, `UPDATE enrollment_tokens SET created_at = now() - interval '25 hours' WHERE token_hash = $1`, hashToken(old)); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := tokens.Consume(ctx, old); ok {
+		t.Fatal("a 25-hour-old code still enrolls")
+	}
+	if id, ok, _ := tokens.Consume(ctx, fresh); !ok || id != p.ID {
+		t.Fatal("a fresh code refused")
+	}
+	if _, ok, _ := tokens.Consume(ctx, fresh); ok {
+		t.Fatal("a code used twice")
+	}
+}

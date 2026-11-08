@@ -96,8 +96,13 @@ retention limits on collected data.
    password reset that does not skip it. Accepted for now: the authenticator
    secret is stored as is in the database (it is only useful together with the
    password); encrypting it with a server key is a later step.
-4. **Threat model** of the sync and console APIs (STRIDE per endpoint), then an
-   external penetration test of the server.
+4. ~~Threat model~~ ([threat-model.md](threat-model.md), 2026-11-08). It found
+   and fixed: enrollment codes that never expired (now 24 h), an unpinned
+   Gradle download (checksum pinned), and a child changing the clock to
+   escape a lock window (the date and time are now locked, with automatic
+   time, by default on new phones; checked on the Android 14 emulator). Its
+   remaining items: an audit log of parent actions, removing every adb key at
+   the end of setup, then an external penetration test with it as scope.
 5. **Rate limits and the alert throttle in Postgres** before running a second
    server instance (they are in memory today).
 6. **MASA AL1 self-attestation** as a rehearsal, then **AL2** with a lab, on
