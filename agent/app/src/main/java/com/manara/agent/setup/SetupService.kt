@@ -62,7 +62,11 @@ class SetupService : Service() {
                 }
                 // Read before the first report: a failed run's accounts must survive this one.
                 val earlier = readInput()?.earlierAccounts.orEmpty().map { AccountDump.Account(it.type, it.name) }
-                SetupRunner(AdbSetupDevice(this@SetupService, console), report = ::report, earlierAccounts = earlier).run()
+                val end = SetupRunner(AdbSetupDevice(this@SetupService, console), report = ::report, earlierAccounts = earlier).run()
+                // Managed now: check in at once for the rules, rather than whenever the periodic sync
+                // first runs. On the SM-A045F the console still said "never connected" 11 min after
+                // setup finished, so no rule was applied yet.
+                if (end.step == SetupFlow.Step.DONE) com.manara.agent.sync.SyncWorker.enqueueOneTime(this@SetupService)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
