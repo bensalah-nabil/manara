@@ -65,6 +65,7 @@ class SetupChaosTest {
         val resumeFailures = mutableMapOf<String, Int>()
         val removedByParent = mutableSetOf<Account>()
         var deviceOwner = false
+        var recreated = 0
         var paired = false
         var adbOffCalls = 0
         var lastListCountedNothing = false
@@ -120,7 +121,8 @@ class SetupChaosTest {
             val now = accounts.toList()
             if (!listed) { firstSeen += now; listed = true }
             lastListCountedNothing = counted().isEmpty() && otherUsers == 0
-            val owners = now.mapNotNull { a -> registered(a.type)?.let { a.type to it } }.toMap()
+            // Like `dumpsys account`: every registered authenticator, with or without accounts.
+            val owners = ownerOf.keys.mapNotNull { type -> registered(type)?.let { type to it } }.toMap()
             return SetupFlow.Event.Accounts(now, owners, keepRunning, otherUsers)
         }
 
@@ -144,6 +146,10 @@ class SetupChaosTest {
             flaky("owner", 0.0)
             if (failedReported) violations += "device owner tried after a failure was reported"
             if (!lastListCountedNothing) violations += "device owner tried while the last list still counted ${counted()}"
+            // Facebook, when running, re-created its removed account 2 s after the recount (SM-A045F).
+            if ("com.facebook.katana" !in disabled && rnd.nextDouble() < 0.7) {
+                removedByParent.firstOrNull { it.type == "com.facebook.auth.login" && it !in accounts }?.let { accounts += it; recreated++ }
+            }
             return when {
                 // A real account, or Android's stale count; Android 14+ words its live check differently.
                 counted().isNotEmpty() || (countsStoredAccounts && accounts.isNotEmpty()) || rnd.nextDouble() < 0.15 -> if (rnd.nextBoolean()) {
@@ -184,6 +190,7 @@ class SetupChaosTest {
         var finished = 0
         var failedRuns = 0
         var paused = 0
+        var recreated = 0
         for (seed in 1L..5000L) {
             val sim = Sim(seed)
             val earlier = if (sim.rnd.nextDouble() < 0.3) listOf(Account("com.google", "before@gmail.com")) else emptyList()
@@ -204,6 +211,7 @@ class SetupChaosTest {
                 fail("seed $seed: run() threw $other\n${sim.log.joinToString("\n")}"); return
             }
             if (sim.everPaused.isNotEmpty()) paused++
+            recreated += sim.recreated
 
             // Rule 1: the only accounts gone are those the parent removed.
             val lost = sim.firstSeen.filter { it !in sim.accounts && it !in sim.removedByParent }
@@ -226,6 +234,6 @@ class SetupChaosTest {
                 fail("seed $seed: ${sim.violations.distinct().joinToString("; ")}\n--- calls:\n${sim.log.joinToString("\n")}\n--- reports:\n${reports.joinToString("\n") { "${it.step} ${it.status} ${it.message}" }}")
             }
         }
-        println("chaos: $finished finished, $failedRuns failed safely, $paused paused apps, $leftOff app(s) left off after every attempt failed (named to the parent)")
+        println("chaos: $finished finished, $failedRuns failed safely, $paused paused apps, $recreated account(s) re-created by their app, $leftOff app(s) left off after every attempt failed (named to the parent)")
     }
 }

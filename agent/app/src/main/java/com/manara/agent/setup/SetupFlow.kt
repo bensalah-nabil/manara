@@ -303,7 +303,21 @@ object SetupFlow {
             pkg !in NEVER_PAUSE && pkg !in event.keepRunning && pkg !in state.cannotPause
         val manual = counted.filter { !canPause(event.owners[it.type]) }
         val toPause = counted.mapNotNull { event.owners[it.type] }.filter(::canPause).distinct() - state.pausedApps.toSet()
+        // Facebook re-created its removed account 2 s after Manara's recount on the SM-A045F, and
+        // device owner was refused again. Once nothing is stored, the apps that held the removed
+        // accounts are paused for the last few seconds: they hold no account, so even a phone that
+        // counts stored accounts lets device owner through, and paused they can't sign back in.
+        val guard = if (!state.pauseNotEnough || manual.isNotEmpty() || event.otherUsers > 0) emptyList() else
+            state.initialAccounts.orEmpty().mapNotNull { event.owners[it.type] }.distinct()
+                .filter { it !in NEVER_PAUSE && it !in event.keepRunning && it !in state.cannotPause } - state.pausedApps.toSet()
         return when {
+            // An account came back while its app was paused: Settings lists an account only while
+            // its app is on, so turn the apps back on before asking the parent to remove it.
+            manual.isNotEmpty() && state.pauseNotEnough && state.pausedApps.isNotEmpty() -> Transition(
+                state.copy(step = Step.WAITING_FOR_ACCOUNTS),
+                Action.ResumeApps(state.pausedApps),
+                report(Step.WAITING_FOR_ACCOUNTS, Status.IN_PROGRESS, "An account came back. Turning the apps back on so it can be removed."),
+            )
             manual.isNotEmpty() || event.otherUsers > 0 -> Transition(
                 state.copy(step = Step.WAITING_FOR_ACCOUNTS),
                 Action.WaitThenListAccounts,
@@ -319,6 +333,12 @@ object SetupFlow {
                 Action.PauseApps(toPause),
                 report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,
                     "Pausing ${toPause.size} app(s) that hold an account for a few seconds. Nothing is deleted: they come back on with their accounts and data."),
+            )
+            guard.isNotEmpty() -> Transition(
+                state.copy(step = Step.REMOVING_APP_ACCOUNTS, pausedApps = state.pausedApps + guard),
+                Action.PauseApps(guard),
+                report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,
+                    "Accounts removed. Pausing ${guard.size} app(s) for a few seconds so none signs back in before Manara becomes the manager."),
             )
             else -> Transition(
                 state.copy(step = Step.DEVICE_OWNER),

@@ -89,7 +89,8 @@ So setup does this:
 2. If `set-device-owner` refuses twice (`PAUSE_RETRIES`) with every counted
    app paused, conclude that pausing isn't enough on this phone. Turn the
    apps back on and list **every** account for the parent to remove in
-   Settings, Accounts. Never pause again in that run, and never uninstall.
+   Settings, Accounts. Never pause an app that still holds an account in
+   that run, and never uninstall.
 3. The console first shows, for each account, how to get back in without a
    remembered password, and asks the parent to confirm. For Google: a
    passkey on the parent's phone (QR code plus fingerprint), the recovery
@@ -99,6 +100,12 @@ So setup does this:
    (`Settings.ACTION_SYNC_SETTINGS`) to remove them, then **Add Google
    account** (`ACTION_ADD_ACCOUNT` limited to `com.google`) at the end.
    Google comes first, because its saved passwords bring the others back.
+5. Once nothing is stored, pause the apps that held the removed accounts
+   for the last few seconds, set device owner, then turn them back on. They
+   hold no account, so even Samsung's live check passes, and while paused
+   they can't sign back in by themselves. If an account comes back before
+   its app is paused, the apps go back on first: Settings lists an account
+   only while its app is on.
 
 What the A045F showed parents gain even so: no app is uninstalled, no app
 data is lost, and **Facebook re-created its account by itself** (and stayed
@@ -137,7 +144,15 @@ root. It would also be credential harvesting, against ADR-0001.
 - SM-A045F (Samsung, Android 14), 2026-11-08: pausing worked for the cached
   check, not the live one (above). The fallback asked for the accounts; the
   parent removed Google, then signed back in, and Facebook came back by
-  itself. That run's final console state is still to be confirmed.
+  itself. The console showed "Guided setup finished".
+- SM-A045F again, fresh 1.0.10, 2026-11-08: the parent removed Google and
+  both Facebook accounts at 19:21. Manara's recount at 19:21:41 was followed
+  by **Facebook re-creating its account at 19:21:43**, and Android refused
+  ("Non test-only owner can't be installed with existing accounts"). Setup
+  asked for Facebook again; once it was removed a second time, device owner
+  was set 4 s later. That second round is why step 5 exists. In
+  `SetupChaosTest`, an app that re-creates its account at the recount did
+  so 1,340 times over 5,000 runs before step 5, and 0 times after.
 
 Not yet seen on a phone: pausing on stock Android with Google Play services
 (Pixel, Motorola...), the notice's two buttons on Samsung, and other makers

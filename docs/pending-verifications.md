@@ -51,6 +51,11 @@ they resolve, not left buried in a chat log. Cross-reference:
   on and asked for the accounts in Settings. No app was uninstalled, and
   Facebook re-created its account by itself, still signed in. The parent
   signed back in to Google only.
+- **Second fresh run on the SM-A045F (1.0.10, 2026-11-08):** Facebook
+  re-created its account 2 s after Manara's recount, so Android refused and
+  the parent had to remove Facebook a second time (device owner then set at
+  22:55:34). 1.0.11 pauses the emptied apps for those seconds (ADR-0006,
+  step 5); not yet run on a phone.
 
 **Not yet run on a phone:** pausing on stock Android with Google Play
 services (no account removed at all); the setup notice's Open accounts and

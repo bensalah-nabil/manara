@@ -300,17 +300,53 @@ class SetupFlowTest {
         assertEquals("every account, to remove in Settings", all, t.report.accounts)
         assertTrue(t.report.message.contains("Don't uninstall"))
 
-        // Never paused again, even for an app that could be.
+        // An app with an account is not paused while the parent is removing it.
         t = SetupFlow.next(t.state, listed(listOf(facebook), fbOwner))
         assertEquals(Action.WaitThenListAccounts, t.action)
+        // Once nothing is stored, the apps that held them are paused so none signs back in in time
+        // (Facebook did, 2 s after the recount, on the A045F).
         t = SetupFlow.next(t.state, listed(emptyList(), fbOwner))
+        assertEquals(Action.PauseApps(listOf(gms, "com.facebook.katana")), t.action)
+        assertEquals(Step.REMOVING_APP_ACCOUNTS, t.report.step)
+        t = SetupFlow.next(t.state, Event.AppsPaused(listOf(gms, "com.facebook.katana")))
+        assertEquals(Action.ListAccounts, t.action)
+        t = SetupFlow.next(t.state, listed(emptyList(), paused))
         assertEquals(Action.SetDeviceOwner, t.action)
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
-        assertEquals("nothing paused any more", Action.TurnOffWirelessDebugging, t.action)
+        assertEquals("the apps come back on, empty", Action.ResumeApps(listOf(gms, "com.facebook.katana")), t.action)
+        t = SetupFlow.next(t.state, Event.AppsResumed)
+        assertEquals(Action.TurnOffWirelessDebugging, t.action)
         t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
         t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
         assertEquals("removed accounts don't come back by themselves: ask at once", Status.WAITING_FOR_PARENT, t.report.status)
         assertEquals("the phone's notice opens the sign-in for what is missing", all, t.report.signBackIn)
+    }
+
+    @Test
+    fun `an account re-created before its app was paused gets the apps back on so the parent can remove it`() {
+        val facebook = Account("com.facebook.auth.login", "kid")
+        val all = listOf(google, facebook)
+        val fbOwner = owners + ("com.facebook.auth.login" to "com.facebook.katana")
+        val paused = fbOwner.filterValues { it != gms && it != "com.facebook.katana" }
+        var t = run(Event.Paired, listed(all, fbOwner), listed(all, fbOwner), Event.AppsPaused(listOf(gms, "com.facebook.katana")), listed(all, paused))
+        repeat(SetupFlow.PAUSE_RETRIES + 1) {
+            t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+            if (t.action == Action.WaitThenListAccounts) t = SetupFlow.next(t.state, listed(all, paused))
+        }
+        t = SetupFlow.next(t.state, Event.AppsResumed)
+        t = SetupFlow.next(t.state, listed(emptyList(), fbOwner))
+        assertEquals(Action.PauseApps(listOf(gms, "com.facebook.katana")), t.action)
+        t = SetupFlow.next(t.state, Event.AppsPaused(listOf(gms, "com.facebook.katana")))
+
+        // Facebook got its account back in between: Settings lists it only once Facebook is on.
+        t = SetupFlow.next(t.state, listed(listOf(facebook), paused))
+        assertEquals(Action.ResumeApps(listOf(gms, "com.facebook.katana")), t.action)
+        assertEquals(Status.IN_PROGRESS, t.report.status)
+        t = SetupFlow.next(t.state, Event.AppsResumed)
+        assertEquals(emptyList<String>(), t.state.pausedApps)
+        t = SetupFlow.next(t.state, listed(listOf(facebook), fbOwner))
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertEquals(listOf(facebook), t.report.accounts)
     }
 
     @Test
