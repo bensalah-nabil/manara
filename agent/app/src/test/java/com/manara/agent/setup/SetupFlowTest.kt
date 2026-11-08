@@ -188,6 +188,56 @@ class SetupFlowTest {
         assertEquals("Could not make Manara the phone manager: example reason", t.report.message)
     }
 
+    private val refusedForAccounts =
+        "Exception occurred while executing 'set-device-owner':\n" +
+            "java.lang.IllegalStateException: Not allowed to set the device owner because there are already some accounts on the device.\n"
+
+    @Test
+    fun `a refusal for an account Android still counts is checked again, not failed`() {
+        var t = run(
+            Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
+            listed(emptyList(), installed - "com.whatsapp"),
+            Event.DeviceOwnerOutput(refusedForAccounts),
+        )
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(Status.IN_PROGRESS, t.report.status)
+        assertEquals(1, t.state.ownerRetries)
+
+        // The account is gone a moment later: device owner is tried again, then setup goes on.
+        t = SetupFlow.next(t.state, listed(emptyList(), installed - "com.whatsapp"))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
+        assertEquals(Action.RestoreApps(listOf("com.whatsapp")), t.action)
+    }
+
+    @Test
+    fun `a refusal that keeps coming back fails after the last check and puts apps back`() {
+        var t = run(
+            Event.Paired, listed(listOf(whatsapp)), Event.AppsRemoved(listOf("com.whatsapp")),
+            listed(emptyList(), installed - "com.whatsapp"),
+        )
+        repeat(SetupFlow.MAX_OWNER_RETRIES) {
+            t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+            assertEquals(Action.WaitThenListAccounts, t.action)
+            t = SetupFlow.next(t.state, listed(emptyList(), installed - "com.whatsapp"))
+            assertEquals(Action.SetDeviceOwner, t.action)
+        }
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+        assertEquals(Action.Recover(listOf("com.whatsapp")), t.action)
+        assertEquals(Status.FAILED, t.report.status)
+    }
+
+    @Test
+    fun `an account that really came back is shown to the parent again`() {
+        var t = run(
+            Event.Paired, listed(listOf(google)), listed(emptyList()),
+            Event.DeviceOwnerOutput(refusedForAccounts),
+        )
+        t = SetupFlow.next(t.state, listed(listOf(google)))
+        assertEquals(Step.WAITING_FOR_ACCOUNTS, t.report.step)
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+    }
+
     @Test
     fun `a failure once wireless debugging is off does not try to use it`() {
         val t = run(

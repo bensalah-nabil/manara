@@ -77,6 +77,8 @@ object SetupFlow {
         val initialAccounts: List<Account>? = null,
         val removedApps: List<String> = emptyList(),
         val failure: String? = null,
+        /** Times `set-device-owner` was refused for an account Android still counted. */
+        val ownerRetries: Int = 0,
     )
 
     data class Transition(val state: State, val action: Action, val report: Report)
@@ -129,6 +131,15 @@ object SetupFlow {
                         Transition(next, Action.RestoreApps(state.removedApps),
                             report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Manara now manages the phone. Putting the apps back."))
                     }
+                } else if (refusedForAccounts(event.output) && state.ownerRetries < MAX_OWNER_RETRIES) {
+                    // Seen on the SM-A528B: the account list was empty, yet set-device-owner still
+                    // counted an account a moment later (an uninstalled app's account is deleted
+                    // after a delay). Look again instead of failing; a real account shows up there.
+                    Transition(
+                        state.copy(step = Step.CHECKING_ACCOUNTS, ownerRetries = state.ownerRetries + 1),
+                        Action.WaitThenListAccounts,
+                        report(Step.DEVICE_OWNER, Status.IN_PROGRESS, "Android still counts an account on the phone. Checking again in a moment."),
+                    )
                 } else {
                     fail(state, "Could not make Manara the phone manager: ${deviceOwnerError(event.output)}")
                 }
@@ -169,6 +180,13 @@ object SetupFlow {
             Step.LINKED, Step.DONE -> unexpected(state, event)
         }
     }
+
+    /** How many times a refusal for accounts is checked again before setup fails (5 s apart). */
+    const val MAX_OWNER_RETRIES = 6
+
+    /** The refusal printed by `dpm set-device-owner` when Android still counts an account (seen on the SM-A528B). */
+    fun refusedForAccounts(output: String): Boolean =
+        output.contains("already some accounts on the device")
 
     fun deviceOwnerSucceeded(output: String): Boolean =
         output.lineSequence().any { it.trim().startsWith(DEVICE_OWNER_SUCCESS) }

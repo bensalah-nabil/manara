@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import okio.Path.Companion.toPath
 import java.io.File
 import java.net.Inet4Address
@@ -179,6 +180,8 @@ class AdbSetupDevice(
             val resolved = resolve(nsd, service) ?: return@mapNotNull null
             @Suppress("DEPRECATION")
             if (resolved.host == host) PairingDecision.Service(resolved.serviceName, resolved.port) else null
+        }.also { services ->
+            if (services.isNotEmpty()) android.util.Log.i(TAG, "pairing services: ${services.joinToString { "${it.name}:${it.port}" }}")
         }
     }
 
@@ -202,7 +205,8 @@ class AdbSetupDevice(
         val found = mutableListOf<NsdServiceInfo>()
         val listener = object : NsdManager.DiscoveryListener {
             override fun onServiceFound(service: NsdServiceInfo) { synchronized(found) { found += service } }
-            override fun onServiceLost(service: NsdServiceInfo) = Unit
+            // A pairing dialog closed during the window: resolving its service would never answer.
+            override fun onServiceLost(service: NsdServiceInfo) { synchronized(found) { found.removeAll { it.serviceName == service.serviceName } } }
             override fun onDiscoveryStarted(serviceType: String) = Unit
             override fun onDiscoveryStopped(serviceType: String) {
                 if (continuation.isActive) continuation.resume(synchronized(found) { found.toList() })
@@ -221,14 +225,27 @@ class AdbSetupDevice(
         continuation.invokeOnCancellation { handler.removeCallbacks(stop); stop.run() }
     }
 
+    /**
+     * Null when the service can't be resolved within [RESOLVE_MILLIS]. Without that bound, a service
+     * that vanished (the parent closed the pairing-code dialog to scan the QR code instead) was
+     * queried forever on Android 14's mDNS stack, with neither callback, and the pairing loop never
+     * saw the QR code's service (SM-A528B, `dumpsys servicediscovery`, 2026-11-08).
+     */
     @Suppress("DEPRECATION")
     private suspend fun resolve(nsd: NsdManager, service: NsdServiceInfo): NsdServiceInfo? =
-        suspendCancellableCoroutine { continuation ->
-            nsd.resolveService(service, object : NsdManager.ResolveListener {
-                override fun onServiceResolved(info: NsdServiceInfo) { if (continuation.isActive) continuation.resume(info) }
-                override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) { if (continuation.isActive) continuation.resume(null) }
-            })
-        }
+        withTimeoutOrNull(RESOLVE_MILLIS) {
+            suspendCancellableCoroutine { continuation ->
+                val listener = object : NsdManager.ResolveListener {
+                    override fun onServiceResolved(info: NsdServiceInfo) { if (continuation.isActive) continuation.resume(info) }
+                    override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) { if (continuation.isActive) continuation.resume(null) }
+                }
+                nsd.resolveService(service, listener)
+                // API 34 (developer.android.com, NsdManager.stopServiceResolution); throws if it already ended.
+                if (android.os.Build.VERSION.SDK_INT >= 34) {
+                    continuation.invokeOnCancellation { runCatching { nsd.stopServiceResolution(listener) } }
+                }
+            }
+        }.also { if (it == null) android.util.Log.i(TAG, "no answer resolving ${service.serviceName}; skipped") }
 
     private companion object {
         const val TAG = "ManaraSetup"
@@ -236,5 +253,6 @@ class AdbSetupDevice(
         const val PAIRING_SERVICE = "_adb-tls-pairing._tcp"
         const val DISCOVERY_WINDOW_MILLIS = 3_000L
         const val CONNECT_DISCOVERY_MILLIS = 30_000L
+        const val RESOLVE_MILLIS = 3_000L
     }
 }
