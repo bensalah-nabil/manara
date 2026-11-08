@@ -235,10 +235,13 @@ object SetupFlow {
                 report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT,
                     waitingMessage(manual.size, orphaned.size, event.otherUsers, appHeld.size), accounts),
             )
+            // Recorded before any is touched: if the batch fails halfway, the apps already
+            // uninstalled must still be put back (the chaos test lost one otherwise).
             removable.isNotEmpty() -> Transition(
                 withInitial.copy(
                     step = Step.REMOVING_APP_ACCOUNTS,
                     removedTypes = withInitial.removedTypes + appHeld.map { it.type },
+                    removedApps = (withInitial.removedApps + removable).distinct(),
                 ),
                 Action.BackUpAndUninstall(removable),
                 report(Step.REMOVING_APP_ACCOUNTS, Status.IN_PROGRESS,

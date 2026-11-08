@@ -10,6 +10,10 @@ interface SetupDevice {
     suspend fun backUpAndUninstall(packages: List<String>)
     /** The raw output of `dpm set-device-owner`. */
     suspend fun setDeviceOwner(): String
+    /**
+     * Puts each app back from its saved copy. Tries every one, skips any that is still installed
+     * (a batch that failed before reaching it), and throws at the end naming those that failed.
+     */
     suspend fun restoreApps(packages: List<String>)
     suspend fun turnOffWirelessDebugging()
     /** Accounts seen through AccountManager, or null once the parent tapped "Finish". */

@@ -127,15 +127,34 @@ class AdbSetupDevice(
     }
 
     override suspend fun restoreApps(packages: List<String>) = withContext(Dispatchers.IO) {
+        val failed = mutableListOf<String>()
         for (pkg in packages) {
-            requireSafePackage(pkg)
-            val files = File(backupDir, pkg).listFiles { file -> file.name.endsWith(".apk") }.orEmpty().sortedBy { it.name }
-            check(files.isNotEmpty()) { "No saved copy of $pkg to put back." }
-            if (files.size == 1) connection().install(files[0]) else connection().installMultiple(files)
-            check(SetupInput.packageLines(shell("pm path $pkg")).isNotEmpty()) { "$pkg did not come back." }
-            File(backupDir, pkg).deleteRecursively()
+            try {
+                requireSafePackage(pkg)
+                if (installed(pkg)) {
+                    // Never removed (its batch failed first), or already put back.
+                    File(backupDir, pkg).deleteRecursively()
+                    continue
+                }
+                val files = File(backupDir, pkg).listFiles { file -> file.name.endsWith(".apk") }.orEmpty().sortedBy { it.name }
+                check(files.isNotEmpty()) { "No saved copy of $pkg to put back." }
+                if (files.size == 1) connection().install(files[0]) else connection().installMultiple(files)
+                check(installed(pkg)) { "$pkg did not come back." }
+                File(backupDir, pkg).deleteRecursively()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // One app must not stop the others from coming back.
+                android.util.Log.w(TAG, "could not put $pkg back", error)
+                failed += pkg
+            }
         }
+        check(failed.isEmpty()) { "Could not put back: ${failed.joinToString()}." }
     }
+
+    /** `pm path` exits non-zero for a package that isn't installed, so it isn't run through [shell]. */
+    private fun installed(pkg: String): Boolean =
+        SetupInput.packageLines(connection().shell("pm path $pkg").output).isNotEmpty()
 
     override suspend fun turnOffWirelessDebugging(): Unit = withContext(Dispatchers.IO) {
         try {

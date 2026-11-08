@@ -8,3 +8,6 @@
 /captures
 *.apk
 *.aab
+
+# Kotlin compiler daemon sessions
+.kotlin/
