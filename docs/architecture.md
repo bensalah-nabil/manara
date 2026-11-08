@@ -147,7 +147,32 @@ live data can't be seen.
 
 No session state in process memory → run 2+ instances behind a load balancer,
 lose one without downtime. Everything durable is in Postgres. Deploy is Docker;
-scaling is horizontal.
+scaling is horizontal. Two exceptions today, both harmless on one instance:
+the alert throttle is in memory (a restart can repeat one alert), and every
+instance runs the silent-phone check (two instances could each email the same
+silence before either records it). Both move to Postgres before a second
+instance is added.
+
+### 3.5 Guided setup
+
+The phone turns itself into a managed device without a computer: Manara pairs
+with the phone's own wireless debugging (Kadb) and runs a fixed list of setup
+actions (`SetupFlow`, pure and unit-tested; `SetupRunner`; `AdbSetupDevice`).
+The server only holds the setup state and the parent's inputs (pairing code,
+Finish); it never sends commands. The console shows the state as a live
+timeline and is where the parent pairs (QR code or code) and finishes, so the
+phone can stay on its Wireless debugging screen
+([ADR-0005](decisions/0005-setup-inputs-in-the-console.md)). Apps that hold an
+account are uninstalled last, only when nothing else blocks, and put back
+whatever happens; the account list survives a failed run.
+
+### 3.6 Alerts and email
+
+Alerts go through one `AlertNotifier` fan-out: email to the parent the phone
+belongs to (Brevo's HTTPS API; SMTP is blocked on the host), plus an optional
+operator ntfy topic or webhook. Sources: a protection reported missing or
+failed, and a phone silent for `SILENT_PHONE_HOURS`. Password-reset links use
+the same email sender. Without an email key, all of this is simply off.
 
 ## 4. Controller (web app)
 
@@ -155,8 +180,9 @@ One responsive single-page app, served by (or alongside) the backend, that
 talks to the `console/` API. It renders well on a phone browser and a desktop —
 one codebase, so a parent uses the identical tool on either. Responsibilities:
 device list, per-device policy editing, time-limit editor, location view, lock
-button, "not reporting" alerts. It holds **no** rules of its own; it is a view
-over the backend API.
+button, the guided-setup timeline, the parent's account. It holds **no** rules
+of its own; it is a view over the backend API. It is a separate static site
+(Netlify) today, not served by the backend.
 
 ## 5. The API contract is the keystone
 

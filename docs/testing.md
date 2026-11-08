@@ -47,6 +47,11 @@ the emulator. Gradle downloads, starts and wipes the emulators itself
 (`testOptions.managedDevices` in `agent/app/build.gradle.kts`): Android 11, 13,
 14, 15 and 16. One version: `./gradlew.bat api34DebugAndroidTest`.
 
+Run them one version at a time on a laptop: the whole group boots every
+emulator at once, which timed out on this PC (2026-11-08). Disk: about 2.5 GB
+of system image plus 2.5 to 3 GB of emulator per version, about 27 GB for all
+five. Android 14 passed 4 of 4; the other versions still have to be run.
+
 It refuses to run on a real phone, and on any phone Manara already manages:
 it changes the rules and releases the phone at the end.
 

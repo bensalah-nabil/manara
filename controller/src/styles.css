@@ -389,3 +389,55 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 .tl-detail { margin-top: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .tl-step.waiting .tl-detail { border-color: var(--warn); }
 .tl-step.failed .tl-detail { border-color: var(--danger); }
+
+/* Insights: stat tiles, the daily chart and the hour heatmap. One hue (the brand) for data,
+   grays for context; text keeps the ink colors. */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tile { display: flex; flex-direction: column; gap: 2px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.tile-label { font-size: 0.82rem; color: var(--muted); }
+.tile-value { font-size: 1.45rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile-note { font-size: 0.8rem; color: var(--muted); }
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .axis { font-size: 11px; fill: var(--muted); }
+.chart .bar { fill: color-mix(in oklab, var(--muted) 45%, var(--surface)); cursor: default; }
+.chart .bar.high { fill: var(--brand); }
+.chart .bar.hovered, .chart .bar:focus-visible { filter: brightness(1.15); outline: none; stroke: var(--ink); stroke-width: 1; }
+.chart .missing { fill: var(--muted); }
+.chart .usual { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 3; }
+.chart-tip {
+  position: absolute; top: 0; transform: translate(-50%, -100%); pointer-events: none;
+  display: flex; flex-direction: column; gap: 1px; padding: 6px 9px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+  font-size: 0.82rem; white-space: nowrap;
+}
+.chart .cell { stroke: none; }
+.chart .cell.l0 { fill: color-mix(in oklab, var(--line) 60%, var(--surface)); }
+.chart .cell.l1, .swatch-cell.l1 { fill: color-mix(in oklab, var(--brand) 18%, var(--surface)); background: color-mix(in oklab, var(--brand) 18%, var(--surface)); }
+.chart .cell.l2, .swatch-cell.l2 { fill: color-mix(in oklab, var(--brand) 36%, var(--surface)); background: color-mix(in oklab, var(--brand) 36%, var(--surface)); }
+.chart .cell.l3, .swatch-cell.l3 { fill: color-mix(in oklab, var(--brand) 56%, var(--surface)); background: color-mix(in oklab, var(--brand) 56%, var(--surface)); }
+.chart .cell.l4, .swatch-cell.l4 { fill: color-mix(in oklab, var(--brand) 78%, var(--surface)); background: color-mix(in oklab, var(--brand) 78%, var(--surface)); }
+.chart .cell.l5, .swatch-cell.l5 { fill: var(--brand); background: var(--brand); }
+.swatch-cell.l0 { background: color-mix(in oklab, var(--line) 60%, var(--surface)); }
+.chart .cell.hovered, .chart .cell:focus-visible { stroke: var(--ink); stroke-width: 1.5; outline: none; }
+.chart .night { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; rx: 6; }
+.heat-legend { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+.swatch-cell { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+.night-key { margin-left: 12px; }
+.chart-readout { font-size: 0.85rem; margin: 6px 0 0; }
+.insight-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.insight { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); border-left-width: 4px; }
+.insight.attention { border-left-color: var(--warn); }
+.insight.info { border-left-color: var(--brand); }
+.insight p { margin: 4px 0 0; color: var(--muted); }
+.insight button { flex: none; }
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.data-table th, .data-table td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); }
+@media (max-width: 560px) { .insight { flex-direction: column; } }
+
+/* Charts keep a readable size on a phone and scroll sideways in their own box. */
+.chart.scroll { overflow-x: auto; overflow-y: visible; }
+.chart.scroll svg { min-width: 600px; }
+.chart .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }

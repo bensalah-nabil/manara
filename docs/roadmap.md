@@ -92,10 +92,9 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       the API response, that a re-sent event doesn't duplicate); persisted
       command queue with the full `pending → delivered → acked|expired`
       lifecycle; a sweep goroutine expiring stale commands.
-      **Not yet done:** the "not reporting" *alert* — `Device.Status()`
-      computes it correctly and `GET /console/devices` surfaces it, but
-      nothing proactively notifies a parent when a device crosses that
-      line; today it's only visible if someone looks.
+      The "not reporting" *alert* is built (2026-11-08): a phone silent for
+      `SILENT_PHONE_HOURS` (12 by default) gets one email to its parent per
+      silence, through the same alert path as tamper alerts.
 - [x] FCM delivery with polling fallback — built *and* verified live
       (`domain.CommandType.IsUrgent()`, `internal/notify/fcm` talking to
       FCM's HTTP v1 API directly rather than the bloated Firebase Admin Go
@@ -145,7 +144,8 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
 ## Phase 3 — Controller (parent web app) — in progress
 
 - [x] Stack decided: React + Vite + TypeScript — see
-      [ADR-0002](decisions/0002-stack-and-reuse.md).
+      [ADR-0002](decisions/0002-stack-and-reuse.md). Moved to Preact later
+      (same components, smaller bundle).
 - [x] Scaffolded (`npm create vite@latest -- --template react-ts`),
       `npm install` clean, dev server verified booting on `:5173`. CORS
       already wired on the backend side
@@ -345,7 +345,14 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
       4. **Connect**: the code, as before.
       Verified in a browser against the rebuilt server with a throwaway
       parent; a request without the confirmation gets 400 and no code.
-- [ ] **Part 2: live setup, steered by the server, executed on the phone.**
+- [x] **Part 2: live setup, steered by the server, executed on the phone.**
+      Done: first full setup on the SM-A045F (2026-11-07), console-driven
+      pairing by QR code and by code on the SM-A528B (2026-11-08,
+      [ADR-0005](decisions/0005-setup-inputs-in-the-console.md)). The first
+      A52 run failed after removing apps, which led to: apps that hold an
+      account removed last, the account list kept across runs, retries for
+      steps safe to repeat, and a chaos test ([testing.md](testing.md)).
+      Original plan:
       Chosen over WebUSB (needs a cable and a computer; a web page cannot use
       wireless debugging without a helper program) and over adb from the VPS
       through a VPN (one VPN slot on the phone, an unverified path, and one
@@ -366,15 +373,31 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
             parent) and got `uid=2000(shell)`, read 13 accounts and saw
             Manara as device owner. Read-only commands only; its key was
             deleted afterwards. Kadb is in the test build only so far.
-      - [ ] Not yet: running `dpm set-device-owner` this way (expected to
-            behave like adb from a computer, not verified), `127.0.0.1`
-            instead of the Wi-Fi IP, other brands (Shizuku notes Xiaomi and
-            Oppo/OnePlus need extra developer switches), and the flow itself.
+      - [x] `dpm set-device-owner` this way, and the whole flow: verified
+            on both Samsung phones.
+      - [ ] Not yet: `127.0.0.1` instead of the Wi-Fi IP, other brands
+            (Shizuku notes Xiaomi and Oppo/OnePlus need extra developer
+            switches).
+- [x] **Parent account (2026-11-08):** password reset by email, account
+      deletion (refused while any phone is still on the account), the public
+      deletion page for Play, and a parent guide page.
+- [x] **Chrome rules (2026-11-08):** SafeSearch, YouTube Restricted Mode,
+      Chrome's own secure DNS off, a site blocklist (capability-plan B2).
+- [x] **Live setup timeline (2026-11-08):** each step shows what it needs
+      under it, following the phone every 2 seconds.
 
-## Phase 4 — Hardening
+## Phase 4 — Hardening (current focus)
 
-- [ ] Encrypt location/call data at rest; retention/purge job.
+Quality and security, aiming at an independent security assessment
+(OWASP MASVS, as App Defense Alliance MASA checks it); the gap analysis and
+plan are in [`security.md`](security.md).
+
+- [x] Testing layers: unit, chaos, emulator matrix, real-phone farms
+      ([testing.md](testing.md)).
+- [x] Retention/purge job for events (location and usage 30 days, others 90).
+- [ ] Encrypt location data at rest.
 - [ ] Threat-model and pen-test the sync and console APIs.
+- [ ] Two-factor sign-in for parents (capability-plan E2).
 - [ ] Per-manufacturer keep-alive testing matrix.
 
 ## Known hard problems (not blockers, but eyes open)

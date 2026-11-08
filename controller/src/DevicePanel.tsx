@@ -16,6 +16,8 @@ import type { DailyUsage } from './dailyUsage.ts'
 import { SetupProgress } from './SetupProgress.tsx'
 import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
+import { InsightsPanel } from './InsightsPanel.tsx'
+import { appName } from './insights.ts'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
 function useEvents<T>(
@@ -123,7 +125,7 @@ function DailyUsagePanel(props: Props) {
                             <ul class="bars">
                                 {day.apps.map((usage) => (
                                     <li key={usage.packageName}>
-                                        <span class="bar-label">{usage.packageName}</span>
+                                        <span class="bar-label" title={usage.packageName}>{appName(usage.packageName)}</span>
                                         <span class="bar" style={{ '--w': `${(usage.minutes / top) * 100}%` }} aria-hidden="true" />
                                         <span class="bar-value">{minutesText(usage.minutes)}</span>
                                     </li>
@@ -255,6 +257,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
             <div id="tab-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} class="stack">
                 {tab === 'activity' && (
                     <>
+                        <InsightsPanel {...props} />
                         <ProtectionStatus {...props} notBefore={setupDoneAt} />
                         <DailyUsagePanel {...props} />
                         <LimitHistory {...props} />

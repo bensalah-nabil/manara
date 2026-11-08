@@ -14,7 +14,28 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 6   | **The real unattended ~15-minute `WorkManager` timer firing on its own** — resolved everything *except* literally waiting out the OS's own schedule (see Resolved below for what was confirmed instead)                                                                                                              | 2026-11-03 | Low priority — `WorkManager`'s scheduling reliability is Android platform behavior, not agent code | Leave the phone alone 15-20 min with a pending policy change, confirm it applied with zero taps                                                                                                                                              | ⏳ Open, low priority                                                                                        |
 | 7   | **24h idle + reboot-survival on Phone 2** (Samsung SM-A045F) — device-owner and app-restore confirmed 2026-11-03; the time-based checks specifically weren't run yet on this phone                                                                                                                                   | 2026-11-03 | Needs elapsed time                                                                                 | Leave the phone idle 24h+, reboot, confirm notice + device-owner status both still present                                                                                                                                                   | ⏳ Open                                                                                                      |
 | 8   | **A3 physical power-loss coverage**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Before claiming power-loss durability                                                              | Process death at the state-write/event-insert boundary, rollback, concurrent observers, reopen, and offline replay after a committed transition are verified below. Physical power loss and every possible crash boundary were not injected. | Process-death checks passed; power-loss testing remains open                                                |
-| 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper alerts built; verified on fake devices only (see below). Not-reporting and request alerts still open |
+| 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper and silent-phone alerts built, with email to each parent (2026-11-08). Email delivery from Render not yet confirmed received; request alerts still open |
+
+### Verified 2026-11-07 and 2026-11-08
+
+- **Push in the release build (SM-A045F):** Lock now locked the phone within
+  seconds with nobody touching it, once R8's removal of WorkManager's input
+  merger was fixed. Saving a rule woke the phone and it applied the rule 3 s
+  later.
+- **Back after an update (SM-A045F):** installing version 2 without opening
+  Manara, the managed notice came back by itself one second later
+  (`MY_PACKAGE_REPLACED`, allowed as device owner).
+- **Chrome rules (SM-A045F, Chrome 156):** all four keys set; Chrome showed
+  "This page is blocked" for a blocklisted site; cleared again when removed.
+- **Full guided setup driven from the console:** SM-A045F (pairing code,
+  2026-11-07) and SM-A528B (QR code, 2026-11-08, after the resolve-timeout
+  fix; first run failed and put every app back).
+- **Emulator matrix:** restrictions, Chrome configuration, a lock window and
+  the app opening while managed, on Android 14.
+
+**Not yet run on a phone:** setup's new order (apps last), the account list
+carried over from a failed run, and the restore and retry fixes (proven by
+the chaos test only); email delivery; makers other than Samsung.
 
 ### Manara using the phone's own wireless debugging (SM-A528B, 2026-11-06)
 

@@ -3,21 +3,25 @@
 One responsive web app the parent uses from a **phone or a PC** — device list,
 policy editor, time-limit UI, location view, remote lock, "not reporting" alerts.
 
-Status: **early**. Parent sign-up/sign-in, a device list with its reporting
-status, "Add a device" (shows a single-use enrollment code), editors for time
-limits, the lock schedule, location sharing, the site filter and settings
-restrictions, "Lock now", a protection-status list (what the phone has
-reported about problems with its protections), and a limit history (when the
-phone reported a daily limit being reached) work against the real backend.
-Every policy section the agent enforces is editable; call logging is not (the
-agent does not collect it). "Add a device" shows the single-use code as a QR
-code (for the agent's "Scan QR code") and as text.
+Status: **in use** against the real backend (Render) on two Samsung phones.
+Sign-up, sign-in, password reset by email, and an Account page that deletes
+the account. Phones show the child's name and color. "Add a phone" walks the
+parent through the statements, the brand's steps and the checklist, then shows
+the single-use code as a QR code and text. Guided setup is a live timeline
+that shows, under the step the phone is on, what it needs (pairing QR code or
+code box, accounts to remove, accounts to sign back in to, Finish). Rules:
+time limits, lock schedule, site filter, Chrome, settings restrictions; a
+saved rule says whether the phone was woken to apply it. Sharing: location,
+daily usage report. Activity: protection status, daily app usage, limit
+history. Lock now; release, move, release code. Public pages: privacy policy,
+parent guide, account deletion. Call logging is not editable (the agent does
+not collect it).
 Phase 3 in [`../docs/roadmap.md`](../docs/roadmap.md).
 
 It holds no rules of its own; it is a view over the backend `console/` API
 defined in [`../api-spec/openapi.yaml`](../api-spec/openapi.yaml).
 
-Stack: React + TypeScript + Vite, per
+Stack: Preact + TypeScript + Vite (React's API, smaller), per
 [`../docs/decisions/0002-stack-and-reuse.md`](../docs/decisions/0002-stack-and-reuse.md).
 
 ## Run

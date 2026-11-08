@@ -38,22 +38,26 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 
 | Capability        | Status  | Notes                                             |
 |-------------------|---------|---------------------------------------------------|
-| Device-owner enrollment | ✅ done, verified on 2 real Samsung phones | No factory reset; account removal fully automated — see below |
+| Device-owner enrollment | ✅ done, verified on 2 real Samsung phones | No factory reset, no computer: guided setup on the phone, paired from the console by QR code or pairing code, shown as a live timeline ([ADR-0005](docs/decisions/0005-setup-inputs-in-the-console.md)). Apps holding an account are removed last and put back; the account list survives a failed run |
 | App time limits   | ✅ done | `UsageStatsManager` + `setPackagesSuspended`, verified end to end (Instagram on one device, Facebook on another) |
-| Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware, including via live FCM push with zero manual interaction |
+| Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware through a live FCM push in the release build, within seconds; saving rules wakes the phone too |
 | Website filtering  | ✅ done | Private DNS, verified via `settings get global private_dns_mode` |
+| Chrome rules      | ✅ done | SafeSearch, YouTube Restricted Mode, Chrome's own secure DNS off (so the filter applies), a site blocklist; Chrome's managed configuration, verified on the SM-A045F |
 | Location          | ✅ done | Background location at the parent's interval, with its own ongoing notice while on; fails closed without the permission or with Location off device-wide |
 | Bedtime lock schedule | ✅ done | Locks the phone in the parent's time windows |
 | Daily usage report | ✅ done | Minutes per app, only when the parent turns it on |
 | Tamper protection | ✅ done | Factory reset, safe boot, adding users and debugging blocked by default |
 | Release / move to another account | ✅ done | Only the parent: from the console, or an offline 8-digit code ([ADR-0004](docs/decisions/0004-only-the-parent-releases-a-phone.md)) |
 | Call log          | planned | Sideload-only; will not pass Play Store review     |
-| "Not reporting" alert | backend computes it; nothing proactively notifies a parent yet | `GET /console/devices` surfaces it; push/email alert not built |
+| Parent alerts     | ✅ done | Email to each parent (Brevo) and ntfy/webhook: a protection stopped working, a phone silent for 12 hours |
+| Parent account    | ✅ done | Password reset by email; account deletion in the console, plus the public page Play asks for |
 | Backend (Go, Postgres) | ✅ core done | Real signup/login, enrollment tokens, Docker + Caddy TLS, verified containerized |
-| Controller (parent web app) | ✅ done (Preact + Vite + TS) | Phone list, activity, rules, sharing, release; hosted on Netlify |
+| Controller (parent web app) | ✅ done (Preact + Vite + TS) | Phones with the child's name and color, live setup timeline, activity, rules, sharing, release, account; parent guide; hosted on Netlify |
+| Testing           | ✅ in place | Unit tests, a 5,000-run chaos test of guided setup, an emulator matrix (Android 11 to 16) — see [`docs/testing.md`](docs/testing.md) |
 
 See **[`docs/roadmap.md`](docs/roadmap.md)** for the phase-by-phase detail and
-what's still open (a second-OEM device test, parent alerts, filtering v2).
+what's still open (makers other than Samsung, the on-phone DNS filter and
+category blocklists, two-factor sign-in, security hardening).
 
 ---
 
