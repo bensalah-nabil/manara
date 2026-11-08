@@ -47,6 +47,12 @@ export function authErrorText(code: string): string {
             return 'Please choose the phone brand again.'
         case 'invalid_browser_rules':
             return 'One of the Chrome rules is not valid. Check the website list.'
+        case 'bad_code':
+            return 'That code is not right, or was already used. Use the newest code from the app.'
+        case 'invalid_challenge':
+            return 'This sign-in has expired. Enter your password again.'
+        case 'setup_first':
+            return 'Start again: choose Turn on two-step sign-in.'
         case 'rate_limited':
             return 'Too many attempts. Wait a few minutes, then try again.'
         case 'weak_password':

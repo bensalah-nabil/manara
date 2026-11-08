@@ -262,3 +262,16 @@ test('logout ends the session on the server', async () => {
     assert.equal(calls[0].init.method, 'POST')
     assert.equal((calls[0].init.headers as Record<string, string>).Authorization, 'Bearer tok')
 })
+
+test('login returns a challenge when two-step sign-in is on, and the code turns it into a session', async () => {
+    let call = 0
+    const { calls, fetchImpl } = recorder(() => jsonResponse(200, call++ === 0
+        ? { twoFactorRequired: true, challenge: 'ch-1' }
+        : { parentId: 'p1', parentSession: 's1' }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => null, fetchImpl })
+    const first = await api.login('a@b.c', 'pw')
+    assert.deepEqual(first, { challenge: 'ch-1' })
+    assert.deepEqual(await api.verifyLogin('ch-1', '123456'), { parentId: 'p1', parentSession: 's1' })
+    assert.equal(calls[1].url, 'http://x/console/auth/login/verify')
+    assert.equal(calls[1].init.body, JSON.stringify({ challenge: 'ch-1', code: '123456' }))
+})

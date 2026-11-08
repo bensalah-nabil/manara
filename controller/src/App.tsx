@@ -1,6 +1,6 @@
 import { colorHex, initial } from './profile.ts'
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks'
-import { ApiError, createApi, isSessionError } from './api.ts'
+import { ApiError, createApi, isSessionError, needsSecondStep } from './api.ts'
 import type { Api, DeviceSummary } from './api.ts'
 import { AccountPanel } from './AccountPanel.tsx'
 import { resetToken } from './account.ts'
@@ -151,6 +151,42 @@ function AuthForm({ onSubmit, onForgot, notice }: {
             <p class="muted small">
                 <a href="/privacy.html">Privacy policy</a> · <a href="/delete-account.html">Delete your account</a> · <a href="/guide.html">Parent guide</a>
             </p>
+        </div>
+    )
+}
+
+/** The second step of signing in: a code from the authenticator app, or a recovery code. */
+function SecondStep({ onCode, onCancel }: { onCode: (code: string) => Promise<void>; onCancel: () => void }) {
+    const [code, setCode] = useState('')
+    const [busy, setBusy] = useState(false)
+    const [error, setError] = useState('')
+
+    async function submit(event: Event) {
+        event.preventDefault()
+        setBusy(true)
+        setError('')
+        try {
+            await onCode(code.trim())
+        } catch (caught) {
+            setError(authErrorText(caught instanceof ApiError ? caught.code : 'unknown'))
+            setBusy(false)
+        }
+    }
+
+    return (
+        <div class="auth">
+            <div class="auth-brand"><Logo /><span>Manara</span></div>
+            <form class="card auth-card" onSubmit={submit}>
+                <h1>Two-step sign-in</h1>
+                <p class="muted">Enter the 6-digit code from your authenticator app. Lost the phone with the app? Enter one of your recovery codes instead.</p>
+                <label>
+                    Code
+                    <input autoComplete="one-time-code" inputMode="text" required value={code} onInput={(event) => setCode(event.currentTarget.value)} />
+                </label>
+                <p role="alert" class="error">{error}</p>
+                <button type="submit" class="primary wide" disabled={busy}>{busy ? 'Please wait…' : 'Sign in'}</button>
+                <button type="button" class="link" onClick={onCancel}>Back</button>
+            </form>
         </div>
     )
 }
@@ -341,9 +377,25 @@ export default function App() {
     )
     const expire = useCallback(() => signOut(EXPIRED), [signOut])
 
+    // A sign-in waiting for its second step (two-step sign-in is on).
+    const [challenge, setChallenge] = useState<string | null>(null)
+
     async function authenticate(mode: 'login' | 'signup', email: string, password: string) {
         const result = mode === 'login' ? await api.login(email, password) : await api.signUp(email, password)
+        if (needsSecondStep(result)) {
+            setChallenge(result.challenge)
+            return
+        }
         session.set(result.parentSession)
+        setNotice('')
+        setSignedIn(true)
+    }
+
+    async function verify(code: string) {
+        if (challenge === null) return
+        const result = await api.verifyLogin(challenge, code)
+        session.set(result.parentSession)
+        setChallenge(null)
         setNotice('')
         setSignedIn(true)
     }
@@ -356,13 +408,18 @@ export default function App() {
 
     async function confirmReset(token: string, password: string) {
         const result = await api.confirmPasswordReset(token, password)
-        session.set(result.parentSession)
         leaveReset()
+        if (needsSecondStep(result)) {
+            setChallenge(result.challenge)
+            return
+        }
+        session.set(result.parentSession)
         setNotice('')
         setSignedIn(true)
     }
 
     if (reset !== null) return <ResetPassword token={reset} onReset={confirmReset} onCancel={leaveReset} />
+    if (challenge !== null && !signedIn) return <SecondStep onCode={verify} onCancel={() => setChallenge(null)} />
     return signedIn ? (
         <Console
             api={api}

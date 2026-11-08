@@ -89,8 +89,13 @@ retention limits on collected data.
 1. ~~Android dependency scan and CI~~ (done 2026-11-08; watch the first CI run).
 2. ~~The two "verify" items~~ (done; the unexported `BootReceiver` verified on
    a phone).
-3. **Two-factor sign-in for parents** (TOTP; capability-plan E2). Not a MASA
-   requirement, but the console controls a child's phone.
+3. ~~Two-step sign-in for parents~~ (done 2026-11-08, capability-plan E2):
+   RFC 6238 codes (tested against the RFC's vectors and, end to end, an
+   independent implementation), each 30-second code accepted once, 10 hashed
+   single-use recovery codes, a 5-minute challenge with 5 tries, and a
+   password reset that does not skip it. Accepted for now: the authenticator
+   secret is stored as is in the database (it is only useful together with the
+   password); encrypting it with a server key is a later step.
 4. **Threat model** of the sync and console APIs (STRIDE per endpoint), then an
    external penetration test of the server.
 5. **Rate limits and the alert throttle in Postgres** before running a second

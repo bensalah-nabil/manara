@@ -48,6 +48,10 @@ type Handlers struct {
 	// LoginLimiter caps attempts per email, wherever they come from, so a
 	// password can't be guessed by spreading tries over many addresses. Nil: off.
 	LoginLimiter *guard.Limiter
+	// TwoFactor is two-step sign-in; nil turns it off entirely.
+	TwoFactor domain.TwoFactorRepository
+	// ChallengeLimiter caps code tries per pending sign-in.
+	ChallengeLimiter *guard.Limiter
 }
 
 type deviceSummaryDTO struct {
@@ -211,13 +215,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.Sessions.Issue(r.Context(), parent.ID)
-	if err != nil {
-		log.Printf("console: issue session after login: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "")
-		return
-	}
-	writeJSON(w, http.StatusOK, authResponse{ParentID: parent.ID, ParentSession: session})
+	h.signIn(w, r, parent.ID)
 }
 
 // CreateEnrollmentToken lets a signed-in parent generate their own

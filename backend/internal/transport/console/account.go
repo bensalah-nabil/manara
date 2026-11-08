@@ -32,6 +32,7 @@ type accountDTO struct {
 	// PasswordReset is false when this server cannot send email, so the
 	// console doesn't offer a link that can never arrive.
 	PasswordReset bool `json:"passwordReset"`
+	TwoFactor     bool `json:"twoFactor"`
 }
 
 // resetsAvailable: a reset needs a way to send mail and a console to link to.
@@ -102,13 +103,8 @@ func (h *Handlers) ConfirmPasswordReset(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
-	session, err := h.Sessions.Issue(r.Context(), parentID)
-	if err != nil {
-		log.Printf("console: issue session after reset: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "")
-		return
-	}
-	writeJSON(w, http.StatusOK, authResponse{ParentID: parentID, ParentSession: session})
+	// A reset proves the email, not the authenticator: two-step sign-in still applies.
+	h.signIn(w, r, parentID)
 }
 
 // Logout ends this session on the server; the console also forgets it.
@@ -145,7 +141,15 @@ func (h *Handlers) GetAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
-	writeJSON(w, http.StatusOK, accountDTO{Email: parent.Email, Phones: len(devices), PasswordReset: h.resetsAvailable()})
+	twoFactor := false
+	if h.TwoFactor != nil {
+		if twoFactor, err = h.TwoFactor.Enabled(r.Context(), parentID); err != nil {
+			log.Printf("console: two-step status: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, accountDTO{Email: parent.Email, Phones: len(devices), PasswordReset: h.resetsAvailable(), TwoFactor: twoFactor})
 }
 
 // DeleteAccount needs the password again: a session left open on a shared

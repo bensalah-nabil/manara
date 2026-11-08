@@ -79,6 +79,9 @@ func main() {
 		Notifier: notifier, PushEnabled: !pushOff, Profiles: devices,
 		Parents: parents, Accounts: accounts, Resets: accounts, ConsoleURL: consoleURL(),
 		LoginLimiter: guard.NewLimiter(10, 15*time.Minute),
+		TwoFactor:    postgres.NewTwoFactorRepository(db),
+		// 5 code tries per pending sign-in: 5 in a million against a 6-digit code.
+		ChallengeLimiter: guard.NewLimiter(5, domain.ChallengeLifetime),
 	}
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
@@ -111,6 +114,10 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/auth/signup", limited(consoleHandlers.SignUp))
 	mux.HandleFunc("POST /api/v1/console/auth/login", limited(consoleHandlers.Login))
 	mux.HandleFunc("POST /api/v1/console/auth/logout", consoleHandlers.Logout)
+	mux.HandleFunc("POST /api/v1/console/auth/login/verify", limited(consoleHandlers.VerifyLogin))
+	mux.HandleFunc("POST /api/v1/console/account/two-factor/setup", consoleHandlers.SetupTwoFactor)
+	mux.HandleFunc("POST /api/v1/console/account/two-factor/enable", limited(consoleHandlers.EnableTwoFactor))
+	mux.HandleFunc("POST /api/v1/console/account/two-factor/disable", limited(consoleHandlers.DisableTwoFactor))
 	mux.HandleFunc("POST /api/v1/console/auth/password-reset", limited(consoleHandlers.RequestPasswordReset))
 	mux.HandleFunc("POST /api/v1/console/auth/password-reset/confirm", limited(consoleHandlers.ConfirmPasswordReset))
 	mux.HandleFunc("GET /api/v1/console/account", consoleHandlers.GetAccount)

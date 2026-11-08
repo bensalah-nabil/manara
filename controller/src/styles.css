@@ -441,3 +441,7 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 .chart.scroll { overflow-x: auto; overflow-y: visible; }
 .chart.scroll svg { min-width: 600px; }
 .chart .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+
+/* Recovery codes: easy to copy, two columns where there is room. */
+.recovery-codes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
+.recovery-codes code { font-size: 1rem; letter-spacing: 0.05em; }

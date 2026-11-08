@@ -295,6 +295,105 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /console/auth/login/verify:
+    post:
+      tags: [console]
+      summary: Second step of signing in (two-step sign-in on)
+      description: >
+        When two-step sign-in is on, login and password-reset confirmation
+        answer `{twoFactorRequired: true, challenge}` instead of a session.
+        Send the challenge with a 6-digit code from the authenticator app
+        (each 30-second code works once) or a recovery code (each works once).
+        A challenge lives 5 minutes and allows 5 tries.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challenge, code]
+              properties:
+                challenge: { type: string }
+                code: { type: string }
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401':
+          description: "`bad_code`, or `invalid_challenge` (expired or used)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /console/account/two-factor/setup:
+    post:
+      tags: [console]
+      summary: Start turning on two-step sign-in
+      description: Needs the password. Returns a new secret and its otpauth URI (for a QR code); not in use until enabled.
+      security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [password], properties: { password: { type: string } } }
+      responses:
+        '200':
+          description: The secret to add to an authenticator app.
+          content:
+            application/json:
+              schema: { type: object, properties: { secret: { type: string }, uri: { type: string } } }
+        '403':
+          description: "`wrong_password`."
+
+  /console/account/two-factor/enable:
+    post:
+      tags: [console]
+      summary: Turn on two-step sign-in with a first code
+      description: Returns 10 recovery codes, shown once; any older ones stop working.
+      security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [code], properties: { code: { type: string } } }
+      responses:
+        '200':
+          description: On.
+          content:
+            application/json:
+              schema: { type: object, properties: { recoveryCodes: { type: array, items: { type: string } } } }
+        '400':
+          description: "`bad_code`."
+        '409':
+          description: "`setup_first`: no setup started."
+
+  /console/account/two-factor/disable:
+    post:
+      tags: [console]
+      summary: Turn off two-step sign-in
+      description: Needs the password and a current code or a recovery code. Recovery codes are deleted.
+      security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, code]
+              properties: { password: { type: string }, code: { type: string } }
+      responses:
+        '204':
+          description: Off.
+        '400':
+          description: "`bad_code`."
+        '403':
+          description: "`wrong_password`."
+
   /console/auth/password-reset:
     post:
       tags: [console]
@@ -857,6 +956,9 @@ components:
         passwordReset:
           type: boolean
           description: False when the server cannot send email, so a reset link can never arrive.
+        twoFactor:
+          type: boolean
+          description: Two-step sign-in is on.
 
     AuthResponse:
       type: object

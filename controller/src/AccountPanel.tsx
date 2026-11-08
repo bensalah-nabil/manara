@@ -3,6 +3,7 @@ import { isSessionError } from './api.ts'
 import type { Account, Api } from './api.ts'
 import { DELETE_WORD, canDelete, phonesLeftText } from './account.ts'
 import { errorText } from './format.ts'
+import { TwoStepPanel } from './TwoStepPanel.tsx'
 
 /** The parent's own account: who is signed in, and deleting the account with all its data. */
 export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; onSessionExpired: () => void; onDeleted: () => void }) {
@@ -57,6 +58,13 @@ export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; o
                         : 'This server cannot send email, so a forgotten password cannot be reset by email. Keep it somewhere safe.'}
                 </p>
             </section>
+
+            <TwoStepPanel
+                api={api}
+                on={account.twoFactor}
+                onSessionExpired={onSessionExpired}
+                onChanged={() => { api.getAccount().then(setAccount).catch(() => undefined) }}
+            />
 
             <form class="card danger-zone" onSubmit={remove}>
                 <h3>Delete your account</h3>

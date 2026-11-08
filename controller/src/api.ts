@@ -10,6 +10,17 @@ export interface Account {
     phones: number
     /** False when the server cannot send email, so password reset is off. */
     passwordReset: boolean
+    /** Two-step sign-in with an authenticator app is on. */
+    twoFactor: boolean
+}
+
+/** The password was right and two-step sign-in is on: send a code with this challenge. */
+export interface TwoFactorChallenge {
+    challenge: string
+}
+
+export function needsSecondStep(result: AuthResponse | TwoFactorChallenge): result is TwoFactorChallenge {
+    return 'challenge' in result
 }
 
 export interface DeviceSummary {
@@ -125,6 +136,15 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         return value as Policy
     }
 
+    function toSignIn(value: unknown): AuthResponse | TwoFactorChallenge {
+        const fields = value as { twoFactorRequired?: unknown; challenge?: unknown } | null
+        if (fields && fields.twoFactorRequired === true) {
+            if (typeof fields.challenge !== 'string') throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            return { challenge: fields.challenge }
+        }
+        return toAuth(value)
+    }
+
     function toAuth(value: unknown): AuthResponse {
         const fields = value as Partial<AuthResponse> | null
         if (!fields || typeof fields.parentId !== 'string' || typeof fields.parentSession !== 'string') {
@@ -134,8 +154,32 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
     }
 
     return {
-        async login(email: string, password: string): Promise<AuthResponse> {
-            return toAuth(await request('POST', '/console/auth/login', { email, password }))
+        /** A session, or a challenge when two-step sign-in is on. */
+        async login(email: string, password: string): Promise<AuthResponse | TwoFactorChallenge> {
+            return toSignIn(await request('POST', '/console/auth/login', { email, password }))
+        },
+
+        /** The second step: a code from the authenticator app, or a recovery code. */
+        async verifyLogin(challenge: string, code: string): Promise<AuthResponse> {
+            return toAuth(await request('POST', '/console/auth/login/verify', { challenge, code }))
+        },
+
+        /** Needs the password; returns the secret for the authenticator app, not yet in use. */
+        async setupTwoFactor(password: string): Promise<{ secret: string; uri: string }> {
+            const value = (await request('POST', '/console/account/two-factor/setup', { password }, true)) as { secret?: unknown; uri?: unknown } | null
+            if (!value || typeof value.secret !== 'string' || typeof value.uri !== 'string') throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            return { secret: value.secret, uri: value.uri }
+        },
+
+        /** Turns it on with a first code; returns the recovery codes, shown once. */
+        async enableTwoFactor(code: string): Promise<string[]> {
+            const value = (await request('POST', '/console/account/two-factor/enable', { code }, true)) as { recoveryCodes?: unknown } | null
+            if (!value || !Array.isArray(value.recoveryCodes)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            return value.recoveryCodes.filter((c): c is string => typeof c === 'string')
+        },
+
+        async disableTwoFactor(password: string, code: string): Promise<void> {
+            await request('POST', '/console/account/two-factor/disable', { password, code }, true)
         },
 
         async signUp(email: string, password: string): Promise<AuthResponse> {
@@ -153,8 +197,8 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         },
 
         /** Sets the new password from an emailed link and signs in; every other session ends. */
-        async confirmPasswordReset(token: string, password: string): Promise<AuthResponse> {
-            return toAuth(await request('POST', '/console/auth/password-reset/confirm', { token, password }))
+        async confirmPasswordReset(token: string, password: string): Promise<AuthResponse | TwoFactorChallenge> {
+            return toSignIn(await request('POST', '/console/auth/password-reset/confirm', { token, password }))
         },
 
         async getAccount(): Promise<Account> {
@@ -162,7 +206,7 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             if (!value || typeof value.email !== 'string' || typeof value.phones !== 'number') {
                 throw new ApiError(200, 'bad_response', 'Unexpected server response')
             }
-            return { email: value.email, phones: value.phones, passwordReset: value.passwordReset === true }
+            return { email: value.email, phones: value.phones, passwordReset: value.passwordReset === true, twoFactor: value.twoFactor === true }
         },
 
         /** Needs the password again. Refused (devices_remain) while any phone is still on the account. */
