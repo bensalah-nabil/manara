@@ -33,9 +33,15 @@ they resolve, not left buried in a chat log. Cross-reference:
 - **Emulator matrix:** restrictions, Chrome configuration, a lock window and
   the app opening while managed, on Android 14.
 
+- **Unexported boot receiver (SM-A045F):** installing 1.0.4 without opening
+  Manara, the system delivered `MY_PACKAGE_REPLACED` and the notice came back.
+- **Date and time lock:** restriction and automatic time applied on the
+  Android 14 emulator (matrix); not yet seen on a phone.
+
 **Not yet run on a phone:** setup's new order (apps last), the account list
 carried over from a failed run, and the restore and retry fixes (proven by
-the chaos test only); email delivery; makers other than Samsung.
+the chaos test only); the date and time lock; email delivery; makers other
+than Samsung.
 
 ### Manara using the phone's own wireless debugging (SM-A528B, 2026-11-06)
 

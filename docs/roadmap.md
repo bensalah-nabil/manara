@@ -395,10 +395,18 @@ plan are in [`security.md`](security.md).
 - [x] Testing layers: unit, chaos, emulator matrix, real-phone farms
       ([testing.md](testing.md)).
 - [x] Retention/purge job for events (location and usage 30 days, others 90).
-- [ ] Encrypt location data at rest.
-- [ ] Threat-model and pen-test the sync and console APIs.
-- [ ] Two-factor sign-in for parents (capability-plan E2).
+- [x] Rate limits, expiring sessions and sign-out, server timeouts, console CSP.
+- [x] Dependency scans in CI (Go, npm, OSV.dev for the app).
+- [x] Two-step sign-in for parents (capability-plan E2).
+- [x] Threat model ([threat-model.md](threat-model.md)); its gaps fixed: expiring
+      enrollment codes, a pinned Gradle download, the date and time locked.
+- [ ] Audit log of parent actions; remove every adb key after setup.
+- [ ] Encrypt location data and authenticator secrets at rest.
+- [ ] External penetration test; MASA AL1, then AL2 with a lab.
 - [ ] Per-manufacturer keep-alive testing matrix.
+
+The full list, with why and when each is done, is in
+[security.md](security.md), "What's left".
 
 ## Known hard problems (not blockers, but eyes open)
 

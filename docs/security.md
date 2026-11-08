@@ -84,29 +84,48 @@ address; account deletion behind the password; every per-phone route checks
 the phone belongs to the signed-in parent; CORS limited to the console origin;
 retention limits on collected data.
 
-## Open, in order
+## Done (2026-11-08)
 
-1. ~~Android dependency scan and CI~~ (done 2026-11-08; watch the first CI run).
-2. ~~The two "verify" items~~ (done; the unexported `BootReceiver` verified on
-   a phone).
-3. ~~Two-step sign-in for parents~~ (done 2026-11-08, capability-plan E2):
-   RFC 6238 codes (tested against the RFC's vectors and, end to end, an
-   independent implementation), each 30-second code accepted once, 10 hashed
-   single-use recovery codes, a 5-minute challenge with 5 tries, and a
-   password reset that does not skip it. Accepted for now: the authenticator
-   secret is stored as is in the database (it is only useful together with the
-   password); encrypting it with a server key is a later step.
-4. ~~Threat model~~ ([threat-model.md](threat-model.md), 2026-11-08). It found
-   and fixed: enrollment codes that never expired (now 24 h), an unpinned
-   Gradle download (checksum pinned), and a child changing the clock to
-   escape a lock window (the date and time are now locked, with automatic
-   time, by default on new phones; checked on the Android 14 emulator). Its
-   remaining items: an audit log of parent actions, removing every adb key at
-   the end of setup, then an external penetration test with it as scope.
-5. **Rate limits and the alert throttle in Postgres** before running a second
-   server instance (they are in memory today).
-6. **MASA AL1 self-attestation** as a rehearsal, then **AL2** with a lab, on
-   the published Play version.
+- Dependency scans for all three parts, in CI on every push (MASA 1.6.2.1).
+- The boot receiver no longer exported, verified on a phone (MASA 1.5.1.3).
+- Two-step sign-in for parents (capability-plan E2): RFC 6238 codes, each
+  accepted once, 10 single-use recovery codes, a 5-minute challenge with 5
+  tries, and a password reset that doesn't skip it.
+- Threat model ([threat-model.md](threat-model.md)), and the three gaps it
+  found: enrollment codes now expire after 24 h, the Gradle download is
+  checksum-pinned, and the date and time are locked (automatic time) by
+  default on new phones.
+- Rate limits, 30-day sessions with server-side sign-out, timing-safe login,
+  server timeouts and size limits, the console's CSP and HSTS.
+
+## What's left, in order
+
+Each item says why it matters and how to know it's done.
+
+1. **Audit log of parent actions.** Who locked, released, changed a rule or
+   turned two-step sign-in on or off, and when. Today only policy versions
+   exist (threat model, repudiation). Done when every console write leaves a
+   row the parent can read on the Account page.
+2. **Remove every adb pairing key at the end of guided setup**, not only
+   Manara's own. A computer paired during setup by someone on the same Wi-Fi
+   would otherwise stay paired (debugging is blocked afterwards, so it can't
+   connect, but the key should not survive). Done when the setup flow clears
+   the paired-device list and a phone shows none afterwards.
+3. **Make two-step sign-in required for new accounts**, or strongly prompted
+   at first sign-in. It is opt-in today.
+4. **Encrypt the authenticator secrets and location rows at rest** with a
+   server key (today: Neon's disk encryption only; the secrets are useless
+   without the password, location is the most sensitive data Manara holds).
+5. **Rate limits and the alert throttle in Postgres** before a second server
+   instance (in memory today; one instance on Render).
+6. **The date and time lock on existing phones**: it is on by default only for
+   phones set up after 2026-11-08; older ones need it ticked in Settings
+   restrictions.
+7. **External penetration test** of the server, with the threat model as its
+   scope.
+8. **MASA AL1** (self-attestation: an APK scan and questionnaire) as a
+   rehearsal, then **AL2** with an authorized lab on the published Play
+   version, renewed yearly.
 
 Process for each release: unit and chaos tests, the emulator matrix, the three
 dependency scans, then the release build on a real phone (`testing.md`).
