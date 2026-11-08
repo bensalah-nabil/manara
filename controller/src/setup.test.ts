@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { SETUP_STEPS, accountTypeName, canFinish, isActive, pairingCode, reconnectChecklist, stepStates, waitingToPair } from './setup.ts'
+import { SETUP_STEPS, accountTypeName, canFinish, isActive, pairingCode, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
 
 test('steps before the current one are done, the current one reflects the status, later ones are pending', () => {
     const states = stepStates({ step: 'waiting_for_accounts', status: 'waiting_for_parent' })
@@ -74,4 +74,18 @@ test('a pairing code is six digits, spaces allowed', () => {
     assert.equal(pairingCode('123456'), '123456')
     assert.equal(pairingCode(' 123 456 '), '123456')
     for (const bad of ['', '12345', '1234567', '12a456', '123-456']) assert.equal(pairingCode(bad), null, bad)
+})
+
+test('a Google account offers ways back in that need no password, each with a link', () => {
+    const ways = signBackInWays('com.google')
+    assert.equal(ways.length, 3)
+    for (const way of ways) assert.ok(way.link?.href.startsWith('https://'), way.text)
+    assert.ok(ways.some((way) => way.text.includes('passkey')))
+    assert.ok(ways.some((way) => way.text.includes('Family Link')))
+})
+
+test('other accounts are told they usually come back by themselves', () => {
+    const ways = signBackInWays('com.facebook.auth.login')
+    assert.equal(ways.length, 1)
+    assert.ok(ways[0].text.includes('by themselves'))
 })

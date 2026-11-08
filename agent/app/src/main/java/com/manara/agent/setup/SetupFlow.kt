@@ -29,8 +29,17 @@ object SetupFlow {
         DONE("done"),
     }
 
-    /** `accounts == null` leaves the server's stored lists unchanged. */
-    data class Report(val step: Step, val status: Status, val message: String, val accounts: List<Account>?)
+    /**
+     * `accounts == null` leaves the server's stored lists unchanged. [signBackIn] stays on the
+     * phone: the accounts still missing at the end, so its notice can open the right sign-in.
+     */
+    data class Report(
+        val step: Step,
+        val status: Status,
+        val message: String,
+        val accounts: List<Account>?,
+        val signBackIn: List<Account> = emptyList(),
+    )
 
     sealed interface Action {
         data object WaitForPairingCode : Action
@@ -229,7 +238,7 @@ object SetupFlow {
                             report(Step.RECONNECTING, Status.IN_PROGRESS, "Checking that every account is back.", current),
                         )
                         else -> Transition(state, Action.WatchAccounts,
-                            report(Step.RECONNECTING, Status.WAITING_FOR_PARENT, RECONNECT_MESSAGE, current))
+                            report(Step.RECONNECTING, Status.WAITING_FOR_PARENT, RECONNECT_MESSAGE, current).copy(signBackIn = missing))
                     }
                 }
                 Event.ParentFinished -> finished(state, null)
@@ -321,8 +330,10 @@ object SetupFlow {
 
     private fun waitingMessage(manual: Int, otherUsers: Int, pauseNotEnough: Boolean): String = buildList {
         if (manual > 0) add(
-            "Write down each password, then remove the $manual account(s) listed in the console from Settings, Accounts. " +
-                if (pauseNotEnough) "Don't uninstall any app: the apps and their data stay." else "Manara can't pause the app that holds them.",
+            (if (pauseNotEnough) "This phone needs the $manual account(s) listed in the console removed for a moment. "
+            else "Manara can't pause the app holding the $manual account(s) listed in the console. ") +
+                "Check in the console how you'll get back in, then tap Open accounts and remove them. " +
+                "Don't uninstall any app: the apps and their data stay.",
         )
         // A second user (e.g. Secure Folder) also blocks device owner, even with no accounts.
         if (otherUsers > 0) add("Remove Secure Folder and any other user or profile on the phone.")

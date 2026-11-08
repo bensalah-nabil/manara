@@ -109,3 +109,31 @@ export function pairingCode(text: string): string | null {
     const digits = text.replace(/\s+/g, '')
     return /^[0-9]{6}$/.test(digits) ? digits : null
 }
+
+/** One way back in to an account after setup, as the console shows it before the parent removes it. */
+export type SignBackInWay = { text: string; link?: { href: string; label: string } }
+
+/**
+ * How a parent gets back in to each kind of account without remembering its password. Google is
+ * the one that matters: on phones that count stored accounts (Samsung, ADR-0006) it must be
+ * removed and signed back in to; apps like Facebook re-created theirs by themselves (SM-A045F).
+ */
+export function signBackInWays(type: string): SignBackInWay[] {
+    if (type === 'com.google') {
+        return [
+            {
+                text: 'With your phone: save a passkey for this account on your phone. Signing back in is then a QR code to scan and your fingerprint, no password.',
+                link: { href: 'https://g.co/passkeys', label: 'Add a passkey' },
+            },
+            {
+                text: "With a code by SMS: check the account's recovery phone is a number you have.",
+                link: { href: 'https://myaccount.google.com/signinoptions/rescuephone', label: 'Check the recovery phone' },
+            },
+            {
+                text: 'With Family Link, if you created this account for your child: in the Family Link app, your child, Controls, Account settings, Change password.',
+                link: { href: 'https://support.google.com/families/answer/7103262', label: 'How' },
+            },
+        ]
+    }
+    return [{ text: 'Usually nothing to do: the app stays installed with its data, and apps like Facebook add their account back by themselves when opened. Otherwise, sign in again in the app.' }]
+}

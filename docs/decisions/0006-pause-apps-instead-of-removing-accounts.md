@@ -68,6 +68,48 @@ Folder) is on the phone.
 What can still need the parent: removing a second user, and removing the
 account of an app Android refuses to pause or that is a default app (rare).
 
+### Where pausing isn't enough: Samsung (added after the first phone runs)
+
+Android 14 and 15 check accounts **twice** in `setDeviceOwner`: the cached
+count above, then a live `getAccounts()` (`hasAccountsOnAnyUser`), which
+only returns `false`. The shell prints that as "Can't set package ... as
+device owner". On stock Android both checks skip a paused app's accounts.
+
+On the SM-A045F (Samsung, Android 14) the cached check passed every time
+and the live check refused every time: 11 refusals over three runs. In the
+cleanest run only the Google account was stored, nothing re-added an
+account, Play services was paused, and `dumpsys account` showed no
+registered app for it for 13 s. Samsung's framework isn't public, so the
+cause is concluded from behaviour: its live check counts every stored
+account, paused app or not.
+
+So setup does this:
+
+1. Pause first, as above. Stock Android needs nothing else.
+2. If `set-device-owner` refuses twice (`PAUSE_RETRIES`) with every counted
+   app paused, conclude that pausing isn't enough on this phone. Turn the
+   apps back on and list **every** account for the parent to remove in
+   Settings, Accounts. Never pause again in that run, and never uninstall.
+3. The console first shows, for each account, how to get back in without a
+   remembered password, and asks the parent to confirm. For Google: a
+   passkey on the parent's phone (QR code plus fingerprint), the recovery
+   phone's SMS code, or a Family Link password reset if the parent created
+   the account. For other apps: usually nothing, since they stay installed.
+4. The phone's setup notice opens the screens: **Open accounts**
+   (`Settings.ACTION_SYNC_SETTINGS`) to remove them, then **Add Google
+   account** (`ACTION_ADD_ACCOUNT` limited to `com.google`) at the end.
+   Google comes first, because its saved passwords bring the others back.
+
+What the A045F showed parents gain even so: no app is uninstalled, no app
+data is lost, and **Facebook re-created its account by itself** (and stayed
+signed in) after its entry was removed in Settings. Only Google needed
+signing back in.
+
+A module that copies the accounts' passwords out and puts them back was
+considered and rejected. Android lets only the owning app read an
+account's secrets (`AccountManagerService.getPassword`), so it would need
+root. It would also be credential harvesting, against ADR-0001.
+
 ## Safety
 
 - The paused list is recorded before any app is touched, in the flow's state
@@ -92,14 +134,20 @@ account of an app Android refuses to pause or that is a default app (rare).
 - `SetupChaosTest`, 5,000 simulated phones: no account deleted, no app left
   off.
 
-Not yet seen on a real phone: pausing Google Play services and Samsung's
-account app, and a whole guided setup run this way
+- SM-A045F (Samsung, Android 14), 2026-11-08: pausing worked for the cached
+  check, not the live one (above). The fallback asked for the accounts; the
+  parent removed Google, then signed back in, and Facebook came back by
+  itself. That run's final console state is still to be confirmed.
+
+Not yet seen on a phone: pausing on stock Android with Google Play services
+(Pixel, Motorola...), the notice's two buttons on Samsung, and other makers
 ([pending-verifications.md](../pending-verifications.md)).
 
 ## Consequences
 
-- No data loss and no sign-in after setup in the common case. The "sign back
-  in" step remains only for accounts the parent removed themselves.
+- Stock Android: no data loss and nothing to sign back in to.
+- Samsung: no app uninstalled and no data lost, but the accounts are
+  removed for a moment; in practice the parent signs back in to Google only.
 - Manara declares one account authenticator. It isn't exported, holds no
   account outside the recount, and refuses every account operation.
 - `tools/orphan-account-cleaner` and the `enroll-*-apps.sh` scripts are no

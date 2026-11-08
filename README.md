@@ -38,7 +38,7 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 
 | Capability        | Status  | Notes                                             |
 |-------------------|---------|---------------------------------------------------|
-| Device-owner enrollment | ✅ done, verified on 2 real Samsung phones | No factory reset, no computer: guided setup on the phone, paired from the console by QR code or pairing code, shown as a live timeline ([ADR-0005](docs/decisions/0005-setup-inputs-in-the-console.md)). Apps holding an account are paused for a few seconds, not removed: no data lost, nothing to sign back in to ([ADR-0006](docs/decisions/0006-pause-apps-instead-of-removing-accounts.md), emulator-verified, phone run pending) |
+| Device-owner enrollment | ✅ done, verified on 2 real Samsung phones | No factory reset, no computer: guided setup on the phone, paired from the console by QR code or pairing code, shown as a live timeline ([ADR-0005](docs/decisions/0005-setup-inputs-in-the-console.md)). No app uninstalled, no app data lost: apps holding an account are paused for a few seconds; on Samsung the accounts are removed for a moment and the parent signs back in to Google, guided step by step ([ADR-0006](docs/decisions/0006-pause-apps-instead-of-removing-accounts.md)) |
 | App time limits   | ✅ done | `UsageStatsManager` + `setPackagesSuspended`, verified end to end (Instagram on one device, Facebook on another) |
 | Remote screen lock | ✅ done | Real `lockNow()`, verified on hardware through a live FCM push in the release build, within seconds; saving rules wakes the phone too |
 | Website filtering  | ✅ done | Private DNS, verified via `settings get global private_dns_mode` |

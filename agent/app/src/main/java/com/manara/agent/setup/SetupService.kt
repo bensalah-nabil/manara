@@ -12,6 +12,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
 import android.util.Log
 import com.manara.agent.sync.DeviceTokenStore
 import com.manara.agent.sync.ManaraApiFactory
@@ -85,7 +86,7 @@ class SetupService : Service() {
 
     /** Shows the step on the phone and sends it to the console; true once the server has it. */
     private suspend fun send(report: SetupFlow.Report, qr: PairingDecision.QrPairing?): Boolean {
-        show(report.message)
+        show(report.message, SetupNotice.buttonFor(report))
         val token = DeviceTokenStore(this).deviceToken()
         if (token == null) {
             Log.w(TAG, "not enrolled; report not sent")
@@ -123,12 +124,27 @@ class SetupService : Service() {
         }
     }
 
-    private fun show(text: String) {
+    private fun show(text: String, button: SetupNotice.Button? = null) {
         last = text
-        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(text))
+        lastButton = button
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(text, button))
     }
 
-    private fun notification(text: String): Notification {
+    /**
+     * The screen [button] opens: Settings' account list (`ACTION_SYNC_SETTINGS`), or Android's add
+     * account screen limited to the missing types (`ACTION_ADD_ACCOUNT` with `EXTRA_ACCOUNT_TYPES`),
+     * both documented `Settings` actions (developer.android.com). Immutable: nothing can change it.
+     */
+    private fun screen(button: SetupNotice.Button): PendingIntent {
+        val intent = when (button) {
+            SetupNotice.OpenAccounts -> Intent(Settings.ACTION_SYNC_SETTINGS)
+            is SetupNotice.AddAccount -> Intent(Settings.ACTION_ADD_ACCOUNT)
+                .putExtra(Settings.EXTRA_ACCOUNT_TYPES, button.types.toTypedArray())
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return PendingIntent.getActivity(this, 3, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    private fun notification(text: String, button: SetupNotice.Button? = null): Notification {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "Guided setup", NotificationManager.IMPORTANCE_HIGH).apply {
@@ -141,6 +157,13 @@ class SetupService : Service() {
             .setStyle(Notification.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.ic_stat_manara)
             .setOngoing(true)
+            .apply {
+                // The notice itself and its button both open the screen the parent needs next.
+                button?.let { screen(it) }?.let { open ->
+                    setContentIntent(open)
+                    addAction(Notification.Action.Builder(null, button.label, open).build())
+                }
+            }
             // Android 14 lets the user swipe this away while Manara isn't device owner yet;
             // setup must stay visible while it runs, so post it again.
             .setDeleteIntent(
@@ -168,6 +191,7 @@ class SetupService : Service() {
         @Volatile private var running = false
         @Volatile private var current: SetupService? = null
         @Volatile private var last: String? = null
+        @Volatile private var lastButton: SetupNotice.Button? = null
 
         /** While setup runs, nothing may block the wireless debugging it works over. */
         val isRunning: Boolean get() = running
@@ -176,7 +200,7 @@ class SetupService : Service() {
         fun showAgain() {
             val service = current ?: return
             if (!running) return
-            service.show(last ?: "Starting guided setup.")
+            service.show(last ?: "Starting guided setup.", lastButton)
         }
 
         /** False on a phone Manara already manages, before enrollment, or below Android 11. */

@@ -20,7 +20,10 @@ setup through 5,000 random simulated phones and parents in about a second:
 any step can fail, Android answers from a stale account count, an app
 refuses to be paused, the parent adds an account mid-way or leaves, extra
 users come and go, pausing and resuming fail halfway. The simulated phone
-counts accounts the way Android does (ADR-0006). After every step it checks
+counts accounts the way Android does (ADR-0006): on stock Android a paused
+app's account type passes to the next app that declares it, and in 30% of
+runs the phone counts every stored account, as the SM-A045F did, with a
+parent who removes what the console lists. After every step it checks
 the rules that protect a family:
 
 - setup never deletes an account and never uninstalls an app;

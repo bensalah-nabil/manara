@@ -280,6 +280,13 @@ shows raw rows: an account whose app is disabled or gone is listed there but
 not counted. Guided setup relies on this (ADR-0006); `PauseForOwnerTest`
 checks it.
 
+That's stock Android. Android 14 and 15 then check accounts a second time,
+live, and only return `false`, which the shell prints as "Can't set package
+... as device owner". On the SM-A045F (Samsung) that live check counted
+stored accounts even with their app paused: 11 refusals out of 11. An
+emulator pass doesn't carry over to Samsung; test account changes on a
+Samsung too.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

@@ -44,10 +44,19 @@ they resolve, not left buried in a chat log. Cross-reference:
   succeeded, and the app came back with its account and data. An orphaned
   account didn't block either. `PauseForOwnerTest` passed (ADR-0006).
 
-**Not yet run on a phone:** guided setup pausing apps (ADR-0006), above all
-Google Play services and Samsung's account app, which a maker may refuse to
-let the shell turn off; the account list carried over from a failed run;
-the date and time lock; email delivery; makers other than Samsung.
+- **Pause, then Settings, on Samsung (SM-A045F, Android 14, 2026-11-08):**
+  pausing Play services, the Google app and Facebook passed the cached
+  account check but never the live one (11 of 11). With only Google stored
+  and nothing re-added, still refused. The fallback turned every app back
+  on and asked for the accounts in Settings. No app was uninstalled, and
+  Facebook re-created its account by itself, still signed in. The parent
+  signed back in to Google only.
+
+**Not yet run on a phone:** pausing on stock Android with Google Play
+services (no account removed at all); the setup notice's Open accounts and
+Add Google account buttons on Samsung; the account list carried over from a
+failed run; the date and time lock; email delivery; makers other than
+Samsung.
 
 ### Manara using the phone's own wireless debugging (SM-A528B, 2026-11-06)
 

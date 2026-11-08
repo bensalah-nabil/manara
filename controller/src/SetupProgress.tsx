@@ -4,7 +4,7 @@ import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText } from './format.ts'
 import { PairPhone } from './PairPhone.tsx'
-import { accountTypeName, canFinish, isActive, reconnectChecklist, stepStates, waitingToPair } from './setup.ts'
+import { accountTypeName, canFinish, isActive, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
 import type { DeviceSetup, SetupAccount, SetupStepKey, StepState } from './setup.ts'
 
 /** While the phone works, the console looks every 2 s; after a failure, every 5 s, to notice a new run. */
@@ -41,6 +41,33 @@ function Accounts({ accounts }: { accounts: SetupAccount[] }) {
     )
 }
 
+/** For each kind of account to remove, the ways back in that need no remembered password, then a confirmation. */
+function ReadyCheck({ accounts, ready, onReady }: { accounts: SetupAccount[]; ready: boolean; onReady: (ready: boolean) => void }) {
+    // Google first: once it is back, its saved passwords bring the other apps' back with them.
+    const types = [...new Set(accounts.map((account) => account.type))].sort((a, b) => Number(b === 'com.google') - Number(a === 'com.google'))
+    return (
+        <div class="stack">
+            {types.map((type) => (
+                <div key={type}>
+                    <strong>{accountTypeName(type)}</strong>
+                    <ul>
+                        {signBackInWays(type).map((way) => (
+                            <li key={way.text}>
+                                {way.text}{' '}
+                                {way.link && <a href={way.link.href} target="_blank" rel="noopener noreferrer">{way.link.label}</a>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ))}
+            <label>
+                <input type="checkbox" checked={ready} onChange={(event) => onReady((event.target as HTMLInputElement).checked)} />{' '}
+                I can get back in to these accounts
+            </label>
+        </div>
+    )
+}
+
 /**
  * Guided setup as a live timeline: each step in order, and under the step the phone is on, what
  * that step needs from the parent (the pairing QR code or code box, the accounts to remove, the
@@ -53,6 +80,8 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
     const [now, setNow] = useState(() => Date.now())
     const [clearing, setClearing] = useState(false)
     const [finishing, setFinishing] = useState(false)
+    // The parent confirms they can get back in before being told to remove anything.
+    const [ready, setReady] = useState(false)
 
     useEffect(() => {
         let current = true
@@ -154,10 +183,12 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                         {message}
                         {shown.currentAccounts.length > 0 && (
                             <>
-                                {!shown.message && (
-                                    <p class="untested">
-                                        On the phone, open Settings, then Accounts, and remove each account below. Write down each
-                                        password first: you need it to sign back in.
+                                <strong>Before removing anything: how you'll get back in</strong>
+                                <ReadyCheck accounts={shown.currentAccounts} ready={ready} onReady={setReady} />
+                                {ready && (
+                                    <p>
+                                        On the phone, tap <strong>Open accounts</strong> in Manara's setup notice and remove each account
+                                        below. Don't uninstall any app: the apps and their data stay.
                                     </p>
                                 )}
                                 <strong>Still on the phone ({shown.currentAccounts.length})</strong>
@@ -189,7 +220,11 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                                 <button type="button" class="primary" onClick={finish} disabled={finishing || !canFinish(shown)}>
                                     {shown.finishRequested ? 'Finishing...' : finishing ? 'Sending...' : 'Finish setup'}
                                 </button>
-                                <p class="hint">Finish when the accounts you want are back. You can sign in to others later.</p>
+                                <p class="hint">
+                                    On the phone, Manara's setup notice has a button that opens the sign-in for what is missing (Google
+                                    first: its saved passwords bring the others back). Finish when the accounts you want are back; you
+                                    can sign in to others later.
+                                </p>
                             </>
                         )}
                     </>

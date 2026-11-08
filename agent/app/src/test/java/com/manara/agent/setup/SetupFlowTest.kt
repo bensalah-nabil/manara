@@ -139,7 +139,7 @@ class SetupFlowTest {
         assertEquals(Step.WAITING_FOR_ACCOUNTS, t.report.step)
         assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
         assertEquals("only what the parent must remove", listOf(google), t.report.accounts)
-        assertTrue(t.report.message.contains("Settings, Accounts"))
+        assertTrue(t.report.message.contains("Open accounts"))
         assertEquals("nothing paused while the parent still has work", emptyList<String>(), t.state.pausedApps)
     }
 
@@ -310,6 +310,7 @@ class SetupFlowTest {
         t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
         t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
         assertEquals("removed accounts don't come back by themselves: ask at once", Status.WAITING_FOR_PARENT, t.report.status)
+        assertEquals("the phone's notice opens the sign-in for what is missing", all, t.report.signBackIn)
     }
 
     @Test
