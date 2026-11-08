@@ -36,7 +36,7 @@ export const SETUP_STEPS: { key: SetupStepKey; label: string }[] = [
     { key: 'linked', label: 'Phone linked to your account' },
     { key: 'pairing', label: 'Wireless debugging paired' },
     { key: 'checking_accounts', label: 'Accounts on the phone checked' },
-    { key: 'waiting_for_accounts', label: 'Accounts Manara cannot pause removed (usually none)' },
+    { key: 'waiting_for_accounts', label: 'Accounts removed in Settings, if this phone needs it' },
     { key: 'removing_app_accounts', label: 'Apps that hold an account paused for a few seconds' },
     { key: 'device_owner', label: 'Manara made the phone manager' },
     { key: 'restoring_apps', label: 'Paused apps turned back on' },

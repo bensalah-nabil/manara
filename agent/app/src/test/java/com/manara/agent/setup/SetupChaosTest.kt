@@ -56,6 +56,10 @@ class SetupChaosTest {
         /** The keyboard, home, phone or SMS app in use: sometimes one that holds an account. */
         val keepRunning = if (rnd.nextDouble() < 0.15) setOf("com.whatsapp") else emptySet()
         var otherUsers = if (rnd.nextDouble() < 0.1) 1 else 0
+        /** Like the SM-A045F: set-device-owner counts every stored account, paused app or not. */
+        val countsStoredAccounts = rnd.nextDouble() < 0.3
+        /** What the console last asked the parent to remove. */
+        var askedToRemove = emptySet<Account>()
         val disabled = mutableSetOf<String>()
         val everPaused = mutableSetOf<String>()
         val resumeFailures = mutableMapOf<String, Int>()
@@ -101,7 +105,9 @@ class SetupChaosTest {
         private fun parentActs() {
             if (parentGone) return
             if (rnd.nextDouble() < 0.01) { parentGone = true; return }
-            parentMustRemove().firstOrNull()?.takeIf { rnd.nextDouble() < 0.5 }?.let { accounts -= it; removedByParent += it }
+            (parentMustRemove() + askedToRemove.filter { it in accounts }).firstOrNull()?.takeIf { rnd.nextDouble() < 0.5 }?.let {
+                accounts -= it; removedByParent += it
+            }
             if (otherUsers > 0 && rnd.nextDouble() < 0.3) otherUsers = 0
             if (rnd.nextDouble() < 0.02) accounts += Account("com.google", "surprise${rnd.nextInt(100)}@gmail.com")
         }
@@ -140,7 +146,7 @@ class SetupChaosTest {
             if (!lastListCountedNothing) violations += "device owner tried while the last list still counted ${counted()}"
             return when {
                 // A real account, or Android's stale count; Android 14+ words its live check differently.
-                counted().isNotEmpty() || rnd.nextDouble() < 0.15 -> if (rnd.nextBoolean()) {
+                counted().isNotEmpty() || (countsStoredAccounts && accounts.isNotEmpty()) || rnd.nextDouble() < 0.15 -> if (rnd.nextBoolean()) {
                     "java.lang.IllegalStateException: Not allowed to set the device owner because there are already some accounts on the device."
                 } else {
                     "java.lang.RuntimeException: Can't set package ComponentInfo{com.manara.agent/com.manara.agent.OwnerReceiver} as device owner."
@@ -188,6 +194,7 @@ class SetupChaosTest {
                         if (sim.failedReported && r.status != SetupFlow.Status.FAILED) sim.violations += "reported ${r.status} after a failure"
                         if (r.status == SetupFlow.Status.FAILED) sim.failedReported = true
                         if (r.status == SetupFlow.Status.DONE && !sim.deviceOwner) sim.violations += "reported done without device owner"
+                        if (r.status == SetupFlow.Status.WAITING_FOR_PARENT && r.accounts != null) sim.askedToRemove = r.accounts.toSet()
                         reports += r
                     }, pollMillis = 0, earlierAccounts = earlier, log = { _, _ -> }).run()
                 }

@@ -273,19 +273,57 @@ class SetupFlowTest {
     }
 
     @Test
-    fun `a refusal that keeps coming back fails after the last check and turns apps back on`() {
-        var t = run(
-            Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")),
-            listed(listOf(whatsapp), withoutOwners("com.whatsapp")),
-        )
-        repeat(SetupFlow.MAX_OWNER_RETRIES) {
+    fun `a phone that counts paused apps' accounts gets the apps back on and asks the parent to remove the accounts`() {
+        // The SM-A045F (Samsung, Android 14), 2026-11-08: refused every time with every counted app paused.
+        val facebook = Account("com.facebook.auth.login", "kid")
+        val all = listOf(google, facebook)
+        val fbOwner = owners + ("com.facebook.auth.login" to "com.facebook.katana")
+        val paused = fbOwner.filterValues { it != gms && it != "com.facebook.katana" }
+        var t = run(Event.Paired, listed(all, fbOwner), listed(all, fbOwner), Event.AppsPaused(listOf(gms, "com.facebook.katana")), listed(all, paused))
+        repeat(SetupFlow.PAUSE_RETRIES) {
             t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
             assertEquals(Action.WaitThenListAccounts, t.action)
-            t = SetupFlow.next(t.state, listed(listOf(whatsapp), withoutOwners("com.whatsapp")))
+            t = SetupFlow.next(t.state, listed(all, paused))
             assertEquals(Action.SetDeviceOwner, t.action)
         }
         t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
-        assertEquals(Action.Recover(listOf("com.whatsapp")), t.action)
+        assertEquals("the apps come back on first", Action.ResumeApps(listOf(gms, "com.facebook.katana")), t.action)
+        assertTrue(t.state.pauseNotEnough)
+
+        t = SetupFlow.next(t.state, Event.AppsResumed)
+        assertEquals(Action.ListAccounts, t.action)
+        assertEquals("nothing left to turn back on", emptyList<String>(), t.state.pausedApps)
+
+        t = SetupFlow.next(t.state, listed(all, fbOwner))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(Status.WAITING_FOR_PARENT, t.report.status)
+        assertEquals("every account, to remove in Settings", all, t.report.accounts)
+        assertTrue(t.report.message.contains("Don't uninstall"))
+
+        // Never paused again, even for an app that could be.
+        t = SetupFlow.next(t.state, listed(listOf(facebook), fbOwner))
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        t = SetupFlow.next(t.state, listed(emptyList(), fbOwner))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
+        assertEquals("nothing paused any more", Action.TurnOffWirelessDebugging, t.action)
+        t = SetupFlow.next(t.state, Event.WirelessDebuggingOff)
+        t = SetupFlow.next(t.state, Event.Accounts(emptyList()))
+        assertEquals("removed accounts don't come back by themselves: ask at once", Status.WAITING_FOR_PARENT, t.report.status)
+    }
+
+    @Test
+    fun `a refusal that keeps coming back after the accounts are gone fails after the last check`() {
+        var t = run(Event.Paired, listed(listOf(google)), listed(listOf(google), keepRunning = setOf(gms)), listed(emptyList()))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        repeat(SetupFlow.MAX_OWNER_RETRIES) {
+            t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+            assertEquals(Action.WaitThenListAccounts, t.action)
+            t = SetupFlow.next(t.state, listed(emptyList()))
+            assertEquals(Action.SetDeviceOwner, t.action)
+        }
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+        assertEquals(Action.Recover(emptyList()), t.action)
         assertEquals(Status.FAILED, t.report.status)
     }
 

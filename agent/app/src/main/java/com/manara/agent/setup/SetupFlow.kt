@@ -95,6 +95,11 @@ object SetupFlow {
         val earlierAccounts: List<Account> = emptyList(),
         /** Checks spent waiting for the paused apps' accounts to show again. */
         val returnChecks: Int = 0,
+        /**
+         * This phone counts accounts even while their app is paused (seen on the SM-A045F, a
+         * Samsung on Android 14): the apps are back on and every account is the parent's to remove.
+         */
+        val pauseNotEnough: Boolean = false,
     )
 
     data class Transition(val state: State, val action: Action, val report: Report)
@@ -136,6 +141,16 @@ object SetupFlow {
             }
             Step.CHECKING_ACCOUNTS, Step.REMOVING_APP_ACCOUNTS, Step.WAITING_FOR_ACCOUNTS -> when (event) {
                 is Event.Accounts -> onAccounts(state, event)
+                // Pausing wasn't enough on this phone: the apps are back on, now list what the parent removes.
+                Event.AppsResumed -> if (state.pauseNotEnough) {
+                    Transition(
+                        state.copy(pausedApps = emptyList()),
+                        Action.ListAccounts,
+                        report(Step.WAITING_FOR_ACCOUNTS, Status.IN_PROGRESS, "Apps back on. Listing the accounts to remove."),
+                    )
+                } else {
+                    unexpected(state, event)
+                }
                 is Event.AppsPaused -> if (state.step == Step.REMOVING_APP_ACCOUNTS) {
                     Transition(
                         // Every app was recorded as paused before trying; the refused ones are not off.
@@ -161,6 +176,17 @@ object SetupFlow {
                         Transition(next, Action.ResumeApps(state.pausedApps),
                             report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Manara now manages the phone. Turning the paused apps back on."))
                     }
+                } else if (refusedForAccounts(event.output) && !state.pauseNotEnough && state.pausedApps.isNotEmpty() &&
+                    state.ownerRetries >= PAUSE_RETRIES
+                ) {
+                    // Refused again with every counted app paused: this phone counts their accounts
+                    // anyway. Turn them back on; the accounts themselves have to go, in Settings.
+                    Transition(
+                        state.copy(step = Step.WAITING_FOR_ACCOUNTS, pauseNotEnough = true, ownerRetries = 0, pausedTypes = emptySet()),
+                        Action.ResumeApps(state.pausedApps),
+                        report(Step.WAITING_FOR_ACCOUNTS, Status.IN_PROGRESS,
+                            "This phone still counts accounts while their apps are paused. Turning the apps back on; the accounts have to be removed in Settings instead."),
+                    )
                 } else if (refusedForAccounts(event.output) && state.ownerRetries < MAX_OWNER_RETRIES) {
                     // Android answers from a count it refreshes in the background
                     // (DevicePolicyManagerService.mHasIncompatibleAccounts): look again shortly.
@@ -219,6 +245,9 @@ object SetupFlow {
     /** Checks (one per watch, 5 s apart) a resumed app's accounts get to show again. */
     const val MAX_RETURN_CHECKS = 6
 
+    /** Refusals with every counted app paused before concluding pausing isn't enough on this phone. */
+    const val PAUSE_RETRIES = 2
+
     /** How many times a refusal for accounts is checked again before setup fails (5 s apart). */
     const val MAX_OWNER_RETRIES = 6
 
@@ -258,16 +287,18 @@ object SetupFlow {
                 report(Step.CHECKING_ACCOUNTS, Status.IN_PROGRESS, "Found ${accounts.size} account(s) on the phone.", accounts),
             )
         }
-        // An account with no registered app (orphaned, or its app paused) is not counted by Android.
-        val counted = accounts.filter { it.type in event.owners }
-        fun canPause(pkg: String) = pkg !in NEVER_PAUSE && pkg !in event.keepRunning && pkg !in state.cannotPause
-        val manual = counted.filter { !canPause(event.owners.getValue(it.type)) }
-        val toPause = counted.map { event.owners.getValue(it.type) }.filter(::canPause).distinct() - state.pausedApps.toSet()
+        // An account with no registered app (orphaned, or its app paused) is not counted by stock
+        // Android; a phone where pausing wasn't enough counts every stored account.
+        val counted = if (state.pauseNotEnough) accounts else accounts.filter { it.type in event.owners }
+        fun canPause(pkg: String?) = !state.pauseNotEnough && pkg != null &&
+            pkg !in NEVER_PAUSE && pkg !in event.keepRunning && pkg !in state.cannotPause
+        val manual = counted.filter { !canPause(event.owners[it.type]) }
+        val toPause = counted.mapNotNull { event.owners[it.type] }.filter(::canPause).distinct() - state.pausedApps.toSet()
         return when {
             manual.isNotEmpty() || event.otherUsers > 0 -> Transition(
                 state.copy(step = Step.WAITING_FOR_ACCOUNTS),
                 Action.WaitThenListAccounts,
-                report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT, waitingMessage(manual.size, event.otherUsers), manual),
+                report(Step.WAITING_FOR_ACCOUNTS, Status.WAITING_FOR_PARENT, waitingMessage(manual.size, event.otherUsers, state.pauseNotEnough), manual),
             )
             // Recorded before any is touched: if the batch fails halfway, recovery turns them all back on.
             toPause.isNotEmpty() -> Transition(
@@ -288,8 +319,11 @@ object SetupFlow {
         }
     }
 
-    private fun waitingMessage(manual: Int, otherUsers: Int): String = buildList {
-        if (manual > 0) add("Write down each password, then remove the $manual account(s) listed in the console from Settings, Accounts. Manara can't pause the app that holds them.")
+    private fun waitingMessage(manual: Int, otherUsers: Int, pauseNotEnough: Boolean): String = buildList {
+        if (manual > 0) add(
+            "Write down each password, then remove the $manual account(s) listed in the console from Settings, Accounts. " +
+                if (pauseNotEnough) "Don't uninstall any app: the apps and their data stay." else "Manara can't pause the app that holds them.",
+        )
         // A second user (e.g. Secure Folder) also blocks device owner, even with no accounts.
         if (otherUsers > 0) add("Remove Secure Folder and any other user or profile on the phone.")
     }.joinToString(" ")
