@@ -130,7 +130,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                 <>
                     {message}
                     <p>
-                        Setup stopped here. Nothing more is removed, and Manara puts back any app it had removed. The list of
+                        Setup stopped here. Nothing is removed, and Manara turns back on any app it had paused. The list of
                         what was on the phone is kept below. When you're ready, start guided setup again in Manara on the
                         phone: this page follows the new run by itself.
                     </p>

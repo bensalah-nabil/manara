@@ -38,10 +38,17 @@ class SetupChaosTest {
         // The phone.
         private val gms = "com.google.android.gms"
         private val osp = "com.osp.app.signin"
+        /**
+         * Every app that declares each account type, in the order Android picks them: pausing one
+         * hands the type to the next (the SM-A045F: Play services, then the Google app; Facebook,
+         * then com.facebook.services).
+         */
         val ownerOf = mapOf(
-            "com.google" to gms, "com.osp.app.signin" to osp, "com.whatsapp" to "com.whatsapp",
-            "www.instagram.com" to "com.instagram.android", "com.facebook.auth.login" to "com.facebook.katana",
-            "com.android.system.thing" to "android",
+            "com.google" to listOf(gms, "com.google.android.googlequicksearchbox", "com.android.vending").take(rnd.nextInt(1, 4)),
+            "com.osp.app.signin" to listOf(osp), "com.whatsapp" to listOf("com.whatsapp"),
+            "www.instagram.com" to listOf("com.instagram.android"),
+            "com.facebook.auth.login" to listOf("com.facebook.katana", "com.facebook.services").take(rnd.nextInt(1, 3)),
+            "com.android.system.thing" to listOf("android"),
         )
         val accounts = mutableListOf<Account>()
         /** Samsung's account app on some phones won't be turned off. */
@@ -80,7 +87,7 @@ class SetupChaosTest {
             if (rnd.nextDouble() < p) error("$name: simulated failure")
         }
 
-        private fun registered(type: String): String? = ownerOf[type]?.takeIf { it !in disabled }
+        private fun registered(type: String): String? = ownerOf[type]?.firstOrNull { it !in disabled }
 
         /** What Android counts for set-device-owner. */
         private fun counted() = accounts.filter { registered(it.type) != null }
@@ -132,8 +139,12 @@ class SetupChaosTest {
             if (failedReported) violations += "device owner tried after a failure was reported"
             if (!lastListCountedNothing) violations += "device owner tried while the last list still counted ${counted()}"
             return when {
-                counted().isNotEmpty() || rnd.nextDouble() < 0.15 -> // a real account, or Android's stale count
+                // A real account, or Android's stale count; Android 14+ words its live check differently.
+                counted().isNotEmpty() || rnd.nextDouble() < 0.15 -> if (rnd.nextBoolean()) {
                     "java.lang.IllegalStateException: Not allowed to set the device owner because there are already some accounts on the device."
+                } else {
+                    "java.lang.RuntimeException: Can't set package ComponentInfo{com.manara.agent/com.manara.agent.OwnerReceiver} as device owner."
+                }
                 otherUsers > 0 -> "java.lang.IllegalStateException: Not allowed to set the device owner because there are already several users on the device."
                 rnd.nextDouble() < 0.02 -> "java.lang.IllegalStateException: something unexpected"
                 else -> { deviceOwner = true; "Success: Device owner set to package com.manara.agent/.OwnerReceiver" }

@@ -290,6 +290,29 @@ class SetupFlowTest {
     }
 
     @Test
+    fun `the live account check's refusal is retried, and the app that took over the account type is paused`() {
+        // The SM-A045F's exact output, 2026-11-08.
+        val liveRefusal = "Exception occurred while executing 'set-device-owner':\n" +
+            "java.lang.RuntimeException: Can't set package ComponentInfo{com.manara.agent/com.manara.agent.OwnerReceiver} as device owner.\n"
+        assertTrue(SetupFlow.refusedForAccounts(liveRefusal))
+        var t = run(
+            Event.Paired, listed(listOf(google)), listed(listOf(google)), Event.AppsPaused(listOf(gms)),
+            listed(listOf(google), withoutOwners(gms)), Event.DeviceOwnerOutput(liveRefusal),
+        )
+        assertEquals(Action.WaitThenListAccounts, t.action)
+        assertEquals(Status.IN_PROGRESS, t.report.status)
+        // Another app now holds Google accounts: it is paused too, then device owner is tried again.
+        t = SetupFlow.next(t.state, listed(listOf(google), withoutOwners(gms) + ("com.google" to "com.android.vending")))
+        assertEquals(Action.PauseApps(listOf("com.android.vending")), t.action)
+        t = SetupFlow.next(t.state, Event.AppsPaused(listOf("com.android.vending")))
+        t = SetupFlow.next(t.state, listed(listOf(google), withoutOwners(gms)))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(ownerOk))
+        assertEquals("every app paused is turned back on", Action.ResumeApps(listOf(gms, "com.android.vending")), t.action)
+        assertFalse(SetupFlow.refusedForAccounts("java.lang.IllegalStateException: Trying to set the device owner, but device owner is already set."))
+    }
+
+    @Test
     fun `an account added during setup is handled like the others`() {
         var t = run(Event.Paired, listed(emptyList()), listed(emptyList()), Event.DeviceOwnerOutput(refusedForAccounts))
         t = SetupFlow.next(t.state, listed(listOf(whatsapp)))

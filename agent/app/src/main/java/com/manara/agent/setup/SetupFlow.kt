@@ -224,7 +224,12 @@ object SetupFlow {
 
     /** The refusal printed by `dpm set-device-owner` when Android still counts an account (seen on the SM-A528B). */
     fun refusedForAccounts(output: String): Boolean =
-        output.contains("already some accounts on the device")
+        output.contains("already some accounts on the device") ||
+            // After the cached count passes, Android 14 and 15 check accounts again, live
+            // (DevicePolicyManagerService.hasAccountsOnAnyUser), and only return false; the shell
+            // prints this. The only other false is a phone with no device admin feature at all.
+            // Seen on the SM-A045F: another app had taken over a paused app's account type.
+            (output.contains("Can't set package ") && output.contains(" as device owner."))
 
     fun deviceOwnerSucceeded(output: String): Boolean =
         output.lineSequence().any { it.trim().startsWith(DEVICE_OWNER_SUCCESS) }
