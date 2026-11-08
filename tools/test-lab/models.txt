@@ -1,0 +1,3 @@
+# Real phones for tools/test-lab/run.sh, one per line: <Test Lab model id>,<Android API level>
+# Get the ids with: tools/test-lab/run.sh models
+# Pick the brands and price ranges parents actually buy: Samsung A series, Xiaomi/Redmi, Oppo, a Pixel.

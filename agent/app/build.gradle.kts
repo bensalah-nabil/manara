@@ -97,6 +97,28 @@ android {
         }
     }
 
+    // The emulator matrix (app/src/androidTest/.../matrix): ./gradlew.bat matrixGroupDebugAndroidTest
+    // Gradle downloads, starts and wipes these emulators itself. "aosp" images: no Google account,
+    // so set-device-owner works, as on a phone whose accounts guided setup removed.
+    testOptions {
+        managedDevices {
+            localDevices {
+                mapOf("api30" to 30, "api33" to 33, "api34" to 34, "api35" to 35, "api36" to 36).forEach { (name, level) ->
+                    create(name) {
+                        device = "Pixel 6"
+                        apiLevel = level
+                        systemImageSource = "aosp"
+                    }
+                }
+            }
+            groups {
+                create("matrix") {
+                    listOf("api30", "api33", "api34", "api35", "api36").forEach { targetDevices.add(localDevices[it]) }
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
