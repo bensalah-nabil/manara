@@ -19,6 +19,38 @@ class UsageSessionsTest {
     }
 
     @Test
+    fun `a screen that never reports a pause stops counting when another app comes to the front`() {
+        val result = UsageSessions.minutes(
+            listOf(
+                e("fb", RESUMED, min(0), "Feed"),
+                e("fb", RESUMED, min(2), "Story"),
+                e("fb", PAUSED, min(4), "Story"),
+                e("launcher", RESUMED, min(4), "Home"),
+            ),
+            day, min(60),
+        )
+        assertEquals(4L, result["fb"])
+        assertEquals(56L, result["launcher"])
+    }
+
+    @Test
+    fun `coming back after another app starts a new session`() {
+        val result = UsageSessions.minutes(
+            listOf(e("fb", RESUMED, min(0), "Feed"), e("launcher", RESUMED, min(3), "Home"), e("fb", RESUMED, min(10), "Feed")),
+            day, min(12),
+        )
+        assertEquals(5L, result["fb"])
+    }
+
+    @Test
+    fun `a lone pause later in the day adds no time since midnight`() {
+        val afterOtherApp = UsageSessions.minutes(listOf(e("launcher", RESUMED, min(400), "Home"), e("settings", PAUSED, min(410))), day, min(420))
+        assertEquals(null, afterOtherApp["settings"])
+        val afterScreenOff = UsageSessions.minutes(listOf(e("android", SCREEN_OR_DEVICE_OFF, min(5)), e("settings", PAUSED, min(410))), day, min(420))
+        assertEquals(null, afterScreenOff["settings"])
+    }
+
+    @Test
     fun `closed sessions add up`() {
         val result = UsageSessions.minutes(
             listOf(e("fb", RESUMED, min(0)), e("fb", PAUSED, min(5)), e("fb", RESUMED, min(10)), e("fb", PAUSED, min(13))),

@@ -26,11 +26,28 @@ on (`LiveRules`), and blocks that hold when Usage Access is off
 place from 1.0.2 with device owner and the notice intact. Its Usage Access was
 off, so no limit could have worked there until it was granted over adb.
 
-Still to check on that phone: adult sites through `family.adguard-dns.com`;
-Samsung Internet, Firefox and Brave blocked and a newly installed browser
-caught; the social sites blocked in Chrome; a limit reached during one
-unbroken session; minutes compared with `dumpsys usagestats`; the block holding
-with Usage Access off; battery use over a day.
+**Verified on the SM-A528B, 2026-11-09:** Private DNS pinned and locked; adult
+domains resolve to AdGuard's block address and fail in Chrome; `www.google.com`
+resolves to `forcesafesearch.google.com`; Samsung Internet and Firefox show
+"Action not allowed", and Brave is suspended; the social sites show Chrome's
+"This page is blocked"; blocks held with Usage Access off for 2 minutes.
+
+**Found on the way:** the first event-based count put Facebook at 60.8 min
+against Android's 51:28 and blocked the apps early. Android doesn't report a
+pause for every screen, so a session never closed. Fixed in 1.0.15: another app
+coming to the front closes it. A lone pause later in the day also credited all
+the time since midnight (412 min for Settings); fixed in 1.0.16. Replaying the
+day's real events then gave Facebook 51.3, YouTube 26.3, Chrome 21.4 and Outlook
+10.3 against Android's 51:28, 26:19, 21:29 and 10:21. The launcher still reads
+24.5 against 29:30. Android's daily bucket on that phone began at 06:44, not
+midnight.
+
+**AdGuard family filter, sampled by DNS query:** blocked 16 of 19 ad and tracking
+domains, 2 of 3 dating, 1 of 2 alcohol and 0 of 4 gambling. It can't remove
+YouTube or Facebook ads, which come from the same hosts as the content.
+
+Still to check: a limit reached during one unbroken session; a newly installed
+browser caught; games that misbehave with ads blocked; battery use over a day.
 
 ### Verified 2026-11-07 and 2026-11-08
 
