@@ -311,14 +311,16 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                                     </div>
                                 </details>
                             </div>
-                            <div class="stack">
-                                <strong>When the phone is used</strong>
-                                <HourHeatmap grid={view.grid.minutes} days={view.grid.days} />
-                                <p class="muted small">
-                                    Average minutes in each hour, from the phone's hourly reports, so it is approximate. In your
-                                    time zone.
-                                </p>
-                            </div>
+                            <details class="fold">
+                                <summary>When the phone is used, by hour</summary>
+                                <div class="stack">
+                                    <HourHeatmap grid={view.grid.minutes} days={view.grid.days} />
+                                    <p class="muted small">
+                                        Average minutes in each hour, from the phone's hourly reports, so it is approximate. In your
+                                        time zone.
+                                    </p>
+                                </div>
+                            </details>
                         </>
                     ) : (
                         <p class="muted">

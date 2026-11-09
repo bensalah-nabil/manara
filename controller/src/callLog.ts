@@ -75,6 +75,43 @@ function withoutRepeats(calls: CallItem[]): CallItem[] {
     return kept
 }
 
+export interface CallDay {
+    key: string
+    label: string
+    calls: CallItem[]
+}
+
+function dayKey(date: Date): string {
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
+
+/** Newest-first calls in one group per local day: "Today", "Yesterday", then the date. */
+export function groupByDay(calls: CallItem[], now: Date = new Date()): CallDay[] {
+    const today = dayKey(now)
+    const before = new Date(now)
+    before.setDate(before.getDate() - 1)
+    const yesterday = dayKey(before)
+    const days: CallDay[] = []
+    for (const call of calls) {
+        const date = new Date(call.occurredAt)
+        const key = dayKey(date)
+        const last = days[days.length - 1]
+        if (last?.key === key) {
+            last.calls.push(call)
+            continue
+        }
+        const label = key === today ? 'Today' : key === yesterday ? 'Yesterday'
+            : date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+        days.push({ key, label, calls: [call] })
+    }
+    return days
+}
+
+/** The call's local time, as a list of one day's calls reads. */
+export function timeText(occurredAt: string): string {
+    return new Date(occurredAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+}
+
 export function directionText(direction: Direction): string {
     return DIRECTIONS[direction]
 }

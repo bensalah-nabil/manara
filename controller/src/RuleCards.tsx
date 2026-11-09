@@ -224,7 +224,10 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
     return (
         <div class="rules-screen">
             <div class="rules-top">
-                <p class="muted">{onCount} of {Object.keys(state.on).length} rules on</p>
+                <p>
+                    <b>{onCount} of {Object.keys(state.on).length} rules on</b>
+                    <span class="muted small rule-status" role="status">{busy ? 'Saving…' : message}</span>
+                </p>
                 <div class="ages">
                     <span id="ages-label">Start from your child's age</span>
                     <div class="seg" role="group" aria-labelledby="ages-label">
@@ -235,7 +238,6 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
                 </div>
             </div>
             {error && <p role="alert" class="error">{error}</p>}
-            <p class="muted small rule-status" role="status">{busy ? 'Saving…' : message}</p>
             <div class="rules-layout">
                 <div class="rule-groups">
                     {GROUPS.map((group) => (
@@ -246,11 +248,11 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
                                     <article key={id} class={state.on[id] ? 'rule-card' : 'rule-card off'}>
                                         <div class="rule-top">
                                             <div class="rule-art">
-                                                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ART[id]}</svg>
+                                                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ART[id]}</svg>
                                             </div>
+                                            <h3>{title}</h3>
                                             <button type="button" class="switch" role="switch" aria-checked={state.on[id]} aria-label={title} disabled={busy} onClick={() => change((latest) => setCard(latest, id, !readCards(latest).on[id]))}><i /></button>
                                         </div>
-                                        <h3>{title}</h3>
                                         <p class="muted">{text}</p>
                                         <div class="rule-foot"><CardFoot id={id} state={state} busy={busy} change={change} /></div>
                                     </article>

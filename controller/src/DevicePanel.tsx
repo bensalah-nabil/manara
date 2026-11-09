@@ -18,7 +18,7 @@ import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
 import { InsightsPanel } from './InsightsPanel.tsx'
 import { RuleCards } from './RuleCards.tsx'
-import { directionText, durationText, numberText, summarizeCalls } from './callLog.ts'
+import { directionText, durationText, groupByDay, numberText, summarizeCalls, timeText } from './callLog.ts'
 import type { CallItem } from './callLog.ts'
 import { appName } from './insights.ts'
 
@@ -54,6 +54,22 @@ function useEvents<T>(
     }, [api, device.deviceId, onSessionExpired, reloads, kind, summarize, sinceMs])
 
     return { value, error, reload: () => setReloads((count) => count + 1) }
+}
+
+/** A long list starts short; the parent opens the rest. */
+function useFirst<T>(items: T[] | null, first: number): { shown: T[]; more: ComponentChildren } {
+    const [all, setAll] = useState(false)
+    if (items === null) return { shown: [], more: null }
+    const hidden = items.length - first
+    if (hidden <= 0) return { shown: items, more: null }
+    return {
+        shown: all ? items : items.slice(0, first),
+        more: (
+            <button type="button" class="link" aria-expanded={all} onClick={() => setAll(!all)}>
+                {all ? 'Show fewer' : `Show ${hidden} more`}
+            </button>
+        ),
+    }
 }
 
 function Panel({ title, onRefresh, error, children, footnote }: { title: string; onRefresh: () => void; error: string; children: ComponentChildren; footnote: string }) {
@@ -105,6 +121,7 @@ const USAGE_WINDOW_MS = 9 * 24 * 60 * 60 * 1000
 
 function CallHistoryPanel(props: Props) {
     const { value: calls, error, reload } = useEvents<CallItem[]>(props, 'call', summarizeCalls)
+    const { shown, more } = useFirst(calls, 8)
     return (
         <Panel title="Call history" onRefresh={reload} error={error} footnote="Numbers, direction, time and length, kept for 30 days. Your child sees on the phone that this is on.">
             {calls === null ? (
@@ -112,16 +129,52 @@ function CallHistoryPanel(props: Props) {
             ) : calls.length === 0 ? (
                 <p class="muted">No calls reported. Turn on call history under Sharing to receive them.</p>
             ) : (
-                <ul class="call-list">
-                    {calls.map((call) => (
-                        <li key={call.id}>
-                            <span><b>{numberText(call)}</b> <span class="muted">{directionText(call.direction)}{durationText(call) && `, ${durationText(call)}`}</span></span>
-                            <span class="muted small">{lastSeenText(call.occurredAt)}</span>
-                        </li>
+                <>
+                    {groupByDay(shown).map((day) => (
+                        <div key={day.key} class="call-day">
+                            <h4>{day.label}</h4>
+                            <ul class="call-list">
+                                {day.calls.map((call) => (
+                                    <li key={call.id} class={call.direction === 'missed' ? 'missed' : undefined}>
+                                        <span class="call-time">{timeText(call.occurredAt)}</span>
+                                        <b>{numberText(call)}</b>
+                                        <span class="muted">{directionText(call.direction)}{durationText(call) && `, ${durationText(call)}`}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     ))}
-                </ul>
+                    {more}
+                </>
             )}
         </Panel>
+    )
+}
+
+/** One day's apps, busiest first: the top few, the rest on request. */
+function UsageDay({ day, open }: { day: DailyUsage; open: boolean }) {
+    const top = Math.max(1, ...day.apps.map((usage) => usage.minutes))
+    const { shown, more } = useFirst(day.apps, 6)
+    return (
+        <details class="day" open={open}>
+            <summary>
+                <strong>{day.date}</strong>
+                <span>{minutesText(day.totalMinutes)} in total</span>
+            </summary>
+            <ul class="bars">
+                {shown.map((usage) => (
+                    <li key={usage.packageName}>
+                        <span class="bar-label" title={usage.packageName}>{appName(usage.packageName)}</span>
+                        <span class="bar" style={{ '--w': `${(usage.minutes / top) * 100}%` }} aria-hidden="true" />
+                        <span class="bar-value">{minutesText(usage.minutes)}</span>
+                    </li>
+                ))}
+            </ul>
+            <div class="day-foot">
+                {more}
+                <span class="muted small">Last updated {lastSeenText(day.reportedAt)}</span>
+            </div>
+        </details>
     )
 }
 
@@ -139,27 +192,7 @@ function DailyUsagePanel(props: Props) {
             ) : days.length === 0 ? (
                 <p class="muted">No usage report yet. Turn on the daily usage report under Sharing to receive one.</p>
             ) : (
-                days.map((day) => {
-                    const top = Math.max(1, ...day.apps.map((usage) => usage.minutes))
-                    return (
-                        <details key={day.date} class="day" open={day === days[0]}>
-                            <summary>
-                                <strong>{day.date}</strong>
-                                <span>{minutesText(day.totalMinutes)} in total</span>
-                            </summary>
-                            <ul class="bars">
-                                {day.apps.map((usage) => (
-                                    <li key={usage.packageName}>
-                                        <span class="bar-label" title={usage.packageName}>{appName(usage.packageName)}</span>
-                                        <span class="bar" style={{ '--w': `${(usage.minutes / top) * 100}%` }} aria-hidden="true" />
-                                        <span class="bar-value">{minutesText(usage.minutes)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                            <span class="muted small">Last updated {lastSeenText(day.reportedAt)}</span>
-                        </details>
-                    )
-                })
+                days.map((day) => <UsageDay key={day.date} day={day} open={day === days[0]} />)
             )}
         </Panel>
     )
@@ -167,6 +200,7 @@ function DailyUsagePanel(props: Props) {
 
 function LimitHistory(props: Props) {
     const { value: hits, error, reload } = useEvents<LimitHit[]>(props, 'usage', summarizeLimitHits)
+    const { shown, more } = useFirst(hits, 5)
     return (
         <Panel
             title="Limit history"
@@ -179,14 +213,17 @@ function LimitHistory(props: Props) {
             ) : hits.length === 0 ? (
                 <p class="muted">No daily limit has been reported as reached.</p>
             ) : (
-                <ul class="list">
-                    {hits.map((hit) => (
-                        <li key={hit.id}>
-                            <strong>{limitHitText(hit)}</strong>
-                            <span class="muted small">Reported {lastSeenText(hit.occurredAt)}</span>
-                        </li>
-                    ))}
-                </ul>
+                <>
+                    <ul class="list">
+                        {shown.map((hit) => (
+                            <li key={hit.id}>
+                                <strong>{limitHitText(hit)}</strong>
+                                <span class="muted small">Reported {lastSeenText(hit.occurredAt)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                    {more}
+                </>
             )}
         </Panel>
     )
@@ -284,10 +321,16 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                 {tab === 'activity' && (
                     <>
                         <InsightsPanel {...props} />
-                        <ProtectionStatus {...props} notBefore={setupDoneAt} />
-                        <DailyUsagePanel {...props} />
-                        <CallHistoryPanel {...props} />
-                        <LimitHistory {...props} />
+                        <div class="activity-grid">
+                            <div class="stack">
+                                <ProtectionStatus {...props} notBefore={setupDoneAt} />
+                                <CallHistoryPanel {...props} />
+                            </div>
+                            <div class="stack">
+                                <DailyUsagePanel {...props} />
+                                <LimitHistory {...props} />
+                            </div>
+                        </div>
                     </>
                 )}
                 {tab === 'rules' && (

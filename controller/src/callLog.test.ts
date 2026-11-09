@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyCallLog, directionText, durationText, MAX_SHOWN, numberText, summarizeCalls, toDraft } from './callLog.ts'
+import { applyCallLog, directionText, durationText, groupByDay, MAX_SHOWN, numberText, summarizeCalls, toDraft } from './callLog.ts'
 import type { EventItem } from './protection.ts'
 
 function call(id: string, occurredAt: string, payload: unknown, kind = 'call'): EventItem {
@@ -48,6 +48,17 @@ test('calls read plainly', () => {
     assert.equal(durationText({ ...item, durationSeconds: 42 }), '42 s')
     assert.equal(durationText({ ...item, durationSeconds: 120 }), '2 min')
     assert.equal(durationText({ ...item, durationSeconds: 125 }), '2 min 5 s')
+})
+
+test('calls are grouped by local day, newest day first', () => {
+    const now = new Date(2026, 10, 9, 21, 0)
+    const at = (day: number, hour: number) => new Date(2026, 10, day, hour, 0).toISOString()
+    const item = (id: string, occurredAt: string) => ({ id, number: '+1', direction: 'incoming' as const, occurredAt, durationSeconds: 0 })
+    const days = groupByDay([item('a', at(9, 20)), item('b', at(9, 8)), item('c', at(8, 23)), item('d', at(5, 12))], now)
+    assert.deepEqual(days.map((day) => [day.label, day.calls.map((call) => call.id)]).slice(0, 2), [['Today', ['a', 'b']], ['Yesterday', ['c']]])
+    assert.equal(days.length, 3)
+    assert.deepEqual(days[2].calls.map((call) => call.id), ['d'])
+    assert.deepEqual(groupByDay([], now), [])
 })
 
 test('a call from a messaging app needs no number, and one call seen twice is listed once', () => {
