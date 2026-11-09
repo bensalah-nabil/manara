@@ -54,6 +54,10 @@ object LocationSharing {
 
     /** Idempotent. Fails closed: no permission, no request and no notice claiming otherwise. */
     fun start(context: Context, intervalMinutes: Int) {
+        // The grant otherwise ran only at setup and when Manara was opened. On the SM-A528B
+        // background location stayed denied for days, so turning sharing on from the console did
+        // nothing until someone opened the app (2026-11-09).
+        if (!hasPermissions(context)) com.manara.agent.OwnerReceiver.grantSelfGrantablePermissions(context)
         if (!hasPermissions(context)) {
             Log.w(TAG, "Location permissions missing; not sharing")
             stop(context)

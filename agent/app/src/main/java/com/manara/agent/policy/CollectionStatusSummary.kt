@@ -9,7 +9,7 @@ object CollectionStatusSummary {
 
     /** Usage data is read for app time limits that name apps, and for the opt-in usage report. */
     fun usageDataNeeded(policy: Policy?): Boolean = policy != null &&
-        (policy.usageReport.enabled || (policy.timeLimits.enabled && policy.timeLimits.rules.any { it.packages.isNotEmpty() }))
+        (policy.usageReport.enabled || (policy.timeLimits.enabled && policy.timeLimits.rules.any { it.packages.isNotEmpty() || it.allGames }))
 
     enum class Usage { READABLE, ACCESS_MISSING, UNAVAILABLE }
 
@@ -57,7 +57,7 @@ object CollectionStatusSummary {
                 lines += "Sample time: ${timestamp(sample.sampleAt, now)}"
             }
         }
-        lines += "Call logs: unsupported"
+        lines += if (policy?.callLog?.enabled == true) "Call history: sent to your parent" else "Call history: off"
         return lines.joinToString("\n")
     }
 

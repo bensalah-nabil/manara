@@ -54,7 +54,7 @@ Status: **meets** (with the evidence), **gap** (with the action), **explain**
 | 1.7.1.1 | Properly signed | meets | Upload key with APK Signature Scheme v2; Play App Signing re-signs the published app |
 | 1.7.2.1 | No debug symbols in production | meets | R8 minification and resource shrinking in release |
 | 1.7.3.1 | Not debuggable | meets | Release is not debuggable (`aapt2 dump badging`) |
-| 1.8.1.1 | Minimal access to sensitive data | explain | Every permission maps to a parent-visible feature: usage stats (time limits, usage report), location incl. background (location sharing, only when on, with its own notice), notifications (the managed notice), boot (restart). No contacts, SMS, call log, camera or microphone (ADR-0001). Prepare the one-line reason for each |
+| 1.8.1.1 | Minimal access to sensitive data | explain | Every permission maps to a parent-visible feature: usage stats (time limits, usage report), location incl. background (location sharing, only when on, with its own notice), notifications (the managed notice), boot (restart). No contacts, SMS, camera or microphone (ADR-0001). The Play build the lab tests has no call-log permission; only the `direct` build does (ADR-0008). Prepare the one-line reason for each |
 
 ## Server and console (ASVS level 2, our standard)
 

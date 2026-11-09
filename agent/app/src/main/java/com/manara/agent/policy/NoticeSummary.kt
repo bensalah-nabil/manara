@@ -20,8 +20,9 @@ object NoticeSummary {
         }
         if (com.manara.agent.enforcers.BrowserPolicyDecision.restrictions(policy.browser).isNotEmpty()) lines += "Chrome rules set by your parent"
         if (policy.browser.blockOtherBrowsers) lines += "Browsers other than Chrome are blocked"
+        if (policy.callLog.enabled) lines += "Call history is sent to your parent"
         if (lines.isEmpty()) lines += "No limits or collection configured"
-        lines += "Call logs: not collected"
+        if (!policy.callLog.enabled) lines += "Call logs: not collected"
         return lines
     }
 }

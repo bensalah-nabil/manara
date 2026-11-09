@@ -45,9 +45,9 @@ object PolicySummary {
             "Daily app usage report: off"
         }
         lines += if (policy.callLog.enabled) {
-            "Call logs: not collected (unsupported, requested by policy)"
+            "Call history: sent to your parent (number, direction, time and length)"
         } else {
-            "Call logs: not collected (unsupported)"
+            "Call history: off"
         }
         lines += ""
         lines += "Scheduled locks"

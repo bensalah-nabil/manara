@@ -86,12 +86,14 @@ class CollectionStatusSummaryTest {
     }
 
     @Test
-    fun usageReadAndAccessAreDistinctAndCallLogsStayUnsupported() {
+    fun usageReadAndAccessAreDistinctAndCallHistoryFollowsPolicy() {
         assertTrue(CollectionStatusSummary.describe(enabled, CollectionStatusSummary.Usage.READABLE)
             .contains("Usage data: readable"))
         assertTrue(CollectionStatusSummary.describe(enabled, CollectionStatusSummary.Usage.ACCESS_MISSING)
             .contains("Usage data: unavailable (Usage Access missing)"))
         assertTrue(CollectionStatusSummary.describe(enabled.copy(callLog = Policy.CallLog(true)))
-            .contains("Call logs: unsupported"))
+            .contains("Call history: sent to your parent"))
+        assertTrue(CollectionStatusSummary.describe(enabled.copy(callLog = Policy.CallLog(false)))
+            .contains("Call history: off"))
     }
 }

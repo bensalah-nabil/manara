@@ -45,9 +45,14 @@ implementation plus one line in `EnforcerRegistry`. If a change touches
 
 ```
 cd agent
-./gradlew.bat assembleDebug       # build
-./gradlew.bat testDebugUnitTest   # unit tests (pure logic only — no device)
+./gradlew.bat assembleDebug       # build both flavors
+./gradlew.bat testDirectDebugUnitTest   # unit tests (pure logic only — no device)
+./gradlew.bat assembleDirectRelease -PMANARA_API_URL=...  # the APK for phones, outside Play
+./gradlew.bat bundlePlayRelease -PMANARA_API_URL=...      # the bundle for Play
 ```
+`play` has no call-log permission; `direct` does (ADR-0008). Outputs are under
+`apk/<flavor>/<type>/`. A single-device test task is now
+`connectedDirectDebugAndroidTest`.
 `adb` lives at `C:\Users\nbensalah\AppData\Local\Android\Sdk\platform-tools\adb.exe`
 (not yet on PATH). Multiple devices connected → `adb -s <serial> ...`.
 

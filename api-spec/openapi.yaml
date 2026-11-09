@@ -1063,8 +1063,11 @@ components:
         callLog:
           type: object
           description: >
-            Not yet enforced by the agent: enabling it currently does nothing.
-            Planned as capability-plan.md H3 (sideload builds only).
+            Sends each call's number, direction, time and length while on, from
+            the moment it is turned on, as `call` events kept for 30 days. Never
+            names, audio or SMS. The phone says so on its notice and status
+            screen. Only the `direct` build can read calls; a `play` build reports
+            a missing permission instead (ADR-0008).
           properties:
             enabled: { type: boolean }
         lockSchedule:

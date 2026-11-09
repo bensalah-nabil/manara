@@ -48,18 +48,18 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 | Daily usage report | ✅ done | Minutes per app, only when the parent turns it on |
 | Tamper protection | ✅ done | Factory reset, safe boot, adding users, debugging and the date and time blocked by default |
 | Release / move to another account | ✅ done | Only the parent: from the console, or an offline 8-digit code ([ADR-0004](docs/decisions/0004-only-the-parent-releases-a-phone.md)) |
-| Call log          | planned | Sideload-only; will not pass Play Store review     |
+| Call history      | built, being verified | Number, direction, time and length, only when the parent turns it on and shown on the phone; never audio. Build installed outside Play only ([ADR-0008](docs/decisions/0008-visible-call-history.md)) |
 | Parent alerts     | ✅ done | Email to each parent (Brevo) and ntfy/webhook: a protection stopped working, a phone silent for 12 hours |
 | Parent account    | ✅ done | Password reset by email; account deletion in the console, plus the public page Play asks for |
 | Backend (Go, Postgres) | ✅ core done | Real signup/login, enrollment tokens, Docker + Caddy TLS, verified containerized |
-| Controller (parent web app) | ✅ done (Preact + Vite + TS) | Phones with the child's name and color, live setup timeline, activity, rules, sharing, release, account; parent guide; hosted on Netlify |
+| Controller (parent web app) | ✅ done (Preact + Vite + TS) | Phones with the child's name and color, live setup timeline, activity, rules, sharing, release, account; parent guide; hosted on Vercel, with Netlify as a fallback |
 | Testing           | ✅ in place | Unit tests, a 5,000-run chaos test of guided setup, an emulator matrix (Android 11 to 16), CI with dependency scans — see [`docs/testing.md`](docs/testing.md) |
 | Security          | in progress | Rate limits, two-step sign-in, expiring sessions, CSP; aiming at the MASA badge — see [`docs/security.md`](docs/security.md) and [`docs/threat-model.md`](docs/threat-model.md) |
 | Insights          | ✅ done | Screen time trend, when the phone is used, and suggested rules, from the opt-in daily usage report |
 
 See **[`docs/roadmap.md`](docs/roadmap.md)** for the phase-by-phase detail and
 what's still open (makers other than Samsung, the on-phone DNS filter and
-category blocklists, two-factor sign-in, security hardening).
+category blocklists, security hardening).
 
 ---
 

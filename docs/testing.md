@@ -52,7 +52,7 @@ rights (as guided setup does with adb), applies every rule through the real
 enforcer registry, checks what Android reports, lifts the rules and releases
 the emulator. Gradle downloads, starts and wipes the emulators itself
 (`testOptions.managedDevices` in `agent/app/build.gradle.kts`): Android 11, 13,
-14, 15 and 16. One version: `./gradlew.bat api34DebugAndroidTest`.
+14, 15 and 16. One version: `./gradlew.bat api34DirectDebugAndroidTest`.
 
 Run them one version at a time on a laptop: the whole group boots every
 emulator at once, which timed out on this PC (2026-11-08). Disk: about 2.5 GB

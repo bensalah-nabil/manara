@@ -26,7 +26,7 @@ only says what to do and where.
 ## 2. Closed test track
 
 - [ ] **Testing → Closed testing → Create track.**
-- [ ] **Upload the bundle:** `agent/app/build/outputs/bundle/release/app-release.aab`
+- [ ] **Upload the bundle:** `agent/app/build/outputs/bundle/playRelease/app-play-release.aab`
   (version 1, 1.0.0; build it with the command in [`play-store.md`](play-store.md#build-a-release)).
 - [ ] **App signing:** keep **Play App Signing** on (the default).
 
@@ -40,10 +40,10 @@ only says what to do and where.
 
 Fill each section with the answers in [`play-store.md`](play-store.md#play-console-by-hand):
 
-- [ ] **Privacy policy:** `https://manara-front.netlify.app/privacy.html`
+- [ ] **Privacy policy:** `https://manara-rosy.vercel.app/privacy.html`
 - [ ] **Data safety**. For "Data deletion", answer that users can request
   deletion, with the in-app path (console, Account, Delete your account) and
-  the web link `https://manara-front.netlify.app/delete-account.html`. Add
+  the web link `https://manara-rosy.vercel.app/delete-account.html`. Add
   Brevo (email) to the data shared with service providers: the parent's email
   address, for password reset and alerts.
 - [ ] **Target audience:** 18 and over

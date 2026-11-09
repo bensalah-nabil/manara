@@ -38,6 +38,7 @@ object ChildView {
 
     data class View(
         val seen: List<Line>,
+        val neverShared: String,
         val rules: List<Line>,
         val attention: List<Attention>,
         val lastContact: String,
@@ -51,6 +52,7 @@ object ChildView {
         now: Long,
     ): View = View(
         seen = seen(policy),
+        neverShared = neverShared(policy),
         rules = rules(policy),
         attention = attention(policy, usage, location),
         lastContact = lastContact(lastSyncAt, now),
@@ -66,8 +68,19 @@ object ChildView {
         if (policy?.timeLimits?.enabled == true && policy.timeLimits.rules.isNotEmpty()) {
             add(Line("When a time limit is reached", "Which limit, not what you were doing."))
         }
+        if (policy?.callLog?.enabled == true) {
+            add(Line("Your calls", "The number, direction, time and length of each call. Never what was said."))
+        }
         add(Line("Whether Manara is working", "For example if a setting it needs was turned off."))
     }
+
+    /** The promise changes with the rule: it must never say calls are private while their details are sent. */
+    fun neverShared(policy: Policy?): String =
+        if (policy?.callLog?.enabled == true) {
+            "Never your messages, photos or passwords, or what is said on a call."
+        } else {
+            "Never your messages, photos, calls or passwords."
+        }
 
     fun rules(policy: Policy?): List<Line> = buildList {
         if (policy == null) return@buildList

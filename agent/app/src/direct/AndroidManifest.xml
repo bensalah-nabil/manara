@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Call history (ADR-0008). Only this build, installed outside Google Play, can read calls:
+         Play's SMS and Call Log policy has no exception for parental control. -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+</manifest>

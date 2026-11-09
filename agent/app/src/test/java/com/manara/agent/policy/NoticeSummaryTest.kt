@@ -50,13 +50,13 @@ class NoticeSummaryTest {
     }
 
     @Test
-    fun disabledFeaturesAndCallLogRequestsAreNotListedAsActive() {
+    fun disabledFeaturesAreNotListedAndCallHistorySaysItIsSent() {
         val lines = NoticeSummary.lines(Policy(
             version = 1,
             timeLimits = Policy.TimeLimits(false, listOf(Policy.TimeLimits.Rule("social", listOf("a"), 5))),
             lockSchedule = Policy.LockSchedule(false, listOf(Policy.LockSchedule.Window(listOf(1), 1, 2))),
             callLog = Policy.CallLog(enabled = true)
         ))
-        assertEquals(listOf("No limits or collection configured", "Call logs: not collected"), lines)
+        assertEquals(listOf("Call history is sent to your parent"), lines)
     }
 }

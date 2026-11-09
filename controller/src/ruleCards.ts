@@ -15,6 +15,8 @@ export interface CardsState {
     bedtimeHour: number
     /** The schedule isn't one nightly window, so the card can't show or step it (Advanced can). */
     bedtimeCustom: boolean
+    /** Set under Sharing, never by a card or an age, but the child still sees it. */
+    calls: boolean
 }
 
 interface Rule {
@@ -103,6 +105,7 @@ export function readCards(policy: Policy): CardsState {
         gamesMinutes: games?.dailyMinutes ?? 60,
         bedtimeHour: hour ?? 21,
         bedtimeCustom: hasWindows && hour === null,
+        calls: section(policy, 'callLog').enabled === true,
     }
 }
 
@@ -246,5 +249,6 @@ export function childLines(state: CardsState): string[] {
     if (on.protect) lines.push('Some settings can\'t be changed.')
     if (on.location) lines.push('Your parent can see where this phone is.')
     if (on.report) lines.push('Your parent sees minutes per app.')
+    if (state.calls) lines.push('Your parent sees the number, direction, time and length of your calls.')
     return lines
 }

@@ -14,7 +14,7 @@ checklist is [`play-console-checklist.md`](play-console-checklist.md).
 | Persistent notice while managed; a separate one while location is shared | `ManagedNoticeService`, `location/LocationSharing.kt` |
 | A unique icon that identifies the app | `res/mipmap-anydpi-v26/ic_launcher.xml`, status-bar `ic_stat_manara` |
 | In-app disclosure of what is collected | Managed screen, "What your parent can see" |
-| Privacy policy, linked in the app and the console | `controller/public/privacy.html` → `https://manara-front.netlify.app/privacy.html` |
+| Privacy policy, linked in the app and the console | `controller/public/privacy.html` → `https://manara-rosy.vercel.app/privacy.html` |
 | No cleartext traffic in a release build; R8 shrinking; signed with an upload key | `build.gradle.kts` |
 | Limited retention for everything collected | `backend/internal/domain/event.go` (`RetentionFor`) |
 | `minSdk` 30, so Play only offers the app where guided setup works | `build.gradle.kts` |
@@ -28,11 +28,13 @@ isn't in the API 37 SDK's `android.jar`, so it can't be compiled yet; the Play
 
 ```
 cd agent
-./gradlew.bat bundleRelease -PMANARA_API_URL=https://manara-api-pvu4.onrender.com/api/v1 -PMANARA_VERSION_CODE=1 -PMANARA_VERSION_NAME=1.0.0
+./gradlew.bat bundlePlayRelease -PMANARA_API_URL=https://manara-api-pvu4.onrender.com/api/v1 -PMANARA_VERSION_CODE=1 -PMANARA_VERSION_NAME=1.0.0
 ```
 
-Output: `app/build/outputs/bundle/release/app-release.aab` (upload this) and,
-with `assembleRelease`, a signed APK for direct download.
+Use `bundlePlayRelease`, not `bundleRelease`, for Play: it has no call-log
+permission (ADR-0008). Output: `app/build/outputs/bundle/playRelease/app-play-release.aab`
+(upload this). `assembleDirectRelease` builds the signed APK for direct download:
+`app/build/outputs/apk/direct/release/app-direct-release.apk`.
 
 - **Every upload needs a higher `MANARA_VERSION_CODE`.**
 - **Upload key:** `%USERPROFILE%\.manara\manara-upload.jks`, alias
@@ -50,7 +52,7 @@ with `assembleRelease`, a signed APK for direct download.
    before applying for production
    ([source](https://support.google.com/googleplay/android-developer/answer/14151465)).
    Start the closed test as early as possible.
-2. **App content → Privacy policy:** `https://manara-front.netlify.app/privacy.html`.
+2. **App content → Privacy policy:** `https://manara-rosy.vercel.app/privacy.html`.
    Operator: Nabil Ben Salah (Tunisia), contact nabil.bsalah0@gmail.com; use the
    same contact in the store listing.
 3. **App content → Data safety** (matches the privacy policy):

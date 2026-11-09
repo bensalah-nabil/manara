@@ -1,4 +1,5 @@
-# Netlify build for the parent console. Set the site's base directory to "controller".
+# Fallback host for the parent console; Vercel is the main one (vercel.json). Keep the two
+# files' headers the same. Set the site's base directory to "controller".
 # VITE_API_URL is set in the Netlify site settings to the Render API, e.g.
 # https://manara-api.onrender.com/api/v1 (it is baked in at build time).
 [build]

@@ -42,7 +42,7 @@ val checkReleaseApiUrl by tasks.registering {
         }
     }
 }
-tasks.configureEach { if (name == "preReleaseBuild") dependsOn(checkReleaseApiUrl) }
+tasks.configureEach { if (name.startsWith("pre") && name.endsWith("ReleaseBuild")) dependsOn(checkReleaseApiUrl) }
 
 // Android 17 blocks local network access for apps targeting API 37 unless they hold
 // ACCESS_LOCAL_NETWORK (developer.android.com, Local network permission). Guided setup connects
@@ -81,7 +81,7 @@ android {
         buildConfigField("String", "FCM_PROJECT_ID", "\"${fcmProperty("FCM_PROJECT_ID")}\"")
         buildConfigField("String", "FCM_SENDER_ID", "\"${fcmProperty("FCM_SENDER_ID")}\"")
         buildConfigField("String", "API_BASE_URL", "\"$manaraApiUrl\"")
-        buildConfigField("String", "PRIVACY_URL", "\"${buildSetting("MANARA_PRIVACY_URL") ?: "https://manara-front.netlify.app/privacy.html"}\"")
+        buildConfigField("String", "PRIVACY_URL", "\"${buildSetting("MANARA_PRIVACY_URL") ?: "https://manara-rosy.vercel.app/privacy.html"}\"")
         // Plain HTTP is only allowed when the configured server itself is plain HTTP (local dev).
         manifestPlaceholders["usesCleartextTraffic"] = manaraApiUrl.startsWith("http://").toString()
     }
@@ -117,6 +117,14 @@ android {
                 }
             }
         }
+    }
+
+    // The same app twice. `play` can't read calls; `direct`, installed outside Google Play, can
+    // when the parent turns call history on (ADR-0008). Only the manifest differs.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("play") { dimension = "distribution" }
+        create("direct") { dimension = "distribution" }
     }
 
     buildTypes {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
-import { BrowserEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
+import { BrowserEditor, CallLogEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText, statusText } from './format.ts'
 import { summarizeProtection } from './protection.ts'
@@ -18,6 +18,8 @@ import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
 import { InsightsPanel } from './InsightsPanel.tsx'
 import { RuleCards } from './RuleCards.tsx'
+import { directionText, durationText, numberText, summarizeCalls } from './callLog.ts'
+import type { CallItem } from './callLog.ts'
 import { appName } from './insights.ts'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
@@ -100,6 +102,28 @@ function ProtectionStatus(props: Props & { notBefore: number }) {
 
 // The panel shows 7 days; ask for a little more so a phone in another time zone still has its 7th day.
 const USAGE_WINDOW_MS = 9 * 24 * 60 * 60 * 1000
+
+function CallHistoryPanel(props: Props) {
+    const { value: calls, error, reload } = useEvents<CallItem[]>(props, 'call', summarizeCalls)
+    return (
+        <Panel title="Call history" onRefresh={reload} error={error} footnote="Numbers, direction, time and length, kept for 30 days. Your child sees on the phone that this is on.">
+            {calls === null ? (
+                !error && <p class="muted">Loading…</p>
+            ) : calls.length === 0 ? (
+                <p class="muted">No calls reported. Turn on call history under Sharing to receive them.</p>
+            ) : (
+                <ul class="call-list">
+                    {calls.map((call) => (
+                        <li key={call.id}>
+                            <span><b>{numberText(call.number)}</b> <span class="muted">{directionText(call.direction)}{durationText(call) && `, ${durationText(call)}`}</span></span>
+                            <span class="muted small">{lastSeenText(call.occurredAt)}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </Panel>
+    )
+}
 
 function DailyUsagePanel(props: Props) {
     const { value: days, error, reload } = useEvents<DailyUsage[]>(props, 'usage_report', summarizeDailyUsage, USAGE_WINDOW_MS)
@@ -262,6 +286,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                         <InsightsPanel {...props} />
                         <ProtectionStatus {...props} notBefore={setupDoneAt} />
                         <DailyUsagePanel {...props} />
+                        <CallHistoryPanel {...props} />
                         <LimitHistory {...props} />
                     </>
                 )}
@@ -289,6 +314,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                     <>
                         <LocationEditor {...props} />
                         <UsageReportEditor {...props} />
+                        <CallLogEditor {...props} />
                     </>
                 )}
             </div>

@@ -187,8 +187,11 @@ talks to the `console/` API. It renders well on a phone browser and a desktop â€
 one codebase, so a parent uses the identical tool on either. Responsibilities:
 device list, per-device policy editing, time-limit editor, location view, lock
 button, the guided-setup timeline, the parent's account. It holds **no** rules
-of its own; it is a view over the backend API. It is a separate static site
-(Netlify) today, not served by the backend.
+of its own; it is a view over the backend API. It is a separate static site, not
+served by the backend: Vercel (`https://manara-rosy.vercel.app`), with the earlier
+Netlify site kept as a fallback. Netlify's production deploys are paused on the
+current plan, so that copy stays online but doesn't update. The server allows both
+origins (`CORS_ALLOWED_ORIGIN` is a comma-separated list).
 
 ## 5. The API contract is the keystone
 

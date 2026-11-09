@@ -513,3 +513,7 @@ details.advanced[open] > summary { margin-bottom: 12px; }
 }
 @media (max-width: 720px) { .rule-cards { grid-template-columns: minmax(0, 1fr); } .rule-card { grid-template-rows: auto; } }
 @media (prefers-reduced-motion: reduce) { .switch i { transition: none; } }
+
+.call-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.call-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.call-list li:last-child { border-bottom: 0; padding-bottom: 0; }

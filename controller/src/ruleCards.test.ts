@@ -116,6 +116,11 @@ test('the child preview lists what is on', () => {
     assert.deepEqual(childLines(readCards(empty)), [])
 })
 
+test('an age never turns on call history, and the child preview says when it is on', () => {
+    assert.equal(readCards(applyAge(empty, 'Under 10')).calls, false)
+    assert.deepEqual(childLines(readCards({ version: 1, callLog: { enabled: true } })), ['Your parent sees the number, direction, time and length of your calls.'])
+})
+
 test('minutes read plainly', () => {
     assert.equal(minutesLabel(0), 'Blocked')
     assert.equal(minutesLabel(45), '45 min')

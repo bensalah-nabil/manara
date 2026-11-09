@@ -16,6 +16,14 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 8   | **A3 physical power-loss coverage**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Before claiming power-loss durability                                                              | Process death at the state-write/event-insert boundary, rollback, concurrent observers, reopen, and offline replay after a committed transition are verified below. Physical power loss and every possible crash boundary were not injected. | Process-death checks passed; power-loss testing remains open                                                |
 | 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper and silent-phone alerts built, with email to each parent (2026-11-08). Email delivery from Render not yet confirmed received; request alerts still open |
 
+### Call history (ADR-0008, 2026-11-09)
+
+Built and unit-tested, not yet run on a phone. To check on a phone with the
+`direct` build: the permission grants itself and is withdrawn when turned off;
+only calls after turning it on arrive, with the right number, direction, time and
+length; the notice and status screen change; a `play` build reports a missing
+permission and sends nothing.
+
 ### Rules that hold while the phone is in use (1.0.14, 2026-11-09)
 
 Built and unit-tested, not yet seen working on a phone: the browser block
@@ -60,8 +68,19 @@ rule cards and custom rules, which so far ran only in a browser against a mocked
 API. The Games card relies on each app declaring itself a game
 (`ApplicationInfo.category`), so a game that doesn't is not counted.
 
-Still to check: the cards against the real server; bedtime re-locking; the Games
-rule with a real game; `family.cloudflare-dns.com` and `dns.adguard-dns.com` as
+**Cards on the SM-A528B through the Vercel console (14 to 17), 2026-11-09:** the
+filter, the six Settings locks, the browser block and Chrome's rules all arrived;
+tinder.com showed "This page is blocked". bet365.com still loaded at 17:42, about
+5 minutes after Chrome received the list, and was blocked at 18:53. Chrome seems
+to take some minutes to pick up a change; the cause wasn't established. Bedtime
+moved to 18:00: the phone locked at 18:00:50 untouched (`Going to sleep due to
+device_admin`), and after each unlock it locked again about 45 s later, three
+times. Location sharing had never started on that phone: background location
+was denied (`POLICY_FIXED`) because the grant ran only at setup and when Manara
+was opened. Opening Manara granted it. `LocationSharing.start` now retries the
+grant itself (not yet on a phone).
+
+Still to check: the Games rule with a real game reaching its limit; `family.cloudflare-dns.com` and `dns.adguard-dns.com` as
 the phone's Private DNS; games that misbehave with ads blocked; battery use over
 a day.
 

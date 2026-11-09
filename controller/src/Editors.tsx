@@ -12,6 +12,8 @@ import { applySiteFilter, FAMILY_FILTER_HOST, filterWarning, toDraft as filterDr
 import type { Draft as FilterDraft, SiteFilter } from './siteFilter.ts'
 import { applyBrowser, MAX_SITES, secureDnsNote, toDraft as browserDraft, validateDraft as validateBrowser, YOUTUBE_MODES } from './browser.ts'
 import type { BrowserPolicy, Draft as BrowserDraft, YouTubeMode } from './browser.ts'
+import { applyCallLog, CALL_LOG_WARNING, toDraft as callLogDraft } from './callLog.ts'
+import type { CallLogPolicy, Draft as CallLogDraft } from './callLog.ts'
 import { usePolicyEditor } from './usePolicyEditor.ts'
 import type { Section } from './usePolicyEditor.ts'
 import { applyUsageReport, toDraft as usageReportDraft, USAGE_REPORT_WARNING } from './usageReport.ts'
@@ -92,6 +94,13 @@ const usageReportSection: Section<UsageReportDraft, UsageReportPolicy> = {
     validate: (draft) => ({ ok: true, value: { enabled: draft.enabled } }),
     apply: applyUsageReport,
     confirm: (before, after) => (after.enabled && !before.enabled ? USAGE_REPORT_WARNING : null),
+}
+
+const callLogSection: Section<CallLogDraft, CallLogPolicy> = {
+    toDraft: callLogDraft,
+    validate: (draft) => ({ ok: true, value: { enabled: draft.enabled } }),
+    apply: applyCallLog,
+    confirm: (before, after) => (after.enabled && !before.enabled ? CALL_LOG_WARNING : null),
 }
 
 type Editor = ReturnType<typeof usePolicyEditor<unknown, unknown>>
@@ -273,6 +282,26 @@ export function LocationEditor(props: Props) {
                 <input inputMode="numeric" value={draft.intervalMinutes} onInput={(event) => setDraft({ ...draft, intervalMinutes: event.currentTarget.value })} />
             </label>
             <Footer editor={editor} saveLabel="Save location sharing" />
+        </Open>
+    )
+}
+
+export function CallLogEditor(props: Props) {
+    const editor = usePolicyEditor({ ...props, section: callLogSection })
+    const { draft, policy, setDraft } = editor
+    if (draft === null || policy === null) {
+        return <Row title="Call history" summary="The number, direction, time and length of each call. Listed on the phone's own notice." editor={editor} />
+    }
+
+    return (
+        <Open title="Call history" version={policy.version}>
+            <p class="muted">
+                When on, the phone sends the number, direction, time and length of each call made from now on. Never what was said,
+                contact names or text messages. The phone lists this on its own notice and status screen, and this server keeps
+                calls for 30 days. It works only with Manara installed from the website, not from Google Play.
+            </p>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>Send call history</Toggle>
+            <Footer editor={editor} saveLabel="Save call history" />
         </Open>
     )
 }

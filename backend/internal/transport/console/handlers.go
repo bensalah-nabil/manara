@@ -43,7 +43,7 @@ type Handlers struct {
 	Resets   domain.PasswordResetRepository
 	// Mailer is nil when no email provider is configured; password reset is then off.
 	Mailer domain.Mailer
-	// ConsoleURL is where a reset link points, e.g. https://manara-front.netlify.app
+	// ConsoleURL is where a reset link points, e.g. https://manara-rosy.vercel.app
 	ConsoleURL string
 	// LoginLimiter caps attempts per email, wherever they come from, so a
 	// password can't be guessed by spreading tries over many addresses. Nil: off.

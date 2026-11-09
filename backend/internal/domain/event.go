@@ -28,6 +28,9 @@ const UsageReportRetention = 30 * 24 * time.Hour
 // LocationRetention is how long location fixes are kept.
 const LocationRetention = 30 * 24 * time.Hour
 
+// CallRetention is how long call events are kept (ADR-0008).
+const CallRetention = 30 * 24 * time.Hour
+
 // EventRetention is how long every other kind of event is kept: limit hits,
 // protection reports, locks.
 const EventRetention = 90 * 24 * time.Hour
@@ -46,6 +49,8 @@ func RetentionFor(kind EventKind) time.Duration {
 		return UsageReportRetention
 	case EventKindLocation:
 		return LocationRetention
+	case EventKindCall:
+		return CallRetention
 	default:
 		return EventRetention
 	}

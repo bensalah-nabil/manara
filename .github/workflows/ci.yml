@@ -73,8 +73,8 @@ jobs:
           java-version: 17
           cache: gradle
       - name: Unit tests, the setup chaos test included
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testPlayDebugUnitTest testDirectDebugUnitTest --no-daemon
       - name: Known vulnerabilities in the release build's libraries (OSV.dev)
         run: |
-          ./gradlew -q :app:dependencies --configuration releaseRuntimeClasspath --no-daemon > deps.txt
+          ./gradlew -q :app:dependencies --configuration playReleaseRuntimeClasspath --no-daemon > deps.txt
           python3 ../tools/security/osv_check.py deps.txt

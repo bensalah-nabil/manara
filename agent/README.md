@@ -27,7 +27,7 @@ set:
 ```bash
 cd agent
 ./gradlew assembleDebug
-# output: app/build/outputs/apk/debug/app-debug.apk
+# output: app/build/outputs/apk/direct/debug/app-direct-debug.apk
 ```
 
 First run downloads the Gradle wrapper and Android dependencies, so it needs
@@ -127,16 +127,16 @@ Reopen Manara after instrumentation and check the managed notice.
 
 ### Health storage regression tests
 
-Pure decisions run with `./gradlew testDebugUnitTest`. The Room transaction
+Pure decisions run with `./gradlew testDirectDebugUnitTest`. The Room transaction
 tests need an Android device. They create and delete only UUID-named test
 databases/preferences, without changing the enrolled policy or permissions.
 For an enrolled debug device, update in place and invoke instrumentation
 explicitly (use `gradlew.bat` on Windows and replace `<serial>`):
 
 ```bash
-./gradlew assembleDebug assembleDebugAndroidTest
-adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
-adb -s <serial> install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+./gradlew assembleDirectDebug assembleDirectDebugAndroidTest
+adb -s <serial> install -r app/build/outputs/apk/direct/debug/app-direct-debug.apk
+adb -s <serial> install -r app/build/outputs/apk/androidTest/direct/debug/app-direct-debug-androidTest.apk
 adb -s <serial> shell am instrument -w -e class com.manara.agent.enforcers.HealthTrackerStorageTest com.manara.agent.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
@@ -248,7 +248,7 @@ adb shell pm disable-user --user 0 com.google.android.gms
 ../scripts/enroll-preflight.sh <serial>
 
 # 4. Install the APK
-adb install app/build/outputs/apk/debug/app-debug.apk
+adb install app/build/outputs/apk/direct/debug/app-direct-debug.apk
 
 # 5. Make Manara the device owner
 adb shell dpm set-device-owner com.manara.agent/.OwnerReceiver

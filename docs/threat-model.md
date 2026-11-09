@@ -10,7 +10,7 @@ endpoint is added.
 | Asset | Where | Why it matters |
 | --- | --- | --- |
 | Control of a child's phone | Parent session, device owner rights | Lock, rules, release: in the wrong hands, a phone turned against the child or the parent |
-| The child's data | Server: location (30 days), app minutes (30), limit hits and protection reports (90) | Location is the most sensitive; nothing else is collected (ADR-0001) |
+| The child's data | Server: location (30 days), app minutes (30), call history in the direct build only (30), limit hits and protection reports (90) | Location and call numbers are the most sensitive; each is off until the parent turns it on (ADR-0001, ADR-0008) |
 | Parent credentials | bcrypt password hashes, TOTP secrets, recovery code hashes | Account takeover |
 | Device credentials | Device token (Keystore on the phone, hashed on the server), release secret | Impersonating a phone, or releasing it |
 | One-time codes | Enrollment codes (24 h), reset links (1 h), release codes (time-based, 8 digits), setup pairing QR/code | Each opens a door once |

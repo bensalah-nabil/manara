@@ -236,7 +236,7 @@ fun ManagedScreen(view: ChildView.View, refreshing: Boolean, onFix: (ChildView.F
         Section("What your parent can see") {
             view.seen.forEach { LineItem(it.title, it.detail) }
             Text(
-                "Never your messages, photos, calls or passwords.",
+                view.neverShared,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
             )

@@ -58,7 +58,7 @@ class PolicySummaryTest {
         assertTrue(summary.contains("Policy version: 11"))
         assertTrue(summary.contains("Daily app limits\nOff"))
         assertTrue(summary.contains("Location collection: off"))
-        assertTrue(summary.contains("Call logs: not collected (unsupported)"))
+        assertTrue(summary.contains("Call history: off"))
         assertTrue(summary.contains("Requested restrictions\nNone"))
     }
 
@@ -80,7 +80,7 @@ class PolicySummaryTest {
         ))
         assertTrue(summary.contains("Site filtering: requested, DNS host missing"))
         assertTrue(summary.contains("Location collection: requested, every 20 min"))
-        assertTrue(summary.contains("Call logs: not collected (unsupported, requested by policy)"))
+        assertTrue(summary.contains("Call history: sent to your parent (number, direction, time and length)"))
     }
 
     @Test
