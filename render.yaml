@@ -1,5 +1,5 @@
 # Render Blueprint for the Manara API (free plan, for the recette).
-# The database is on Neon, and the console on Netlify (controller/netlify.toml).
+# The database is on Neon, and the console on Vercel (controller/vercel.json).
 services:
   - type: web
     name: manara-api
@@ -15,7 +15,8 @@ services:
       # Neon connection string, asked for when the Blueprint is created.
       - key: DATABASE_URL
         sync: false
-      # The console's Netlify address, e.g. https://manara-console.netlify.app
+      # The console's address. A comma-separated list allows several while it moves host;
+      # the first is where emailed links point.
       - key: CORS_ALLOWED_ORIGIN
         sync: false
       # Turns on push wake-ups (Lock now within seconds). Add the Firebase service-account

@@ -12,7 +12,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"manara/backend/internal/domain"
@@ -220,10 +222,25 @@ func consoleURL() string {
 	if u := os.Getenv("CONSOLE_URL"); u != "" {
 		return u
 	}
-	if o := os.Getenv("CORS_ALLOWED_ORIGIN"); o != "" && o != "*" {
-		return o
+	if origins := corsOrigins(); origins[0] != "*" {
+		return origins[0]
 	}
 	return ""
+}
+
+// corsOrigins is CORS_ALLOWED_ORIGIN, a comma-separated list so the console can
+// move host without a gap. The first is the one emailed links point to.
+func corsOrigins() []string {
+	var origins []string
+	for _, origin := range strings.Split(os.Getenv("CORS_ALLOWED_ORIGIN"), ",") {
+		if origin = strings.TrimRight(strings.TrimSpace(origin), "/"); origin != "" {
+			origins = append(origins, origin)
+		}
+	}
+	if len(origins) == 0 {
+		return []string{"*"}
+	}
+	return origins
 }
 
 // silentAfter is SILENT_PHONE_HOURS, or 12 hours.
@@ -317,12 +334,17 @@ func newAlertService(devices domain.DeviceRepository, senders notify.Fanout) *do
 const corsMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 
 func withCORS(next http.Handler) http.Handler {
-	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
-	if allowedOrigin == "" {
-		allowedOrigin = "*"
-	}
+	origins := corsOrigins()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		if len(origins) == 1 {
+			w.Header().Set("Access-Control-Allow-Origin", origins[0])
+		} else {
+			// The header names one origin, so it depends on who is asking, and a cache must know that.
+			w.Header().Add("Vary", "Origin")
+			if slices.Contains(origins, r.Header.Get("Origin")) {
+				w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+			}
+		}
 		w.Header().Set("Access-Control-Allow-Methods", corsMethods)
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {

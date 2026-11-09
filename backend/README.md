@@ -126,7 +126,7 @@ from a single verified sender address, so no domain is needed.
 BREVO_API_KEY=xkeysib-...          # Brevo, SMTP & API, API keys
 MAIL_FROM=you@example.com          # verified in Brevo, Senders
 MAIL_FROM_NAME=Manara              # optional
-CONSOLE_URL=https://manara-front.netlify.app   # optional; defaults to CORS_ALLOWED_ORIGIN
+CONSOLE_URL=https://your-console.example   # optional; defaults to the first CORS_ALLOWED_ORIGIN (a comma-separated list)
 SILENT_PHONE_HOURS=12              # optional; when a quiet phone is alerted
 ```
 
