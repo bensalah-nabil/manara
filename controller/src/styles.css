@@ -312,6 +312,8 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
   word-break: break-all; user-select: all;
 }
 .qr { width: min(240px, 100%); height: auto; justify-self: center; border-radius: 8px; border: 8px solid #fff; }
+/* The setup QR code carries much more than a connection code: larger, so a phone's setup scanner reads it from a laptop screen. */
+.qr.qr-large { width: min(380px, 100%); }
 
 /* Narrow screens: one pane at a time. */
 

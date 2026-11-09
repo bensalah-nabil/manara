@@ -2,11 +2,11 @@ import { useMemo } from 'preact/hooks'
 import { qrMatrix, qrPath } from './qr.ts'
 
 /** Drawn as vector paths, never as HTML text. Always dark on white so it scans on a dark page too. */
-export function QrCode({ value, label }: { value: string; label: string }) {
+export function QrCode({ value, label, large = false }: { value: string; label: string; large?: boolean }) {
     const symbol = useMemo(() => qrPath(qrMatrix(value)), [value])
     return (
         <svg
-            class="qr"
+            class={large ? 'qr qr-large' : 'qr'}
             role="img"
             aria-label={label}
             viewBox={`0 0 ${symbol.size} ${symbol.size}`}

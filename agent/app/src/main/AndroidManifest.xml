@@ -68,6 +68,30 @@
             </intent-filter>
         </receiver>
 
+        <!-- QR setup on a new or reset phone (provision/QrProvisioning.kt). Android 12+ requires
+             both activities (DevicePolicyManager reference). Only the system can start them:
+             BIND_DEVICE_ADMIN is a system-only permission, as in Google's TestDPC sample. -->
+        <activity
+            android:name=".provision.GetProvisioningModeActivity"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.app.action.GET_PROVISIONING_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".provision.PolicyComplianceActivity"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Restart the visible notice after a reboot, and after Manara is updated. Not exported:
              only the system sends these, and the system may deliver to an unexported receiver
              (AOSP ActivityManager.canAccessUnexportedComponents: root and system UID), so no

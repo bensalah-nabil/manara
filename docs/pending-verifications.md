@@ -64,6 +64,11 @@ they resolve, not left buried in a chat log. Cross-reference:
   Not yet run on a phone: turn the phone off in that step, sign in to
   Google after it boots, and check the console marks it back.
 
+- **QR setup for a new or reset phone (ADR-0007, 2026-11-09):** built and
+  unit-tested (agent `QrProvisioning`, console `provisioning.ts`), not yet run
+  on a phone. Hidden in the console until a public HTTPS copy of the release
+  exists. Needs a phone that may be factory reset.
+
 **Not yet run on a phone:** pausing on stock Android with Google Play
 services (no account removed at all); the setup notice's Open accounts and
 Add Google account buttons on Samsung; the account list carried over from a

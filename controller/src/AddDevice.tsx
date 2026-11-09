@@ -18,6 +18,7 @@ import {
 import type { Attestation, Prepared } from './enrollment.ts'
 import { authErrorText } from './format.ts'
 import { QrCode } from './QrCode.tsx'
+import { MANARA_APK_URL, QR_SETUP_STEPS, provisioningQr, qrSetupAvailable } from './provisioning.ts'
 import { signBackInWays } from './setup.ts'
 
 type Step = 'consent' | 'brand' | 'prepare' | 'code'
@@ -48,6 +49,10 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     const [prepared, setPrepared] = useState<Prepared>(nothingPrepared)
     // Asked before any setting is changed: on Samsung the Google account is removed for a moment.
     const [googleReady, setGoogleReady] = useState(false)
+    // A new phone, or one the parent resets: one QR code, nothing to turn on or remove.
+    const [path, setPath] = useState<'guided' | 'qr'>('guided')
+    const qrOffered = qrSetupAvailable(MANARA_APK_URL)
+    const byQr = qrOffered && path === 'qr'
     const [token, setToken] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
@@ -148,7 +153,35 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                             </label>
                         </fieldset>
                     )}
-                    {guide && alreadySetUp === false && (
+                    {guide && alreadySetUp === false && qrOffered && (
+                        <fieldset class="group">
+                            <legend>How do you want to set it up?</legend>
+                            <label class="check">
+                                <input type="radio" name="path" checked={path === 'guided'} onChange={() => setPath('guided')} />
+                                <span>
+                                    Keep everything on the phone
+                                    <span class="muted small"> Guided setup: you turn on wireless debugging, and the console guides each step.</span>
+                                </span>
+                            </label>
+                            <label class="check">
+                                <input type="radio" name="path" checked={path === 'qr'} onChange={() => setPath('qr')} />
+                                <span>
+                                    New phone, or reset it: the easiest
+                                    <span class="muted small"> One QR code to scan, nothing to turn on or remove. Resetting erases everything on the phone.</span>
+                                </span>
+                            </label>
+                        </fieldset>
+                    )}
+                    {guide && alreadySetUp === false && byQr && (
+                        <div class="consent stack" role="group" aria-labelledby="reset-title">
+                            <h3 id="reset-title">Resetting erases the phone</h3>
+                            <p>
+                                Photos, chats, apps and accounts on it are deleted. If any of it matters, back it up first, or choose
+                                "Keep everything on the phone" instead. A brand new phone has nothing to lose.
+                            </p>
+                        </div>
+                    )}
+                    {guide && alreadySetUp === false && !byQr && (
                         <div class="consent stack" role="group" aria-labelledby="accounts-title">
                             <h3 id="accounts-title">Before you change anything: the phone's accounts</h3>
                             <p>{accountsText(guide)}</p>
@@ -172,7 +205,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                             <p class="hint">{NO_ACCOUNTS_YET}</p>
                         </div>
                     )}
-                    {guide && alreadySetUp === false && accountsClear && (
+                    {guide && alreadySetUp === false && !byQr && accountsClear && (
                         <div class="stack">
                             <strong>Turn on wireless debugging on the {guide.name} phone</strong>
                             {!guide.tested && (
@@ -203,8 +236,8 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                         <button
                             type="button"
                             class="primary"
-                            disabled={!guide || alreadySetUp === null || (alreadySetUp === false && !accountsClear) || busy}
-                            onClick={alreadySetUp ? createCode : () => setStep('prepare')}
+                            disabled={!guide || alreadySetUp === null || (alreadySetUp === false && !byQr && !accountsClear) || busy}
+                            onClick={alreadySetUp || byQr ? createCode : () => setStep('prepare')}
                         >
                             {busy ? 'Please wait…' : 'Continue'}
                         </button>
@@ -238,7 +271,24 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 </>
             )}
 
-            {step === 'code' && token !== null && (
+            {step === 'code' && token !== null && byQr && !alreadySetUp && (
+                <>
+                    <strong>Set up the phone with this QR code</strong>
+                    <ol class="guide">
+                        {QR_SETUP_STEPS.map((line) => <li key={line}>{line}</li>)}
+                    </ol>
+                    <QrCode value={provisioningQr(token, MANARA_APK_URL!)} label="QR code for the phone's setup screen" large />
+                    <p class="hint">
+                        It works once, for 24 hours, and is shown only now: keep this page open until the phone has scanned it. The
+                        phone then appears in your list of phones by itself.
+                    </p>
+                    <div class="actions">
+                        <button type="button" class="primary" onClick={reset}>Done</button>
+                    </div>
+                </>
+            )}
+
+            {step === 'code' && token !== null && !(byQr && !alreadySetUp) && (
                 <>
                     <strong>Connection code for this phone</strong>
                     <QrCode value={token} label="Connection code as a QR code" />
