@@ -3,4 +3,19 @@
     <!-- Call history (ADR-0008). Only this build, installed outside Google Play, can read calls:
          Play's SMS and Call Log policy has no exception for parental control. -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
+
+    <application>
+        <!-- Calls inside WhatsApp, Messenger, Telegram and Viber, seen from their call
+             notifications (ADR-0008, source 2). The parent turns on notification access in
+             Settings; only the system can bind to it. -->
+        <service
+            android:name=".enforcers.CallNotificationListener"
+            android:exported="true"
+            android:label="Manara call history"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+    </application>
 </manifest>

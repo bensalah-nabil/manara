@@ -46,7 +46,7 @@ is not told, and that the law differs by country.
 **Off means off.** Turning it off withdraws the permission (`PERMISSION_GRANT_STATE_DENIED`)
 and forgets the phone's place in the call log.
 
-## Calls inside apps (planned, 2026-11-09, not built)
+## Calls inside apps (2026-11-09; sources 1 and 2 built, 3 not built)
 
 Android has no general way to read calls made in WhatsApp, Messenger, Telegram or
 Viber. On the SM-A528B the system call log held 1,997 normal calls, 2 from WhatsApp
@@ -70,6 +70,13 @@ access exists. Losing it is reported to the parent.
 The console says "calls Manara could detect": an empty list is not proof of no calls.
 No phone numbers are available for these calls. Each source is tested with real calls
 before this section moves to Decision.
+
+**Status, 2026-11-09:** source 2 ships in the `direct` build from 1.0.19
+(`CallNotificationListener`, decision in `CallNotificationDecision`). On the SM-A528B,
+one outgoing WhatsApp call posted its call notification at 21:40:43 and removed it at
+21:40:48, and Manara ran a successful sync at 21:40:49. It had not yet been confirmed
+that this call reached the console as an event, and Messenger, Telegram, incoming
+and missed calls were still untested. Source 3 is not built.
 
 ## Consequences
 

@@ -70,6 +70,7 @@ object ChildView {
         }
         if (policy?.callLog?.enabled == true) {
             add(Line("Your calls", "The number, direction, time and length of each call. Never what was said."))
+            add(Line("Calls in WhatsApp, Messenger, Telegram and Viber", "Which app, when and how long, if notification access is on. Manara looks at notifications only to spot calls and keeps nothing else, not even who called."))
         }
         add(Line("Whether Manara is working", "For example if a setting it needs was turned off."))
     }

@@ -7,7 +7,18 @@ object CallLogDecision {
     const val MAX_PER_RUN = 200
     const val PRIVATE_NUMBER = "private"
 
-    data class Row(val id: Long, val number: String?, val type: Int, val dateMillis: Long, val durationSeconds: Long)
+    data class Row(
+        val id: Long,
+        val number: String?,
+        val type: Int,
+        val dateMillis: Long,
+        val durationSeconds: Long,
+        /** The calling account's package: the phone itself, or an app such as WhatsApp. */
+        val sourcePackage: String? = null,
+    )
+
+    /** The app's name for a call an app wrote to the log, or null for a normal phone call. */
+    fun appOf(row: Row): String? = row.sourcePackage?.let { CallNotificationDecision.APPS[it] }
 
     data class Batch(val calls: List<Row>, val newCursor: Long)
 

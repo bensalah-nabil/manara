@@ -249,6 +249,6 @@ export function childLines(state: CardsState): string[] {
     if (on.protect) lines.push('Some settings can\'t be changed.')
     if (on.location) lines.push('Your parent can see where this phone is.')
     if (on.report) lines.push('Your parent sees minutes per app.')
-    if (state.calls) lines.push('Your parent sees the number, direction, time and length of your calls.')
+    if (state.calls) lines.push('Your parent sees the number, direction, time and length of your calls, and which app for calls in WhatsApp, Messenger, Telegram and Viber.')
     return lines
 }

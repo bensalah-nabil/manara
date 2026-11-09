@@ -300,6 +300,13 @@ export function CallLogEditor(props: Props) {
                 contact names or text messages. The phone lists this on its own notice and status screen, and this server keeps
                 calls for 30 days. It works only with Manara installed from the website, not from Google Play.
             </p>
+            <p class="muted">
+                Calls in WhatsApp, Messenger, Telegram and Viber show the app, the time and roughly how long, never who called.
+                For those, turn on notification access for Manara on the phone: Settings, Apps, Manara, then Allow restricted
+                settings if asked, and Settings, Notifications, Device and app notifications (or Notification access), Manara.
+                Manara reads only call notifications from those apps. Some calls may still be missed, so an empty list doesn't
+                prove there were none.
+            </p>
             <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>Send call history</Toggle>
             <Footer editor={editor} saveLabel="Save call history" />
         </Open>

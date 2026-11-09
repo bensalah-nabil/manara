@@ -115,7 +115,7 @@ function CallHistoryPanel(props: Props) {
                 <ul class="call-list">
                     {calls.map((call) => (
                         <li key={call.id}>
-                            <span><b>{numberText(call.number)}</b> <span class="muted">{directionText(call.direction)}{durationText(call) && `, ${durationText(call)}`}</span></span>
+                            <span><b>{numberText(call)}</b> <span class="muted">{directionText(call.direction)}{durationText(call) && `, ${durationText(call)}`}</span></span>
                             <span class="muted small">{lastSeenText(call.occurredAt)}</span>
                         </li>
                     ))}

@@ -39,11 +39,24 @@ test('the list is capped', () => {
 
 test('calls read plainly', () => {
     assert.equal(directionText('missed'), 'Missed')
-    assert.equal(numberText('private'), 'Hidden number')
-    assert.equal(numberText('+21699'), '+21699')
+    assert.equal(numberText({ number: 'private' }), 'Hidden number')
+    assert.equal(numberText({ number: '+21699' }), '+21699')
+    assert.equal(numberText({ app: 'Telegram' }), 'Telegram')
+    assert.equal(numberText({ number: '+21699', app: 'WhatsApp' }), '+21699 (WhatsApp)')
     const item = { id: 'x', number: '+1', direction: 'incoming' as const, occurredAt: '', durationSeconds: 0 }
     assert.equal(durationText(item), '')
     assert.equal(durationText({ ...item, durationSeconds: 42 }), '42 s')
     assert.equal(durationText({ ...item, durationSeconds: 120 }), '2 min')
     assert.equal(durationText({ ...item, durationSeconds: 125 }), '2 min 5 s')
+})
+
+test('a call from a messaging app needs no number, and one call seen twice is listed once', () => {
+    const calls = summarizeCalls([
+        call('note', '2026-11-09T10:00:30Z', { app: 'WhatsApp', direction: 'incoming', durationSeconds: 60, source: 'notification' }),
+        call('log', '2026-11-09T10:00:00Z', { number: '+216', app: 'WhatsApp', direction: 'incoming', durationSeconds: 62, source: 'call_log' }),
+        call('tg', '2026-11-09T10:01:00Z', { app: 'Telegram', direction: 'missed' }),
+        call('later', '2026-11-09T10:10:00Z', { app: 'WhatsApp', direction: 'outgoing', durationSeconds: 5 }),
+    ])
+    assert.deepEqual(calls.map((item) => item.id), ['later', 'tg', 'log'])
+    assert.equal(summarizeCalls([call('empty', '2026-11-09T10:00:00Z', { app: '', direction: 'missed' })]).length, 0)
 })

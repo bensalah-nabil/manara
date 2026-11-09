@@ -18,11 +18,18 @@ they resolve, not left buried in a chat log. Cross-reference:
 
 ### Call history (ADR-0008, 2026-11-09)
 
-Built and unit-tested, not yet run on a phone. To check on a phone with the
-`direct` build: the permission grants itself and is withdrawn when turned off;
-only calls after turning it on arrive, with the right number, direction, time and
-length; the notice and status screen change; a `play` build reports a missing
-permission and sends nothing.
+**Verified on the SM-A528B (direct 1.0.18, installed over adb, 2026-11-09):**
+turned on in the console at 18:58; `READ_CALL_LOG` was granted by the phone
+itself (installer-exempt, as expected for adb). The notice read "Call history is
+sent to your parent" and the status screen "Your calls: The number, direction,
+time and length of each call. Never what was said." Two outgoing calls, at
+18:58:43 (not connected) and 18:59:25 (15 s), appeared in the console with
+exactly those times and lengths, and none of the day's earlier calls did. They
+arrived one sync after they were read, so up to about 15 minutes late.
+
+Still to check: turning it off withdraws the permission; incoming and missed
+calls; a `play` build reports a missing permission and sends nothing; installing
+the APK from a browser instead of adb.
 
 ### Rules that hold while the phone is in use (1.0.14, 2026-11-09)
 

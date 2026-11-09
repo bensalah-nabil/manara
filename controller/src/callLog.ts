@@ -26,7 +26,10 @@ export type Direction = 'incoming' | 'outgoing' | 'missed' | 'rejected' | 'block
 
 export interface CallItem {
     id: string
-    number: string
+    /** Absent for a call seen in a messaging app, which gives no number. */
+    number?: string
+    /** The messaging app, for a call made in one. */
+    app?: string
     direction: Direction
     occurredAt: string
     durationSeconds: number
@@ -47,20 +50,40 @@ export function summarizeCalls(events: EventItem[]): CallItem[] {
     const calls: CallItem[] = []
     for (const event of events) {
         if (event.kind !== 'call' || Number.isNaN(Date.parse(event.occurredAt))) continue
-        const payload = (event.payload ?? {}) as { number?: unknown; direction?: unknown; durationSeconds?: unknown }
-        if (typeof payload.number !== 'string' || typeof payload.direction !== 'string' || !(payload.direction in DIRECTIONS)) continue
+        const payload = (event.payload ?? {}) as { number?: unknown; app?: unknown; direction?: unknown; durationSeconds?: unknown }
+        const number = typeof payload.number === 'string' ? payload.number : undefined
+        const app = typeof payload.app === 'string' && payload.app !== '' ? payload.app : undefined
+        if ((number === undefined && app === undefined) || typeof payload.direction !== 'string' || !Object.hasOwn(DIRECTIONS, payload.direction)) continue
         const duration = typeof payload.durationSeconds === 'number' && payload.durationSeconds > 0 ? payload.durationSeconds : 0
-        calls.push({ id: event.id, number: payload.number, direction: payload.direction as Direction, occurredAt: event.occurredAt, durationSeconds: duration })
+        calls.push({ id: event.id, number, app, direction: payload.direction as Direction, occurredAt: event.occurredAt, durationSeconds: duration })
     }
-    return calls.sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt)).slice(0, MAX_SHOWN)
+    calls.sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+    return withoutRepeats(calls).slice(0, MAX_SHOWN)
+}
+
+/** Two sources can see one call (WhatsApp writes a few to the call log): the one with a number wins. */
+const SAME_CALL_MS = 2 * 60_000
+
+function withoutRepeats(calls: CallItem[]): CallItem[] {
+    const kept: CallItem[] = []
+    for (const call of calls) {
+        const twin = call.app === undefined ? -1 : kept.findIndex((other) => other.app === call.app &&
+            Math.abs(Date.parse(other.occurredAt) - Date.parse(call.occurredAt)) < SAME_CALL_MS)
+        if (twin < 0) kept.push(call)
+        else if (kept[twin].number === undefined && call.number !== undefined) kept[twin] = call
+    }
+    return kept
 }
 
 export function directionText(direction: Direction): string {
     return DIRECTIONS[direction]
 }
 
-export function numberText(number: string): string {
-    return number === 'private' ? 'Hidden number' : number
+/** A messaging app's call shows the app: it gives no number, and caller names aren't kept. */
+export function numberText(call: Pick<CallItem, 'number' | 'app'>): string {
+    if (call.number === undefined) return call.app ?? 'Unknown'
+    const number = call.number === 'private' ? 'Hidden number' : call.number
+    return call.app ? `${number} (${call.app})` : number
 }
 
 /** A call nobody answered has no length to show. */

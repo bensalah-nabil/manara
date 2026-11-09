@@ -1067,7 +1067,10 @@ components:
             the moment it is turned on, as `call` events kept for 30 days. Never
             names, audio or SMS. The phone says so on its notice and status
             screen. Only the `direct` build can read calls; a `play` build reports
-            a missing permission instead (ADR-0008).
+            a missing permission instead (ADR-0008). A `call` event's payload has
+            `direction`, `durationSeconds`, `source` (`call_log` or
+            `notification`), and `number` (call log only) and/or `app` (a
+            messaging app's call: WhatsApp, Messenger, Telegram, Viber).
           properties:
             enabled: { type: boolean }
         lockSchedule:

@@ -30,7 +30,12 @@ class LiveRules(context: Context) {
             try {
                 if (power.isInteractive) {
                     cache.current()?.let { registry.applyAll(it) }
-                    registry.collectAllEvents().forEach { queue.enqueue(it) }
+                    val events = registry.collectAllEvents()
+                    events.forEach { queue.enqueue(it) }
+                    // A call is the one event a parent may be waiting for, so send it now.
+                    if (events.any { it.kind == com.manara.agent.events.EventKind.call }) {
+                        com.manara.agent.sync.SyncWorker.enqueueOneTime(appContext)
+                    }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled

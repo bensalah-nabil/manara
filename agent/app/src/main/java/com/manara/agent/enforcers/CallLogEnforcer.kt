@@ -42,6 +42,11 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
         grantToSelf()
         val allowed = hasPermission()
         health.observe(CHECK_PERMISSION, allowed)
+        // Calls inside messaging apps need notification access, which only the parent can turn on.
+        if (CallNotificationListener.isDeclared(context)) {
+            val notifications = context.getSystemService(android.app.NotificationManager::class.java)
+            health.observe(CHECK_APP_CALLS, notifications.isNotificationListenerAccessGranted(CallNotificationListener.component(context)))
+        }
         if (!allowed) return
 
         val rows = runCatching { readAfter(prefs.getLong(KEY_CURSOR, 0L)) }
@@ -68,6 +73,7 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
 
     private fun turnOff() {
         health.forget(CHECK_PERMISSION)
+        health.forget(CHECK_APP_CALLS)
         pendingEvents.clear()
         pendingCursor = null
         if (prefs.contains(KEY_CURSOR)) {
@@ -90,14 +96,15 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
         context.checkSelfPermission(Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED
 
     private fun readAfter(cursor: Long): List<CallLogDecision.Row> {
-        val columns = arrayOf(CallLog.Calls._ID, CallLog.Calls.NUMBER, CallLog.Calls.TYPE, CallLog.Calls.DATE, CallLog.Calls.DURATION)
+        val columns = arrayOf(CallLog.Calls._ID, CallLog.Calls.NUMBER, CallLog.Calls.TYPE, CallLog.Calls.DATE, CallLog.Calls.DURATION, CallLog.Calls.PHONE_ACCOUNT_COMPONENT_NAME)
         val cursorRows = context.contentResolver.query(
             CallLog.Calls.CONTENT_URI, columns, "${CallLog.Calls.DATE} > ?", arrayOf(cursor.toString()), "${CallLog.Calls.DATE} ASC"
         ) ?: return emptyList()
         return cursorRows.use { rows ->
             buildList {
                 while (rows.moveToNext() && size < CallLogDecision.MAX_PER_RUN) {
-                    add(CallLogDecision.Row(rows.getLong(0), rows.getString(1), rows.getInt(2), rows.getLong(3), rows.getLong(4)))
+                    val source = rows.getString(5)?.substringBefore('/')
+                    add(CallLogDecision.Row(rows.getLong(0), rows.getString(1), rows.getInt(2), rows.getLong(3), rows.getLong(4), source))
                 }
             }
         }
@@ -110,11 +117,13 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
             kind = EventKind.call,
             occurredAt = Instant.ofEpochMilli(row.dateMillis).toString(),
             payload = JsonObject(
-                mapOf(
-                    "number" to JsonPrimitive(CallLogDecision.number(row.number)),
-                    "direction" to JsonPrimitive(direction),
-                    "durationSeconds" to JsonPrimitive(row.durationSeconds),
-                )
+                buildMap {
+                    put("number", JsonPrimitive(CallLogDecision.number(row.number)))
+                    put("direction", JsonPrimitive(direction))
+                    put("durationSeconds", JsonPrimitive(row.durationSeconds))
+                    CallLogDecision.appOf(row)?.let { put("app", JsonPrimitive(it)) }
+                    put("source", JsonPrimitive("call_log"))
+                }
             ),
         )
     }
@@ -124,5 +133,6 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
         const val PREFS_NAME = "call_log_enforcer"
         const val KEY_CURSOR = "cursor"
         const val CHECK_PERMISSION = "read_call_log"
+        const val CHECK_APP_CALLS = "app_call_notifications"
     }
 }

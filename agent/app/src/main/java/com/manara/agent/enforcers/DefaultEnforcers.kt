@@ -26,7 +26,7 @@ fun defaultEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegist
 
 /** The rules [LiveRules] re-checks every minute while the screen is on. */
 fun liveEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegistry(
-    listOf(TimeLimitEnforcer(context), BrowserBlockEnforcer(context), LockEnforcer(context)),
+    listOf(TimeLimitEnforcer(context), BrowserBlockEnforcer(context), LockEnforcer(context), CallLogEnforcer(context)),
     isManaged = { isManaged(context) },
 )
 
