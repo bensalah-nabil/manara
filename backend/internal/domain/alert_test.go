@@ -117,9 +117,10 @@ func (o *oneDevice) FindByID(context.Context, string) (*Device, error) {
 	o.calls++
 	return o.d, o.err
 }
-func (o *oneDevice) ListByParent(context.Context, string) ([]*Device, error) { return nil, nil }
-func (o *oneDevice) UpdateLastSeen(context.Context, string, time.Time) error { return nil }
-func (o *oneDevice) UpdatePushToken(context.Context, string, string) error   { return nil }
+func (o *oneDevice) ListByParent(context.Context, string) ([]*Device, error)  { return nil, nil }
+func (o *oneDevice) UpdateAgentVersion(context.Context, string, string) error { return nil }
+func (o *oneDevice) UpdateLastSeen(context.Context, string, time.Time) error  { return nil }
+func (o *oneDevice) UpdatePushToken(context.Context, string, string) error    { return nil }
 
 func newService(n AlertNotifier) (*AlertService, *oneDevice) {
 	dev := &oneDevice{d: &Device{ID: "dev-1", ParentID: "parent-1", Label: "Sam"}}

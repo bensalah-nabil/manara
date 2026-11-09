@@ -229,6 +229,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                         <p class="muted">
                             <span class={`pill ${device.status}`}>{statusText(device.status)}</span>
                             <span title={lastSeenText(device.lastSeen)}>Last seen {agoText(device.lastSeen)}</span>
+                            {device.agentVersion && <span>Manara {device.agentVersion}</span>}
                         </p>
                     </div>
                 </div>

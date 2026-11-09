@@ -33,6 +33,8 @@ export interface DeviceSummary {
     status: DeviceStatus
     lastSeen: string
     policyVersion?: number
+    /** The Manara version on the phone, from its latest check-in. */
+    agentVersion?: string
 }
 
 export type ReleaseMode = 'transfer' | 'remove'

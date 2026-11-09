@@ -66,6 +66,14 @@ func (r *DeviceRepository) UpdateLastSeen(ctx context.Context, id string, at tim
 	return nil
 }
 
+func (r *DeviceRepository) UpdateAgentVersion(ctx context.Context, id string, version string) error {
+	_, err := r.db.Pool.Exec(ctx, `UPDATE devices SET agent_version = $1 WHERE id = $2 AND agent_version IS DISTINCT FROM $1`, version, id)
+	if err != nil {
+		return fmt.Errorf("update agent_version: %w", err)
+	}
+	return nil
+}
+
 func (r *DeviceRepository) UpdatePushToken(ctx context.Context, id string, token string) error {
 	_, err := r.db.Pool.Exec(ctx, `UPDATE devices SET push_token = $1 WHERE id = $2`, token, id)
 	if err != nil {

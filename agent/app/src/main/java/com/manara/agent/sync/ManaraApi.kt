@@ -92,7 +92,9 @@ data class SyncRequest(
     // Firebase set up behaves exactly as it did before this field existed.
     val pushToken: String? = null,
     /** False asks the server for the release secret (a phone enrolled before release codes). */
-    val hasReleaseSecret: Boolean = false
+    val hasReleaseSecret: Boolean = false,
+    /** This build's version, so the console shows what the phone runs now, not at enrollment. */
+    val agentVersion: String? = null
 )
 
 @Serializable

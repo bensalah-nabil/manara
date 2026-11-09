@@ -63,6 +63,7 @@ type deviceSummaryDTO struct {
 	Status        string    `json:"status"`
 	LastSeen      time.Time `json:"lastSeen"`
 	PolicyVersion int       `json:"policyVersion"`
+	AgentVersion  string    `json:"agentVersion,omitempty"`
 }
 
 type commandDTO struct {
@@ -282,6 +283,7 @@ func (h *Handlers) ListDevices(w http.ResponseWriter, r *http.Request) {
 		summaries = append(summaries, deviceSummaryDTO{
 			DeviceID: d.ID, Label: d.Label, Color: d.Color, Model: d.Info.Model, Manufacturer: d.Info.Manufacturer,
 			Status: string(d.Status(now)), LastSeen: d.LastSeen, PolicyVersion: version,
+			AgentVersion: d.Info.AgentVersion,
 		})
 	}
 	writeJSON(w, http.StatusOK, summaries)

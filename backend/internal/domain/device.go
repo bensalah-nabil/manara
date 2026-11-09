@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"regexp"
 	"time"
 )
 
@@ -71,7 +72,15 @@ type DeviceRepository interface {
 	// /agent/sync that includes one -- tokens rotate under Firebase's own
 	// control, not just once at enrollment.
 	UpdatePushToken(ctx context.Context, id string, token string) error
+	// UpdateAgentVersion stores the Manara version the phone reported on its
+	// latest sync: enrollment alone would show the first version forever.
+	UpdateAgentVersion(ctx context.Context, id string, version string) error
 }
+
+var agentVersionPattern = regexp.MustCompile(`^[0-9A-Za-z][0-9A-Za-z.+_-]{0,31}$`)
+
+// ValidAgentVersion: a short version name such as "1.0.11", nothing a page could misrender.
+func ValidAgentVersion(v string) bool { return agentVersionPattern.MatchString(v) }
 
 // TokenRepository resolves a bearer token to the device it authenticates --
 // kept separate from DeviceRepository so nothing that just wants to read a

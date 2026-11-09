@@ -39,8 +39,9 @@ func (f fakeDevices) ListByParent(_ context.Context, parentID string) ([]*domain
 	}
 	return out, nil
 }
-func (f fakeDevices) UpdateLastSeen(context.Context, string, time.Time) error { return nil }
-func (f fakeDevices) UpdatePushToken(context.Context, string, string) error   { return nil }
+func (f fakeDevices) UpdateAgentVersion(context.Context, string, string) error { return nil }
+func (f fakeDevices) UpdateLastSeen(context.Context, string, time.Time) error  { return nil }
+func (f fakeDevices) UpdatePushToken(context.Context, string, string) error    { return nil }
 
 type fakePolicies struct{ byDevice map[string]*domain.Policy }
 

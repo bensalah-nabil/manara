@@ -70,6 +70,8 @@ type syncRequest struct {
 	PushToken string `json:"pushToken,omitempty"`
 	// HasReleaseSecret false (an older or just-upgraded agent) asks for the secret.
 	HasReleaseSecret bool `json:"hasReleaseSecret,omitempty"`
+	// AgentVersion is the build the phone runs now; older agents omit it.
+	AgentVersion string `json:"agentVersion,omitempty"`
 }
 
 type eventDTO struct {
@@ -133,7 +135,7 @@ func (h *Handlers) Enroll(w http.ResponseWriter, r *http.Request) {
 			Model:          req.DeviceInfo.Model,
 			Manufacturer:   req.DeviceInfo.Manufacturer,
 			AndroidVersion: req.DeviceInfo.AndroidVersion,
-			AgentVersion:   req.DeviceInfo.AgentVersion,
+			AgentVersion:   validOrEmpty(req.DeviceInfo.AgentVersion),
 		},
 		CreatedAt: time.Now().UTC(),
 	}
@@ -198,6 +200,11 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 		log.Printf("sync: update last_seen: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
+	}
+	if domain.ValidAgentVersion(req.AgentVersion) {
+		if err := h.Devices.UpdateAgentVersion(r.Context(), deviceID, req.AgentVersion); err != nil {
+			log.Printf("sync: update agent_version: %v", err) // display only: not fatal
+		}
 	}
 	if req.PushToken != "" {
 		if err := h.Devices.UpdatePushToken(r.Context(), deviceID, req.PushToken); err != nil {
@@ -369,4 +376,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, errorBody{Code: code, Message: message})
+}
+
+// validOrEmpty keeps a version the console can show as is, else nothing.
+func validOrEmpty(version string) string {
+	if domain.ValidAgentVersion(version) {
+		return version
+	}
+	return ""
 }

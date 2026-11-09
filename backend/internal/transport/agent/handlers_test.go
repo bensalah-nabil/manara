@@ -27,6 +27,7 @@ func (fakeDevices) FindByID(context.Context, string) (*domain.Device, error) {
 	return &domain.Device{ID: "dev-1", ParentID: "parent-1", Label: "Sam"}, nil
 }
 func (fakeDevices) ListByParent(context.Context, string) ([]*domain.Device, error) { return nil, nil }
+func (fakeDevices) UpdateAgentVersion(context.Context, string, string) error       { return nil }
 func (fakeDevices) UpdateLastSeen(context.Context, string, time.Time) error        { return nil }
 func (fakeDevices) UpdatePushToken(context.Context, string, string) error          { return nil }
 

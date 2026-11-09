@@ -120,6 +120,13 @@ paths:
                     push existed. Used only for CommandType.IsUrgent() types
                     (e.g. lock_now) to wake the device immediately instead of
                     waiting for the next poll.
+                agentVersion:
+                  type: string
+                  example: "1.0.11"
+                  description: >
+                    The Manara version the phone runs now. Stored when valid
+                    (up to 32 letters, digits and . + _ -) and shown in the
+                    console; older agents omit it.
       responses:
         '200':
           description: Current policy (if changed) and pending commands.
@@ -996,6 +1003,7 @@ components:
           description: not_reporting = missed N heartbeats; shown to the parent.
         lastSeen: { type: string, format: date-time }
         policyVersion: { type: integer }
+        agentVersion: { type: string, example: "1.0.11", description: The Manara version on the phone, from its latest check-in; absent until a phone reports one. }
 
     # ---- Policy ---------------------------------------------------- #
     Policy:

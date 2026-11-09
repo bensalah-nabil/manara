@@ -75,7 +75,8 @@ class SyncManager(
                     events = events,
                     commandAcks = acksToSend,
                     pushToken = pushTokenStore.current(),
-                    hasReleaseSecret = tokenStore.releaseSecret() != null
+                    hasReleaseSecret = tokenStore.releaseSecret() != null,
+                    agentVersion = com.manara.agent.BuildConfig.VERSION_NAME
                 )
             )
 

@@ -61,7 +61,8 @@ class EnrollmentRepository(
                     deviceInfo = DeviceInfo(
                         model = Build.MODEL,
                         manufacturer = Build.MANUFACTURER,
-                        androidVersion = Build.VERSION.RELEASE
+                        androidVersion = Build.VERSION.RELEASE,
+                        agentVersion = com.manara.agent.BuildConfig.VERSION_NAME
                     )
                 )
             )
