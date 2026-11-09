@@ -5,8 +5,10 @@ import {
     PHONE_GUIDES,
     PREPARE_ITEMS,
     STATEMENTS,
+    accountsText,
     attestationComplete,
     guideFor,
+    needsGoogleCheck,
     noAttestation,
     nothingPrepared,
     preparedComplete,
@@ -57,4 +59,37 @@ test('the preparation list warns about passwords and chat backups, and needs no 
     assert.match(text, /never sees or stores passwords/)
     assert.match(text, /WhatsApp/)
     assert.doesNotMatch(text, /USB/)
+})
+
+test('Samsung parents hear before changing anything that the Google account is removed for a moment', () => {
+    const samsung = guideFor('samsung')!
+    assert.equal(needsGoogleCheck(samsung), true)
+    assert.match(accountsText(samsung), /removed for a moment/)
+    assert.match(accountsText(samsung), /No app is uninstalled/)
+})
+
+test('stock Android expects only a pause, untested brands are told to be ready', () => {
+    const pixel = guideFor('google')!
+    assert.equal(needsGoogleCheck(pixel), false)
+    assert.match(accountsText(pixel), /no account is removed/)
+    assert.match(accountsText(pixel), /not been tested/)
+    for (const guide of PHONE_GUIDES.filter((g) => g.accounts === 'unknown')) {
+        assert.equal(needsGoogleCheck(guide), true, guide.brand)
+    }
+})
+
+test('no checklist item still says accounts or apps are removed by setup', () => {
+    for (const { text } of PREPARE_ITEMS) {
+        assert.doesNotMatch(text, /All accounts are removed|Apps that are removed/)
+    }
+})
+
+test('every picture is a file in public/guide-img, with a description', async () => {
+    const { existsSync } = await import('node:fs')
+    for (const guide of PHONE_GUIDES) {
+        for (const picture of guide.pictures ?? []) {
+            assert.ok(existsSync(new URL(`../public${picture.src}`, import.meta.url)), picture.src)
+            assert.ok(picture.alt.length > 10 && picture.caption.length > 5, picture.src)
+        }
+    }
 })

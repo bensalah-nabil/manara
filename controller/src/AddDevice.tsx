@@ -3,11 +3,14 @@ import { ApiError, isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import {
     ATTESTATION_VERSION,
+    NO_ACCOUNTS_YET,
     PHONE_GUIDES,
     PREPARE_ITEMS,
     STATEMENTS,
+    accountsText,
     attestationComplete,
     guideFor,
+    needsGoogleCheck,
     noAttestation,
     nothingPrepared,
     preparedComplete,
@@ -15,6 +18,7 @@ import {
 import type { Attestation, Prepared } from './enrollment.ts'
 import { authErrorText } from './format.ts'
 import { QrCode } from './QrCode.tsx'
+import { signBackInWays } from './setup.ts'
 
 type Step = 'consent' | 'brand' | 'prepare' | 'code'
 
@@ -42,6 +46,8 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     // A phone already managed by Manara (moving it from another account) skips the setup guide and checklist.
     const [alreadySetUp, setAlreadySetUp] = useState<boolean | null>(null)
     const [prepared, setPrepared] = useState<Prepared>(nothingPrepared)
+    // Asked before any setting is changed: on Samsung the Google account is removed for a moment.
+    const [googleReady, setGoogleReady] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
@@ -74,6 +80,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     }
 
     const guide = guideFor(brand)
+    const accountsClear = !!guide && (!needsGoogleCheck(guide) || googleReady)
 
     return (
         <div class="wizard">
@@ -142,6 +149,30 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                         </fieldset>
                     )}
                     {guide && alreadySetUp === false && (
+                        <div class="consent stack" role="group" aria-labelledby="accounts-title">
+                            <h3 id="accounts-title">Before you change anything: the phone's accounts</h3>
+                            <p>{accountsText(guide)}</p>
+                            {needsGoogleCheck(guide) && (
+                                <>
+                                    <strong>Ways back in to Google without remembering the password</strong>
+                                    <ul>
+                                        {signBackInWays('com.google').map((way) => (
+                                            <li key={way.text}>
+                                                {way.text}{' '}
+                                                {way.link && <a href={way.link.href} target="_blank" rel="noopener noreferrer">{way.link.label}</a>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <label class="check">
+                                        <input type="checkbox" checked={googleReady} onChange={(event) => setGoogleReady(event.currentTarget.checked)} />
+                                        I can get back in to the Google account on this phone, or it has none
+                                    </label>
+                                </>
+                            )}
+                            <p class="hint">{NO_ACCOUNTS_YET}</p>
+                        </div>
+                    )}
+                    {guide && alreadySetUp === false && accountsClear && (
                         <div class="stack">
                             <strong>Turn on wireless debugging on the {guide.name} phone</strong>
                             {!guide.tested && (
@@ -154,6 +185,16 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                                 {guide.developerOptions.map((line) => <li key={line}>{line}</li>)}
                             </ol>
                             {guide.notes.map((note) => <p key={note} class="hint">{note}</p>)}
+                            {guide.pictures && (
+                                <div class="guide-pictures">
+                                    {guide.pictures.map((picture) => (
+                                        <figure key={picture.src}>
+                                            <img src={picture.src} alt={picture.alt} loading="lazy" width={540} />
+                                            <figcaption>{picture.caption}</figcaption>
+                                        </figure>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                     {alreadySetUp && <p role="alert" class="error">{error}</p>}
@@ -162,7 +203,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                         <button
                             type="button"
                             class="primary"
-                            disabled={!guide || alreadySetUp === null || busy}
+                            disabled={!guide || alreadySetUp === null || (alreadySetUp === false && !accountsClear) || busy}
                             onClick={alreadySetUp ? createCode : () => setStep('prepare')}
                         >
                             {busy ? 'Please wait…' : 'Continue'}
@@ -173,7 +214,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
 
             {step === 'prepare' && (
                 <>
-                    <p>Before connecting, make sure of each of these. Setup removes every account from the phone for a few minutes.</p>
+                    <p>Before connecting, make sure of each of these.</p>
                     {PREPARE_ITEMS.map(({ key, text }) => (
                         <label key={key} class="check">
                             <input

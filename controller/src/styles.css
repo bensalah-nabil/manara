@@ -447,3 +447,9 @@ details.setup-done[open] > summary { margin-bottom: 12px; }
 /* Recovery codes: easy to copy, two columns where there is room. */
 .recovery-codes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
 .recovery-codes code { font-size: 1rem; letter-spacing: 0.05em; }
+
+/* Screenshots of the Settings steps (AddDevice), side by side where there is room. */
+.guide-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.guide-pictures figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.guide-pictures img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+.guide-pictures figcaption { font-size: 0.875rem; color: var(--muted); }
