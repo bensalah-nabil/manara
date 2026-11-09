@@ -1032,6 +1032,12 @@ components:
                     type: array
                     items: { type: string }
                     example: ["com.instagram.android", "com.zhiliaoapp.musically"]
+                  allGames:
+                    type: boolean
+                    description: >
+                      Also covers every app on the phone that declares itself a
+                      game (ApplicationInfo.category), including one installed
+                      later. Absent means off. An older agent ignores it.
                   dailyMinutes: { type: integer, example: 60 }
         siteFilter:
           type: object

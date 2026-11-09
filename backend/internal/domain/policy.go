@@ -103,6 +103,8 @@ type TimeLimitRule struct {
 	Category     string   `json:"category"`
 	Packages     []string `json:"packages,omitempty"`
 	DailyMinutes int      `json:"dailyMinutes"`
+	// AllGames also covers every app on the phone that declares itself a game.
+	AllGames bool `json:"allGames,omitempty"`
 }
 
 type SiteFilter struct {

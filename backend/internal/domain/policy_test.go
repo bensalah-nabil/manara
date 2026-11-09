@@ -14,7 +14,7 @@ import (
 func TestPolicyRoundTripKeepsEveryFieldTheAgentDefines(t *testing.T) {
 	const full = `{
 		"version": 7,
-		"timeLimits": {"enabled": true, "rules": [{"category": "social", "packages": ["a.b"], "dailyMinutes": 30}]},
+		"timeLimits": {"enabled": true, "rules": [{"category": "social", "packages": ["a.b"], "dailyMinutes": 30, "allGames": true}]},
 		"siteFilter": {"enabled": true, "dnsHost": "dns.example"},
 		"location": {"enabled": true, "intervalMinutes": 10},
 		"callLog": {"enabled": true},

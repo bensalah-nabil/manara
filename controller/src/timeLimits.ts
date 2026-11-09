@@ -5,6 +5,8 @@ export interface TimeLimitRule {
     category: string
     packages: string[]
     dailyMinutes: number
+    /** Also covers every app on the phone that says it is a game. */
+    allGames?: boolean
 }
 
 export interface TimeLimits {
@@ -16,6 +18,7 @@ export interface RuleDraft {
     category: string
     packages: string
     dailyMinutes: string
+    allGames?: boolean
 }
 
 export interface Draft {
@@ -36,6 +39,7 @@ export function toDraft(policy: Policy): Draft {
             category: rule.category,
             packages: rule.packages.join('\n'),
             dailyMinutes: String(rule.dailyMinutes),
+            ...(rule.allGames ? { allGames: true } : {}),
         })),
     }
 }
@@ -81,7 +85,7 @@ export function validateDraft(draft: Draft): ValidationResult {
         categories.add(category)
 
         const packages = parsePackages(rule.packages)
-        if (packages.length === 0) errors.push(`${label}: add at least one app package name.`)
+        if (packages.length === 0 && !rule.allGames) errors.push(`${label}: add at least one app package name.`)
         for (const name of packages) {
             if (!PACKAGE_NAME.test(name)) errors.push(`${label}: "${name}" is not a valid package name.`)
         }
@@ -92,7 +96,7 @@ export function validateDraft(draft: Draft): ValidationResult {
             errors.push(`${label}: minutes must be a whole number from 0 to ${MAX_MINUTES}.`)
         }
 
-        rules.push({ category, packages, dailyMinutes: minutes })
+        rules.push({ category, packages, dailyMinutes: minutes, ...(rule.allGames ? { allGames: true } : {}) })
     })
 
     if (errors.length > 0) return { ok: false, errors }

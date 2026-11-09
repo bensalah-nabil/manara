@@ -17,6 +17,7 @@ import { SetupProgress } from './SetupProgress.tsx'
 import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
 import { InsightsPanel } from './InsightsPanel.tsx'
+import { RuleCards } from './RuleCards.tsx'
 import { appName } from './insights.ts'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
@@ -265,13 +266,18 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                     </>
                 )}
                 {tab === 'rules' && (
-                    <>
-                        <TimeLimitsEditor {...props} />
-                        <ScheduleEditor {...props} />
-                        <SiteFilterEditor {...props} />
-                        <BrowserEditor {...props} />
-                        <RestrictionsEditor {...props} />
-                    </>
+                    <RuleCards
+                        {...props}
+                        advanced={(
+                            <>
+                                <TimeLimitsEditor {...props} />
+                                <ScheduleEditor {...props} />
+                                <SiteFilterEditor {...props} />
+                                <BrowserEditor {...props} />
+                                <RestrictionsEditor {...props} />
+                            </>
+                        )}
+                    />
                 )}
                 {tab === 'phone' && (
                     <>

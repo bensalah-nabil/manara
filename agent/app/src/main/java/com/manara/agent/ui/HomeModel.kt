@@ -75,7 +75,7 @@ object ChildView {
         if (limits.enabled) {
             limits.rules.forEach { rule ->
                 val apps = rule.packages.size
-                val appsText = if (apps == 1) "1 app" else "$apps apps"
+                val appsText = if (rule.allGames) "all games" else if (apps == 1) "1 app" else "$apps apps"
                 val detail = if (rule.dailyMinutes == 0) "Blocked, $appsText" else "${minutes(rule.dailyMinutes)} a day, $appsText"
                 add(Line(rule.category.ifBlank { "App limit" }.replaceFirstChar { it.uppercase() }, detail))
             }

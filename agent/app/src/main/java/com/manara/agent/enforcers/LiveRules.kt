@@ -11,7 +11,8 @@ import kotlinx.coroutines.delay
 
 /**
  * Re-checks the rules that must take effect while the phone is in use, every minute with the screen
- * on. `SyncWorker` runs at most every 15 minutes, too slow for a daily limit or a new browser; it
+ * on. `SyncWorker` runs at most every 15 minutes, too slow for a daily limit, a new browser or a
+ * bedtime: without this, unlocking during a lock window left the phone usable until the next run. It
  * stays as the backstop if this process is killed. Works from the cached policy, with no network.
  */
 class LiveRules(context: Context) {

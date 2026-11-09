@@ -46,8 +46,24 @@ midnight.
 domains, 2 of 3 dating, 1 of 2 alcohol and 0 of 4 gambling. It can't remove
 YouTube or Facebook ads, which come from the same hosts as the content.
 
-Still to check: a limit reached during one unbroken session; a newly installed
-browser caught; games that misbehave with ads blocked; battery use over a day.
+**Limit reached in one session (1.0.16):** Facebook opened at 16:32 and left
+alone. Android's total stayed at 51:31 until about 16:40, so stored totals would
+have missed that time. Android then read 59:57 at 16:40:26, and by 16:40:57 it
+read 1:00:30 with Facebook, Instagram and TikTok suspended. The dialer was in
+front at that last reading, with no call recorded; why is not established.
+Messenger and Chrome stayed open. A test package offering to open https links,
+installed afterwards, was suspended within 52 s, then uninstalled.
+
+**Built in 1.0.17, not yet seen on a phone:** bedtime re-locking within a minute
+(`LockEnforcer` added to `LiveRules`), the all-games rule, and the console's
+rule cards and custom rules, which so far ran only in a browser against a mocked
+API. The Games card relies on each app declaring itself a game
+(`ApplicationInfo.category`), so a game that doesn't is not counted.
+
+Still to check: the cards against the real server; bedtime re-locking; the Games
+rule with a real game; `family.cloudflare-dns.com` and `dns.adguard-dns.com` as
+the phone's Private DNS; games that misbehave with ads blocked; battery use over
+a day.
 
 ### Verified 2026-11-07 and 2026-11-08
 

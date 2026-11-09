@@ -45,7 +45,9 @@ data class Policy(
         data class Rule(
             val category: String,
             val packages: List<String> = emptyList(),
-            val dailyMinutes: Int
+            val dailyMinutes: Int,
+            /** Also covers every app on the phone that declares itself a game. */
+            val allGames: Boolean = false
         )
     }
 

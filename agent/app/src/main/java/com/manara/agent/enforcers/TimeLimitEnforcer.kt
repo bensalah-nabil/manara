@@ -3,6 +3,7 @@ package com.manara.agent.enforcers
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.util.Log
 import com.manara.agent.OwnerReceiver
 import com.manara.agent.events.Event
@@ -66,7 +67,7 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     private val health = HealthTracker(context, prefs, id)
 
     override fun apply(policy: Policy) {
-        currentRules = if (policy.timeLimits.enabled) policy.timeLimits.rules else emptyList()
+        currentRules = if (policy.timeLimits.enabled) withInstalledGames(policy.timeLimits.rules) else emptyList()
         enforceNow()
     }
 
@@ -131,6 +132,15 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         if (detail.isEmpty()) return
         Log.w(TAG, "$action refused for $detail")
         pendingEvents.add(enforcementEvent(id, "failed", "$action refused: $detail"))
+    }
+
+    // Looked up on each check, so a game installed later is covered within a minute.
+    private fun withInstalledGames(rules: List<Policy.TimeLimits.Rule>): List<Policy.TimeLimits.Rule> {
+        if (rules.none { it.allGames }) return rules
+        val games = context.packageManager.getInstalledApplications(0)
+            .filter { it.category == ApplicationInfo.CATEGORY_GAME }
+            .map { it.packageName }
+        return rules.map { if (it.allGames) it.copy(packages = (it.packages + games).distinct()) else it }
     }
 
     private fun isInstalled(packageName: String): Boolean =
