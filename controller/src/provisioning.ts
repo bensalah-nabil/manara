@@ -14,10 +14,11 @@ export const MANARA_ADMIN = 'com.manara.agent/.OwnerReceiver'
 export const MANARA_SIGNATURE = 'FJnkM_uJ-T2dD8cTnfH9Pht2U2wAo80ksp_7gcKDymE'
 
 /**
- * Where Android downloads Manara during QR setup: a public HTTPS copy of the latest release. Null
- * until one is published; the console then doesn't offer QR setup at all.
+ * Where Android downloads Manara during QR setup: the manara.apk asset of the latest GitHub release
+ * (GitHub redirects this link to the file), so a new release needs no console change. Null hides
+ * QR setup from the console altogether.
  */
-export const MANARA_APK_URL: string | null = null
+export const MANARA_APK_URL: string | null = 'https://github.com/bensalah-nabil/manara/releases/latest/download/manara.apk'
 
 /** Must equal QrProvisioning.TOKEN_KEY in the agent. */
 export const TOKEN_KEY = 'com.manara.agent.ENROLLMENT_TOKEN'
