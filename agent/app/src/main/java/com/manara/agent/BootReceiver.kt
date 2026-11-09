@@ -29,6 +29,8 @@ class BootReceiver : BroadcastReceiver() {
             // policy) and costs nothing, consistent with architecture.md's
             // "resilient" design goal over trusting a single code path.
             SyncWorker.schedule(context)
+            // Restarted during guided setup's reconnect step: keep watching for the accounts.
+            com.manara.agent.setup.SetupService.resume(context)
         }
     }
 

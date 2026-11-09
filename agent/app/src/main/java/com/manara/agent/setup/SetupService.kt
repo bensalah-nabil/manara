@@ -43,7 +43,16 @@ class SetupService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (running) return START_NOT_STICKY
+        val markers = ReconnectMarker.Store(this)
+        // After a restart in the reconnect step: only the account watch resumes.
+        val resumeFor = if (intent?.getBooleanExtra(EXTRA_RESUME, false) == true) markers.load() else null
+        if (intent?.getBooleanExtra(EXTRA_RESUME, false) == true && resumeFor == null) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         running = true
+        watchOnly = resumeFor != null
         last = null
         val qr = PairingDecision.newQrPairing()
         var qrDelivered = false
@@ -62,7 +71,11 @@ class SetupService : Service() {
                 }
                 // Read before the first report: a failed run's accounts must survive this one.
                 val earlier = readInput()?.earlierAccounts.orEmpty().map { AccountDump.Account(it.type, it.name) }
-                val end = SetupRunner(AdbSetupDevice(this@SetupService, console), report = ::report, earlierAccounts = earlier).run()
+                val end = SetupRunner(
+                    AdbSetupDevice(this@SetupService, console), report = ::report, earlierAccounts = earlier,
+                    startAt = resumeFor?.let { SetupFlow.resumeReconnecting(it) },
+                    onState = { markers.keep(ReconnectMarker.toKeep(it)) },
+                ).run()
                 // Managed now: check in at once for the rules, rather than whenever the periodic sync
                 // first runs. On the SM-A045F the console still said "never connected" 11 min after
                 // setup finished, so no rule was applied yet.
@@ -73,6 +86,7 @@ class SetupService : Service() {
                 Log.e(TAG, "guided setup stopped", error)
             } finally {
                 running = false
+                watchOnly = false
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -193,18 +207,34 @@ class SetupService : Service() {
         private const val ACTION_DISMISSED = "com.manara.agent.setup.DISMISSED"
 
         @Volatile private var running = false
+        /** Resumed after a restart: only reads accounts, wireless debugging stays off and blocked. */
+        @Volatile private var watchOnly = false
+        private const val EXTRA_RESUME = "com.manara.agent.setup.RESUME"
         @Volatile private var current: SetupService? = null
         @Volatile private var last: String? = null
         @Volatile private var lastButton: SetupNotice.Button? = null
 
         /** While setup runs, nothing may block the wireless debugging it works over. */
-        val isRunning: Boolean get() = running
+        val isRunning: Boolean get() = running && !watchOnly
 
         /** Posts the setup notice again, as last shown; nothing if setup isn't running. */
         fun showAgain() {
             val service = current ?: return
             if (!running) return
             service.show(last ?: "Starting guided setup.", lastButton)
+        }
+
+        /**
+         * Resumes the reconnect step's account watch if the phone restarted during it: on a phone
+         * Manara manages, with a saved list. A device owner may start a foreground service from
+         * the background (developer.android.com, "Restrictions on starting a foreground service
+         * from the background", exemptions), as BootReceiver already does.
+         */
+        fun resume(context: Context) {
+            if (running || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+            if (!context.getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)) return
+            if (DeviceTokenStore(context).deviceToken() == null || ReconnectMarker.Store(context).load() == null) return
+            context.startForegroundService(Intent(context, SetupService::class.java).putExtra(EXTRA_RESUME, true))
         }
 
         /** False on a phone Manara already manages, before enrollment, or below Android 11. */

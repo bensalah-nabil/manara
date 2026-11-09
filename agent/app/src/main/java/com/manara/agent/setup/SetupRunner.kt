@@ -14,14 +14,24 @@ class SetupRunner(
     /** What an earlier, unfinished run found on the phone (SetupFlow.start). */
     private val earlierAccounts: List<AccountDump.Account> = emptyList(),
     private val log: (String, Throwable?) -> Unit = { message, error -> Log.w(TAG, message, error) },
+    /** Where to begin: a new run by default, or SetupFlow.resumeReconnecting after a restart. */
+    private val startAt: SetupFlow.Transition? = null,
+    /** Sees each state, so the reconnect step can be saved and resumed after a restart. */
+    private val onState: (SetupFlow.State) -> Unit = {},
+    /** An unchanged report is sent again this often, so the console can tell a quiet phone from an off one. */
+    private val heartbeatMillis: Long = HEARTBEAT_MILLIS,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun run(): SetupFlow.State {
-        var transition = SetupFlow.start(earlierAccounts)
+        var transition = startAt ?: SetupFlow.start(earlierAccounts)
         var lastReport: SetupFlow.Report? = null
+        var lastSent = 0L
         while (true) {
-            if (transition.report != lastReport) {
+            onState(transition.state)
+            if (transition.report != lastReport || clock() - lastSent >= heartbeatMillis) {
                 report(transition.report)
                 lastReport = transition.report
+                lastSent = clock()
             }
             if (transition.action == Action.Stop) return transition.state
             val event = try {
@@ -94,6 +104,8 @@ class SetupRunner(
 
     companion object {
         const val ATTEMPTS = 3
+        /** The console treats about three missed heartbeats as a phone that stopped (setup.ts, PHONE_QUIET_MS). */
+        const val HEARTBEAT_MILLIS = 60_000L
         private const val TAG = "ManaraSetup"
     }
 }

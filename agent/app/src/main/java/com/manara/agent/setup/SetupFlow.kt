@@ -126,6 +126,17 @@ object SetupFlow {
         "com.android.shell", "com.manara.agent",
     )
 
+    /**
+     * The phone restarted during the reconnect step (on the SM-A045F the console then showed no
+     * sign-in at all): watch again for what [initialAccounts] lists. Manara already manages the
+     * phone and wireless debugging is off, so this step only reads accounts.
+     */
+    fun resumeReconnecting(initialAccounts: List<Account>): Transition = Transition(
+        State(Step.RECONNECTING, initialAccounts = initialAccounts.distinct()),
+        Action.WatchAccounts,
+        report(Step.RECONNECTING, Status.IN_PROGRESS, "Checking which accounts are back."),
+    )
+
     /** [earlierAccounts]: what an earlier, unfinished run found, so the parent can sign back in to all of it. */
     fun start(earlierAccounts: List<Account> = emptyList()): Transition = Transition(
         State(Step.PAIRING, earlierAccounts = earlierAccounts.distinct()),

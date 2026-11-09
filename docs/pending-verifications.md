@@ -56,6 +56,13 @@ they resolve, not left buried in a chat log. Cross-reference:
   the parent had to remove Facebook a second time (device owner then set at
   22:55:34). 1.0.11 pauses the emptied apps for those seconds (ADR-0006,
   step 5); not yet run on a phone.
+- **The phone turned off in the reconnect step (same run):** the console
+  stayed on "Finishing..." and never saw Google come back, still marked
+  "Live". Fixed: Finish now ends the run on the server (deployed, 11c0510).
+  1.0.11 also resumes the account watch after a restart and re-sends its
+  report every minute, and the console says when the phone has gone quiet.
+  Not yet run on a phone: turn the phone off in that step, sign in to
+  Google after it boots, and check the console marks it back.
 
 **Not yet run on a phone:** pausing on stock Android with Google Play
 services (no account removed at all); the setup notice's Open accounts and

@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
         if (DeviceTokenStore(this).deviceToken() != null) {
             SyncWorker.schedule(this)
             PushManager.ensureRegistered(this)
+            com.manara.agent.setup.SetupService.resume(this)
         }
     }
 

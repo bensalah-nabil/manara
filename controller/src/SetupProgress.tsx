@@ -4,7 +4,7 @@ import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText } from './format.ts'
 import { PairPhone } from './PairPhone.tsx'
-import { accountTypeName, canFinish, isActive, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
+import { accountTypeName, canFinish, isActive, phoneQuiet, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
 import type { DeviceSetup, SetupAccount, SetupStepKey, StepState } from './setup.ts'
 
 /** While the phone works, the console looks every 2 s; after a failure, every 5 s, to notice a new run. */
@@ -111,12 +111,12 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
         }
     }, [api, device.deviceId, onSessionExpired, onSetup, tick])
 
-    const live = !!setup && isActive(setup)
+    const active = !!setup && isActive(setup)
     useEffect(() => {
-        if (!live) return
+        if (!active) return
         const clock = setInterval(() => setNow(Date.now()), 1000)
         return () => clearInterval(clock)
-    }, [live])
+    }, [active])
 
     async function clearAccounts() {
         if (!window.confirm('Delete the saved list of accounts? You will no longer see which accounts to sign back in to.')) return
@@ -149,6 +149,9 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
     if (!setup) return error ? <p role="alert" class="error">{error}</p> : null
 
     const checklist = reconnectChecklist(setup)
+    // A phone turned off or restarted mid-setup stops sending: don't call that live.
+    const quiet = phoneQuiet(setup, now)
+    const live = active && !quiet
     const message = setup.message && <p role="status" class="notice">Phone: {setup.message}</p>
 
     const shown = setup
@@ -207,6 +210,13 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                         ) : (
                             <p>Manara now manages the phone. Sign back in only to the accounts you removed and want to keep on it; you don't need all of them.</p>
                         )}
+                        {quiet && (
+                            <p class="hint">
+                                The phone hasn't sent an update since {lastSeenText(shown.updatedAt)}: it may be off or have
+                                restarted, so this list may be out of date. Opening Manara on the phone brings it back. You can
+                                finish setup either way.
+                            </p>
+                        )}
                         <ul class="reports">
                             {checklist.map((account) => (
                                 <li key={`${account.type}\n${account.name}`} class={account.back ? 'restored' : undefined}>
@@ -248,7 +258,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                 {live ? (
                     <span class="live"><span class="live-dot" aria-hidden="true" />Live · phone updated {secondsAgo(setup.updatedAt, now)}</span>
                 ) : (
-                    <span class="hint">Last update from the phone {lastSeenText(setup.updatedAt)}</span>
+                    <span class="hint">{quiet ? 'No update from the phone since' : 'Last update from the phone'} {lastSeenText(setup.updatedAt)}</span>
                 )}
             </div>
             <ol class="timeline">

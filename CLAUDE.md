@@ -287,6 +287,17 @@ stored accounts even with their app paused: 11 refusals out of 11. An
 emulator pass doesn't carry over to Samsung; test account changes on a
 Samsung too.
 
+## A step that waits for the parent must survive the phone restarting
+
+Guided setup's last step watches for accounts and waits for Finish. It lived
+only in `SetupService`, which nothing restarts. The A045F was turned off in
+that step. The console then showed "Finishing..." forever, never saw the
+parent sign back in to Google, and still said "Live", because the phone
+re-sent a report only when it changed. Now the server finishes on its own,
+the step is saved and resumed at boot or when Manara is opened, and the
+phone re-sends its report every minute so the console can tell it's quiet.
+Ask of any wait: what if the phone is off for a day?
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

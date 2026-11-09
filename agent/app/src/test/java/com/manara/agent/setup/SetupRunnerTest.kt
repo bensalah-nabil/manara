@@ -112,4 +112,44 @@ class SetupRunnerTest {
         assertEquals(SetupFlow.Step.DONE, state.step)
         assertEquals(null, reports.last().accounts)
     }
+
+    @Test
+    fun `a run resumed after a restart only watches, and the saved step is kept until it ends`() {
+        val device = FakeDevice(
+            accountLists = ArrayDeque(), owners = owners, ownerOutput = ownerOk,
+            watched = ArrayDeque(listOf(emptyList(), listOf(google))),
+        )
+        val kept = mutableListOf<List<Account>?>()
+        val state = runBlocking {
+            SetupRunner(
+                device, report = {}, pollMillis = 0, log = { _, _ -> },
+                startAt = SetupFlow.resumeReconnecting(listOf(google)),
+                onState = { kept += ReconnectMarker.toKeep(it) },
+            ).run()
+        }
+        assertEquals(SetupFlow.Step.DONE, state.step)
+        assertEquals("no adb, no pausing, no device owner", listOf("watch", "watch"), device.calls)
+        assertEquals(listOf(google), kept.first())
+        assertEquals("forgotten once done", null, kept.last())
+    }
+
+    @Test
+    fun `an unchanged report is sent again once a heartbeat has passed, not on every check`() {
+        val device = FakeDevice(
+            accountLists = ArrayDeque(), owners = owners, ownerOutput = ownerOk,
+            watched = ArrayDeque(List<List<Account>?>(7) { emptyList() } + listOf(null)),
+        )
+        var now = 0L
+        val reports = mutableListOf<SetupFlow.Report>()
+        runBlocking {
+            SetupRunner(
+                device, report = { reports += it }, pollMillis = 0, log = { _, _ -> },
+                startAt = SetupFlow.resumeReconnecting(listOf(google)), heartbeatMillis = 60_000,
+                clock = { now.also { now += 20_000 } }, // every reading of the clock is 20 s later
+            ).run()
+        }
+        // Seven identical checks 20 s apart: sent at the change, then at 60 s and 120 s.
+        assertEquals(3, reports.count { it.status == SetupFlow.Status.WAITING_FOR_PARENT })
+        assertEquals(SetupFlow.Status.DONE, reports.last().status)
+    }
 }

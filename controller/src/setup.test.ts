@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { SETUP_STEPS, accountTypeName, canFinish, isActive, pairingCode, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
+import { PHONE_QUIET_MS, SETUP_STEPS, accountTypeName, canFinish, isActive, pairingCode, phoneQuiet, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
 
 test('steps before the current one are done, the current one reflects the status, later ones are pending', () => {
     const states = stepStates({ step: 'waiting_for_accounts', status: 'waiting_for_parent' })
@@ -62,6 +62,15 @@ test('the console offers pairing only while the phone waits for it, with a QR co
     assert.equal(waitingToPair({ step: 'pairing', status: 'in_progress', pairingQr: qr }), false)
     assert.equal(waitingToPair({ step: 'pairing', status: 'waiting_for_parent' }), false)
     assert.equal(waitingToPair({ step: 'checking_accounts', status: 'waiting_for_parent', pairingQr: qr }), false)
+})
+
+test('a phone silent for three heartbeats is quiet, and only while setup is under way', () => {
+    const at = '2026-11-08T21:56:18Z'
+    const t = Date.parse(at)
+    assert.equal(phoneQuiet({ status: 'waiting_for_parent', updatedAt: at }, t + 60_000), false)
+    assert.equal(phoneQuiet({ status: 'waiting_for_parent', updatedAt: at }, t + PHONE_QUIET_MS + 1), true)
+    assert.equal(phoneQuiet({ status: 'done', updatedAt: at }, t + PHONE_QUIET_MS * 100), false)
+    assert.equal(phoneQuiet({ status: 'in_progress', updatedAt: 'not a date' }, t), false)
 })
 
 test('Finish setup is offered while reconnecting, even after an earlier request the phone never read', () => {

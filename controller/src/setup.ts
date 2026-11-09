@@ -94,6 +94,18 @@ export function isActive(setup: Pick<DeviceSetup, 'status'>): boolean {
     return setup.status === 'in_progress' || setup.status === 'waiting_for_parent'
 }
 
+/** About three missed heartbeats (SetupRunner.HEARTBEAT_MILLIS, 60 s on the phone). */
+export const PHONE_QUIET_MS = 3 * 60_000
+
+/**
+ * A setup still under way whose phone stopped sending updates: turned off, or restarted (seen on the
+ * SM-A045F, in the reconnect step). What the page shows may be out of date.
+ */
+export function phoneQuiet(setup: Pick<DeviceSetup, 'status' | 'updatedAt'>, now: number): boolean {
+    const at = Date.parse(setup.updatedAt)
+    return isActive(setup) && !Number.isNaN(at) && now - at > PHONE_QUIET_MS
+}
+
 /** The phone waits for the parent to pair it, from this console (ADR-0005). */
 export function waitingToPair(setup: Pick<DeviceSetup, 'step' | 'status' | 'pairingQr'>): boolean {
     return setup.step === 'pairing' && setup.status === 'waiting_for_parent' && !!setup.pairingQr
