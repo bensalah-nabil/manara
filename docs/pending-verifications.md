@@ -16,6 +16,22 @@ they resolve, not left buried in a chat log. Cross-reference:
 | 8   | **A3 physical power-loss coverage**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Before claiming power-loss durability                                                              | Process death at the state-write/event-insert boundary, rollback, concurrent observers, reopen, and offline replay after a committed transition are verified below. Physical power loss and every possible crash boundary were not injected. | Process-death checks passed; power-loss testing remains open                                                |
 | 9   | **A3 proactive parent alerts (E4)**                                                                                                                                                                                                                                                                                  | 2026-11-04 | Remaining E4 work                                                                                  | Implement and verify actual parent notifications separately from reading the events API. Private DNS configuration restriction drift is verified below; other restriction keys/OEMs remain untested for drift.                               | Tamper and silent-phone alerts built, with email to each parent (2026-11-08). Email delivery from Render not yet confirmed received; request alerts still open |
 
+### Rules that hold while the phone is in use (1.0.14, 2026-11-09)
+
+Built and unit-tested, not yet seen working on a phone: the browser block
+(`BrowserBlockEnforcer`), minutes counted from usage events so a running
+session counts (`UsageSessions`), limits checked every minute with the screen
+on (`LiveRules`), and blocks that hold when Usage Access is off
+(`TimeLimitDecision.holdWithoutUsage`). Installed on the SM-A528B: updated in
+place from 1.0.2 with device owner and the notice intact. Its Usage Access was
+off, so no limit could have worked there until it was granted over adb.
+
+Still to check on that phone: adult sites through `family.adguard-dns.com`;
+Samsung Internet, Firefox and Brave blocked and a newly installed browser
+caught; the social sites blocked in Chrome; a limit reached during one
+unbroken session; minutes compared with `dumpsys usagestats`; the block holding
+with Usage Access off; battery use over a day.
+
 ### Verified 2026-11-07 and 2026-11-08
 
 - **Push in the release build (SM-A045F):** Lock now locked the phone within

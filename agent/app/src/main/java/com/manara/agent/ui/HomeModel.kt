@@ -116,6 +116,7 @@ object ChildView {
                 1 -> "1 website blocked"
                 else -> "$sites websites blocked"
             },
+            "Other browsers are blocked".takeIf { browser.blockOtherBrowsers },
         )
         return parts.takeIf { it.isNotEmpty() }?.joinToString(". ")?.plus(".")
     }

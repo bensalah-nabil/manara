@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import com.manara.agent.enforcers.LiveRules
 import com.manara.agent.policy.NoticeSummary
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
@@ -29,6 +30,8 @@ import kotlinx.coroutines.launch
  *
  * In Phase 0 it also serves as the keep-alive probe: if the manufacturer kills
  * it, we see the notice vanish — that's a finding, not a bug to hide.
+ *
+ * Its process stays alive, so it also hosts [LiveRules]; that loop can't stop the notice.
  */
 class ManagedNoticeService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -48,6 +51,7 @@ class ManagedNoticeService : Service() {
                 Log.w("ManaraNotice", "Cannot refresh notice summary", error)
             }
         }
+        scope.launch { LiveRules(applicationContext).run() }
     }
 
     override fun onDestroy() {

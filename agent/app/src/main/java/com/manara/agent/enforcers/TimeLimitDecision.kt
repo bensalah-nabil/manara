@@ -27,6 +27,31 @@ object TimeLimitDecision {
         val justCrossedRules: List<Policy.TimeLimits.Rule>
     )
 
+    /**
+     * Usage can't be read (Usage Access was turned off). Reading that as "no usage" would unblock
+     * everything, so one Settings switch would defeat every limit. What is blocked stays blocked,
+     * and a 0-minute rule still applies because it needs no usage figure.
+     */
+    fun holdWithoutUsage(
+        rules: List<Policy.TimeLimits.Rule>,
+        previousOverLimitState: Map<String, Boolean>,
+        previouslySuspendedPackages: Set<String>
+    ): Result {
+        val zeroRules = rules.filter { it.dailyMinutes == 0 }
+        val toSuspend = (previouslySuspendedPackages intersect rules.flatMap { it.packages }.toSet()) +
+            zeroRules.flatMap { it.packages }
+        val state = rules.associate { rule ->
+            rule.category to (rule.dailyMinutes == 0 || previousOverLimitState[rule.category] == true)
+        }
+        return Result(
+            toSuspend = toSuspend.toList(),
+            toResume = (previouslySuspendedPackages - toSuspend).toList(),
+            newOverLimitState = state,
+            newSuspendedPackages = toSuspend,
+            justCrossedRules = zeroRules.filter { previousOverLimitState[it.category] != true }
+        )
+    }
+
     fun decide(
         rules: List<Policy.TimeLimits.Rule>,
         usageMinutesByPackage: Map<String, Long>,

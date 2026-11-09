@@ -7,6 +7,7 @@ export interface BrowserPolicy {
     youtube: YouTubeMode
     secureDnsOff: boolean
     blockedSites: string[]
+    blockOtherBrowsers: boolean
 }
 
 export type YouTubeMode = 'off' | 'moderate' | 'strict'
@@ -26,6 +27,7 @@ export interface Draft {
     secureDnsOff: boolean
     /** One site per line, as the parent types them. */
     sitesText: string
+    blockOtherBrowsers: boolean
 }
 
 export type ValidationResult = { ok: true; browser: BrowserPolicy } | { ok: false; errors: string[] }
@@ -38,6 +40,7 @@ export function toDraft(policy: Policy): Draft {
         youtube,
         secureDnsOff: stored.secureDnsOff === true,
         sitesText: Array.isArray(stored.blockedSites) ? stored.blockedSites.filter((s) => typeof s === 'string').join('\n') : '',
+        blockOtherBrowsers: stored.blockOtherBrowsers === true,
     }
 }
 
@@ -60,7 +63,7 @@ export function validateDraft(draft: Draft): ValidationResult {
     }
     if (sites.length > MAX_SITES) errors.push(`At most ${MAX_SITES} websites.`)
     if (errors.length > 0) return { ok: false, errors }
-    return { ok: true, browser: { safeSearch: draft.safeSearch, youtube: draft.youtube, secureDnsOff: draft.secureDnsOff, blockedSites: sites } }
+    return { ok: true, browser: { safeSearch: draft.safeSearch, youtube: draft.youtube, secureDnsOff: draft.secureDnsOff, blockedSites: sites, blockOtherBrowsers: draft.blockOtherBrowsers } }
 }
 
 /** Merge into the stored section so fields this console does not edit are kept in the browser's copy. */

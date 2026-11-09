@@ -28,8 +28,8 @@ import java.util.UUID
  * `setPermissionGrantState` (see `OwnerReceiver`) — `PACKAGE_USAGE_STATS` is
  * AppOps-backed with no device-owner silent-grant API. Without it,
  * usage observations are unavailable, so positive time budgets cannot be
- * enforced reliably. The health event reports that loss; it does not imply
- * a fail-closed guarantee or automatically resume suspended packages.
+ * measured. The health event reports that loss, and what was blocked stays
+ * blocked ([TimeLimitDecision.holdWithoutUsage]).
  */
 class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     override val id = "time-limit"
@@ -81,18 +81,26 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
             // Without Usage Access every limit silently never triggers -- the most likely bypass.
             health.observe(CHECK_USAGE_ACCESS, dailyUsage.hasAccess())
         }
-        val decision = TimeLimitDecision.decide(
-            rules = currentRules,
-            usageMinutesByPackage = todaysUsageMinutesByPackage(),
-            previousOverLimitState = overLimitState,
-            previouslySuspendedPackages = suspendedPackages
-        )
+        val usage = dailyUsage.readMinutes()
+        val decision = if (usage == null) {
+            TimeLimitDecision.holdWithoutUsage(currentRules, overLimitState, suspendedPackages)
+        } else {
+            TimeLimitDecision.decide(
+                rules = currentRules,
+                usageMinutesByPackage = usage,
+                previousOverLimitState = overLimitState,
+                previouslySuspendedPackages = suspendedPackages
+            )
+        }
         overLimitState = decision.newOverLimitState
         suspendedPackages = decision.newSuspendedPackages
 
-        if (decision.toSuspend.isNotEmpty()) {
+        // A rule may list apps this phone doesn't have (TikTok Lite, say): Android would refuse those.
+        val toSuspend = decision.toSuspend.filter(::isInstalled)
+        val toResume = decision.toResume.filter(::isInstalled)
+        if (toSuspend.isNotEmpty()) {
             runCatching {
-                devicePolicyManager.setPackagesSuspended(admin, decision.toSuspend.toTypedArray(), true)
+                devicePolicyManager.setPackagesSuspended(admin, toSuspend.toTypedArray(), true)
             }.onSuccess { refused ->
                 reportRefused("suspend", refused)
             }.onFailure {
@@ -100,9 +108,9 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
                 pendingEvents.add(enforcementEvent(id, "failed", "suspend: ${it.javaClass.simpleName}"))
             }
         }
-        if (decision.toResume.isNotEmpty()) {
+        if (toResume.isNotEmpty()) {
             runCatching {
-                devicePolicyManager.setPackagesSuspended(admin, decision.toResume.toTypedArray(), false)
+                devicePolicyManager.setPackagesSuspended(admin, toResume.toTypedArray(), false)
             }.onSuccess { refused ->
                 reportRefused("resume", refused)
             }.onFailure {
@@ -114,11 +122,19 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     }
 
     // setPackagesSuspended returns the packages it could NOT change (e.g. system/critical apps).
+    // This runs every minute while the screen is on, so the same refusal is reported only once.
     private fun reportRefused(action: String, refused: Array<String>?) {
-        if (refused.isNullOrEmpty()) return
-        Log.w(TAG, "$action refused for ${refused.joinToString()}")
-        pendingEvents.add(enforcementEvent(id, "failed", "$action refused: ${refused.joinToString()}"))
+        val detail = refused?.takeIf { it.isNotEmpty() }?.sorted()?.joinToString().orEmpty()
+        val key = "$KEY_LAST_REFUSED$action"
+        if (prefs.getString(key, "") == detail) return
+        prefs.edit().putString(key, detail).apply()
+        if (detail.isEmpty()) return
+        Log.w(TAG, "$action refused for $detail")
+        pendingEvents.add(enforcementEvent(id, "failed", "$action refused: $detail"))
     }
+
+    private fun isInstalled(packageName: String): Boolean =
+        runCatching { context.packageManager.getApplicationInfo(packageName, 0) }.isSuccess
 
     override fun collectEvents(): List<Event> {
         val events = pendingEvents.toList()
@@ -149,6 +165,7 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         private const val PREFS_NAME = "time_limit_enforcer"
         private const val KEY_SUSPENDED = "suspended_packages"
         private const val KEY_OVER_LIMIT = "over_limit_state"
+        private const val KEY_LAST_REFUSED = "last_refused_"
         private const val CHECK_USAGE_ACCESS = "usage_access"
     }
 }

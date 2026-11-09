@@ -23,6 +23,9 @@ export function normalizeHost(text: string): string {
     return text.trim().toLowerCase().replace(/\.$/, '')
 }
 
+/** Blocks adult sites and turns on safe search for the whole phone (AdGuard DNS, family protection). */
+export const FAMILY_FILTER_HOST = 'family.adguard-dns.com'
+
 export function toDraft(policy: Policy): Draft {
     const filter = policy.siteFilter as SiteFilter | undefined
     return { enabled: filter?.enabled ?? false, dnsHost: filter?.dnsHost ?? '' }

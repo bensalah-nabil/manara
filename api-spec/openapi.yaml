@@ -1146,6 +1146,12 @@ components:
               type: array
               maxItems: 200
               items: { type: string, maxLength: 253 }
+            blockOtherBrowsers:
+              type: boolean
+              description: >
+                Blocks every browser except Chrome, including one installed
+                later: any app that offers to open an arbitrary https link.
+                Only Chrome can be kept on the site filter. Absent means off.
 
     # ---- Commands -------------------------------------------------- #
     CommandType:

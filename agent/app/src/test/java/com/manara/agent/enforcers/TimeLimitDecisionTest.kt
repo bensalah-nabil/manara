@@ -11,6 +11,31 @@ class TimeLimitDecisionTest {
         Policy.TimeLimits.Rule(category = category, packages = packages, dailyMinutes = dailyMinutes)
 
     @Test
+    fun `losing usage data keeps what is blocked blocked`() {
+        val social = rule("social", listOf("tiktok", "fb"), 60)
+        val result = TimeLimitDecision.holdWithoutUsage(listOf(social), mapOf("social" to true), setOf("tiktok", "fb"))
+        assertEquals(setOf("tiktok", "fb"), result.newSuspendedPackages)
+        assertEquals(emptyList<String>(), result.toResume)
+        assertEquals(emptyList<Policy.TimeLimits.Rule>(), result.justCrossedRules)
+    }
+
+    @Test
+    fun `losing usage data blocks nothing new except a zero minute rule`() {
+        val open = rule("social", listOf("tiktok"), 60)
+        val zero = rule("games", listOf("game"), 0)
+        val result = TimeLimitDecision.holdWithoutUsage(listOf(open, zero), emptyMap(), emptySet())
+        assertEquals(listOf("game"), result.toSuspend)
+        assertEquals(listOf(zero), result.justCrossedRules)
+    }
+
+    @Test
+    fun `losing usage data still resumes an app whose rule was removed`() {
+        val result = TimeLimitDecision.holdWithoutUsage(emptyList(), emptyMap(), setOf("tiktok"))
+        assertEquals(listOf("tiktok"), result.toResume)
+        assertEquals(emptySet<String>(), result.newSuspendedPackages)
+    }
+
+    @Test
     fun `remaining budget is shared across packages`() {
         val sharedRule = rule("social", listOf("first.app", "second.app"), 60)
         assertEquals(5L, TimeLimitDecision.remainingMinutes(

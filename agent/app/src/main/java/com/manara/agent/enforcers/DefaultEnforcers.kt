@@ -17,9 +17,17 @@ fun defaultEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegist
         LocationEnforcer(context),
         RestrictionsEnforcer(context),
         UsageReportEnforcer(context),
-        BrowserPolicyEnforcer(context)
+        BrowserPolicyEnforcer(context),
+        BrowserBlockEnforcer(context)
     ),
-    isManaged = {
-        context.getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)
-    },
+    isManaged = { isManaged(context) },
 )
+
+/** The rules [LiveRules] re-checks every minute while the screen is on. */
+fun liveEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegistry(
+    listOf(TimeLimitEnforcer(context), BrowserBlockEnforcer(context)),
+    isManaged = { isManaged(context) },
+)
+
+private fun isManaged(context: Context): Boolean =
+    context.getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)

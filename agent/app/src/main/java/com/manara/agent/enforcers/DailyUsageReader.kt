@@ -2,6 +2,7 @@ package com.manara.agent.enforcers
 
 import android.Manifest
 import android.app.AppOpsManager
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -32,9 +33,21 @@ internal class DailyUsageReader(private val context: Context) {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-        val stats = manager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY, startOfDay, System.currentTimeMillis()
-        ) ?: return null
-        return stats.associate { it.packageName to it.totalTimeInForeground / 60_000 }
+        val now = System.currentTimeMillis()
+        val events = manager.queryEvents(startOfDay, now) ?: return null
+        val entries = mutableListOf<UsageSessions.Entry>()
+        val event = UsageEvents.Event()
+        while (events.getNextEvent(event)) {
+            val kind = when (event.eventType) {
+                UsageEvents.Event.ACTIVITY_RESUMED -> UsageSessions.Kind.RESUMED
+                UsageEvents.Event.ACTIVITY_PAUSED -> UsageSessions.Kind.PAUSED
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE,
+                UsageEvents.Event.DEVICE_SHUTDOWN,
+                UsageEvents.Event.DEVICE_STARTUP -> UsageSessions.Kind.SCREEN_OR_DEVICE_OFF
+                else -> null
+            } ?: continue
+            entries += UsageSessions.Entry(event.packageName, event.className, kind, event.timeStamp)
+        }
+        return UsageSessions.minutes(entries, startOfDay, now)
     }
 }

@@ -31,7 +31,9 @@ data class Policy(
         val safeSearch: Boolean = false,
         val youtube: String = "off",
         val secureDnsOff: Boolean = false,
-        val blockedSites: List<String> = emptyList()
+        val blockedSites: List<String> = emptyList(),
+        /** Blocks every browser except Chrome, the only one that can be kept on the site filter. */
+        val blockOtherBrowsers: Boolean = false
     )
 
     @Serializable

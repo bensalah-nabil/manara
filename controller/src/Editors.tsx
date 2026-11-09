@@ -4,11 +4,11 @@ import { applyLocation, MAX_INTERVAL, MIN_INTERVAL, toDraft as locationDraft, va
 import type { Draft as LocationDraft, LocationPolicy } from './location.ts'
 import { applySchedule, DAYS, emptyWindow, toDraft as scheduleDraft, validateDraft as validateSchedule } from './schedule.ts'
 import type { Draft as ScheduleDraft, LockSchedule, LockWindow } from './schedule.ts'
-import { applyTimeLimits, blocksImmediately, emptyRule, toDraft as limitsDraft, validateDraft as validateLimits } from './timeLimits.ts'
+import { applyTimeLimits, blocksImmediately, emptyRule, socialMediaRule, toDraft as limitsDraft, validateDraft as validateLimits } from './timeLimits.ts'
 import type { Draft as LimitsDraft, RuleDraft, TimeLimits } from './timeLimits.ts'
 import { applyRestrictions, RESTRICTIONS, toDraft as restrictionsDraft } from './restrictions.ts'
 import type { Draft as RestrictionsDraft } from './restrictions.ts'
-import { applySiteFilter, filterWarning, toDraft as filterDraft, unlockedNote, validateDraft as validateFilter } from './siteFilter.ts'
+import { applySiteFilter, FAMILY_FILTER_HOST, filterWarning, toDraft as filterDraft, unlockedNote, validateDraft as validateFilter } from './siteFilter.ts'
 import type { Draft as FilterDraft, SiteFilter } from './siteFilter.ts'
 import { applyBrowser, MAX_SITES, secureDnsNote, toDraft as browserDraft, validateDraft as validateBrowser, YOUTUBE_MODES } from './browser.ts'
 import type { BrowserPolicy, Draft as BrowserDraft, YouTubeMode } from './browser.ts'
@@ -189,6 +189,7 @@ export function TimeLimitsEditor(props: Props) {
                 </fieldset>
             ))}
             <button type="button" class="ghost" onClick={() => setDraft({ ...draft, rules: [...draft.rules, emptyRule()] })}>+ Add a rule</button>
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, enabled: true, rules: [...draft.rules, socialMediaRule()] })}>+ Add TikTok, Facebook and Instagram</button>
             <Footer editor={editor} saveLabel="Save time limits" />
         </Open>
     )
@@ -315,6 +316,7 @@ export function SiteFilterEditor(props: Props) {
                 Filtering host name
                 <input value={draft.dnsHost} autoCapitalize="off" spellcheck={false} onInput={(event) => setDraft({ ...draft, dnsHost: event.currentTarget.value })} />
             </label>
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, enabled: true, dnsHost: FAMILY_FILTER_HOST })}>Block adult sites (AdGuard family filter)</button>
             {note && <p role="note" class="banner">{note}</p>}
             <Footer editor={editor} saveLabel="Save site filtering" />
         </Open>
@@ -354,7 +356,7 @@ export function BrowserEditor(props: Props) {
     return (
         <Open title="Chrome" version={policy.version}>
             <p class="muted">
-                These rules apply in Chrome only. Another browser on the phone is not covered: set an app time limit of 0 minutes to block it.
+                These rules apply in Chrome only, so another browser could go around them and the site filter. Block other browsers below.
                 The child sees each rule on the phone.
             </p>
             <Toggle checked={draftNow.safeSearch} onChange={(on) => setDraft({ ...draftNow, safeSearch: on })}>
@@ -369,6 +371,9 @@ export function BrowserEditor(props: Props) {
             </label>
             <Toggle checked={draftNow.secureDnsOff} onChange={(on) => setDraft({ ...draftNow, secureDnsOff: on })}>
                 Turn off Chrome's own secure DNS<span class="muted small"> {secureDnsNote(filterOn)}</span>
+            </Toggle>
+            <Toggle checked={draftNow.blockOtherBrowsers} onChange={(on) => setDraft({ ...draftNow, blockOtherBrowsers: on })}>
+                Block every browser except Chrome<span class="muted small"> Includes browsers installed later. Make sure Chrome is installed and set as the phone's default browser.</span>
             </Toggle>
             <label>
                 Websites to block

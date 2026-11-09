@@ -70,6 +70,7 @@ Implementations, each independent and separately testable:
 |-----------------------|-----------------------------------------------------|
 | `TimeLimitEnforcer`   | `UsageStatsManager` + `setPackagesSuspended`        |
 | `SiteFilterEnforcer`  | `setGlobalPrivateDnsModeSpecifiedHost`              |
+| `BrowserBlockEnforcer` | `setPackagesSuspended` on every browser but Chrome  |
 | `LockEnforcer`        | `DevicePolicyManager.lockNow`                       |
 | `LocationEnforcer`    | Fused location in a **visible** foreground service  |
 | `CallLogEnforcer`     | `CallLog` read (sideload builds only)               |

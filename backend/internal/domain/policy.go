@@ -40,6 +40,9 @@ type Browser struct {
 	// the site filter's Private DNS host.
 	SecureDNSOff bool     `json:"secureDnsOff,omitempty"`
 	BlockedSites []string `json:"blockedSites,omitempty"`
+	// BlockOtherBrowsers has the phone block every browser except Chrome, the
+	// only one whose own encrypted DNS can be turned off.
+	BlockOtherBrowsers bool `json:"blockOtherBrowsers,omitempty"`
 }
 
 // MaxBlockedSites keeps the list a parent's list, not an imported blocklist;

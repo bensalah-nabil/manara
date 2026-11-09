@@ -44,6 +44,22 @@ export function emptyRule(): RuleDraft {
     return { category: '', packages: '', dailyMinutes: '60' }
 }
 
+/** TikTok, Facebook and Instagram, with their Lite and regional versions; a listed app the phone doesn't have is ignored. */
+export const SOCIAL_MEDIA_PACKAGES = [
+    'com.zhiliaoapp.musically',
+    'com.ss.android.ugc.trill',
+    'com.zhiliaoapp.musically.go',
+    'com.tiktok.lite.go',
+    'com.facebook.katana',
+    'com.facebook.lite',
+    'com.instagram.android',
+    'com.instagram.lite',
+]
+
+export function socialMediaRule(): RuleDraft {
+    return { category: 'Social media', packages: SOCIAL_MEDIA_PACKAGES.join('\n'), dailyMinutes: '60' }
+}
+
 export function parsePackages(text: string): string[] {
     const seen = new Set<string>()
     for (const part of text.split(/[\s,]+/)) {

@@ -40,9 +40,9 @@ endpoint is added.
 | Safe mode, new user, developer options / adb | `DISALLOW_SAFE_BOOT`, `DISALLOW_ADD_USER`, `DISALLOW_DEBUGGING_FEATURES` (default on) | in place |
 | Change the clock to escape a lock window or reset a daily limit | `DISALLOW_CONFIG_DATE_TIME` + automatic time (default on for new phones, 2026-11-08) | in place; existing phones need it ticked |
 | Change Private DNS or start a VPN to escape the filter | `DISALLOW_CONFIG_PRIVATE_DNS`, `DISALLOW_CONFIG_VPN` (parent's choice) | in place |
-| Chrome's own encrypted DNS around the filter | Chrome policy `DnsOverHttpsMode=off` | in place for Chrome; another browser: block it with a 0-minute limit, or the planned on-phone filter (B1) |
+| Chrome's own encrypted DNS around the filter | Chrome policy `DnsOverHttpsMode=off` | in place for Chrome; every other browser can be blocked (`blockOtherBrowsers`, parent's choice, not yet verified on a phone); an app whose built-in browser doesn't register as a browser is not caught |
 | Take the phone offline so nothing is reported | The parent is told after 12 h of silence; rules keep working offline | in place |
-| Turn off Usage access or Location | Reported to the parent as a broken protection | in place |
+| Turn off Usage access or Location | Reported to the parent as a broken protection; with Usage access off, apps already blocked by a limit stay blocked, but new use isn't counted | in place; the hold is not yet verified on a phone |
 | Brute-force the offline release code | 8 digits, time-based, attempts locked out (`ReleaseAttempts`) | in place |
 
 ### 2. Parent account (spoofing, elevation)

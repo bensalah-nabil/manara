@@ -19,6 +19,7 @@ object NoticeSummary {
             if (count > 0) lines += "Settings restrictions requested: $count"
         }
         if (com.manara.agent.enforcers.BrowserPolicyDecision.restrictions(policy.browser).isNotEmpty()) lines += "Chrome rules set by your parent"
+        if (policy.browser.blockOtherBrowsers) lines += "Browsers other than Chrome are blocked"
         if (lines.isEmpty()) lines += "No limits or collection configured"
         lines += "Call logs: not collected"
         return lines
