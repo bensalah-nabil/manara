@@ -481,6 +481,50 @@ decision 1's order; decisions 2 and 3 stand.
   the Android menu names used in the Arabic steps (Developer options, Wireless debugging, Pair
   device with QR code) match what a Samsung shows in Arabic; they are marked `TODO-REVIEW`.
 
+### Where the build run stopped (2026-11-10, night)
+
+Branch `regional-pack`, two local commits, nothing pushed. Of the seven items of the run, **only
+P1 is built**. The rest is not started, apart from P14's pure logic and the platform reading below.
+
+| # | Item | State | What is left |
+|---|---|---|---|
+| 1 | P1 Arabic and French | **Built, committed** (`28c9fdf`). 221 app tests, 197 console tests, `go test ./...` pass; both release builds compile | See "P1 built" above for what is still English. Not done: RTL looked at on any screen; a native reader's pass over the `TODO-REVIEW` strings (`values-ar/strings.xml`, `messages/ar.ts`); `docker compose up -d --build server` after the new `parents.language` column |
+| 2 | P14 prayer-time pause | **Pure logic only**, untracked, not committed: `PrayerTimes.kt`, `PrayerPauseDecision.kt` and their tests (they pass in Gradle) | Everything else: the `prayerPause` policy field (openapi, backend domain, console type, agent `Policy`), `PrayerPauseEnforcer`, the child's notice and status lines, the console card with a city list. The app strings for it already exist in the three languages (`summary_prayer_*`, `rule_prayer_*`, `prayer_*`) |
+| 3 | D2 block screen | **Not built.** Platform reading done, see below | `BlockNoticeDecision` + enforcer; strings exist (`blocked_*`, `bedtime_notice_*`) |
+| 4 | P8 weekly email | Not started | The parent's language is now stored, which it needed |
+| 5 | C5 + D3 bonus, pause, ask for more | Not started | Strings exist (`ask_*`, `rule_bonus_*`, `rule_paused_*`) |
+| 6 | Impact numbers | Not started | |
+| 7 | P2 lock-task spike | Not started | |
+
+**Design problem found for item 2, to settle before coding.** Three enforcers would suspend the
+same apps (`TimeLimitEnforcer`, `BrowserBlockEnforcer`, and the new pause), each remembering only
+its own list. When a pause ends, resuming "its" apps would also reopen an app that is over its daily
+limit, and `TimeLimitEnforcer` would not close it again, because it believes it still is. The fix
+is one shared record of *who holds which app closed* (an app reopens only when nobody holds it),
+which means touching the two existing enforcers, not only adding a class.
+
+**Platform facts for item 3, read in AOSP `android15-release`:**
+
+- `SuspendDialogInfo` is not available to Manara. It is `@hide @SystemApi`
+  (`core/java/android/content/pm/SuspendDialogInfo.java`, l.58-63), and its page is absent from
+  developer.android.com. `DevicePolicyManager.setPackagesSuspended` takes no dialog argument.
+- What the child sees when opening an app Manara closed is the system's "blocked by your admin"
+  dialog: `ActivityStartInterceptor.interceptSuspendedByAdminPackage()` (l.307-314) opens the admin
+  support screen with `POLICY_SUSPEND_PACKAGES`, and Settings fills it with the admin's **short
+  support message** (`ActionDisabledByAdminDialogHelper.setAdminSupportDetails`, l.175-200).
+- So the block screen's wording is `DevicePolicyManager.setShortSupportMessage` (public; "longer
+  than 200 characters ... may be truncated"). It is **one message for the whole phone, not one per
+  app**: Manara has to rewrite it as the reasons change ("Prayer time, back at 13:05", "Today's
+  time for Social media is used up"). `setLongSupportMessage` holds the full list.
+- Bedtime uses `lockNow()`, so there is no app to open and no dialog. The public
+  `setDeviceOwnerLockScreenInfo` ("information to be shown on the lock screen", device owner) can
+  say "Bedtime: locked until 07:00" on the lock screen itself.
+- Both messages must be set again on `ACTION_LOCALE_CHANGED` (stated in each method's javadoc).
+- Consequence for D3: the system dialog can't carry an "Ask for more time" button. The request has
+  to start from Manara's own status screen, and the dialog can only tell the child to open Manara.
+- *Hypothesis, not checked on a phone:* Samsung's One UI shows the short support message in this
+  dialog as stock Android does.
+
 Started 2026-11-10: P14's pure logic, `PrayerTimes` and `PrayerPauseDecision`
 with 14 unit tests. Compiled with Kotlin 1.9.24 and run outside Gradle with a
 stand-in for JUnit; **not run through `testDirectDebugUnitTest`, not on a
