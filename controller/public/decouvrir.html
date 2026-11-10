@@ -52,6 +52,18 @@
   .screen .box span { color: #93a3ad; }
   .screen .promise { color: #5cb3c4; }
 
+  /* The ad video, beside the figure it opens with */
+  .why { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: center; background: #0d2a31; color: #f4efe5; border-radius: 28px; padding: 36px; }
+  .why .big { font-size: clamp(3.5rem, 9vw, 6rem); font-weight: 800; line-height: 1; color: var(--lamp); }
+  .why .big small { font-size: 0.38em; color: #f4efe5; font-weight: 700; }
+  .why h2 { color: #f4efe5; margin-top: 10px; }
+  .why h2 + .ar { color: var(--lamp); }
+  .why .source { color: #a9bcc0; font-size: 0.9rem; margin: 0; }
+  .why p { margin: 0 0 12px; }
+  .why video { display: block; width: 100%; max-width: 300px; margin-inline: auto; aspect-ratio: 9 / 16; border-radius: 22px; background: #000; box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.6); }
+  .why figure { margin: 0; justify-self: center; }
+  .why figcaption { color: #a9bcc0; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+
   /* Sections */
   section { padding-block: 40px; }
   h2 { color: var(--ink); font-size: clamp(1.5rem, 3vw, 2rem); margin: 0 0 4px; line-height: 1.2; }
@@ -88,16 +100,16 @@
   footer { border-top: 1px solid var(--line); padding-block: 22px 40px; color: var(--muted); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
   footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
 
-  .hero > *, .promise-band > *, .grid > *, .steps > * { min-width: 0; }
+  .hero > *, .promise-band > *, .why > *, .grid > *, .steps > * { min-width: 0; }
   .button { white-space: normal; text-align: center; justify-content: center; }
   @media (max-width: 860px) {
-    .hero, .promise-band { grid-template-columns: minmax(0, 1fr); }
+    .hero, .promise-band, .why { grid-template-columns: minmax(0, 1fr); }
     .grid, .steps { grid-template-columns: minmax(0, 1fr); }
     .phone { width: min(260px, 80%); }
   }
   @media (max-width: 640px) {
     .top nav a:not(:last-child) { display: none; }
-    .promise-band { padding: 24px 20px; }
+    .promise-band, .why { padding: 24px 20px; }
     .cta .button { width: 100%; }
     .button .also { display: none; }
   }
@@ -159,6 +171,24 @@
         </div>
       </div>
     </div>
+
+    <section aria-labelledby="pourquoi-title">
+      <div class="why">
+        <div>
+          <div class="big">8 <small>h / jour</small></div>
+          <h2 id="pourquoi-title">C'est le temps passé en ligne par les 12–16 ans en Tunisie.</h2>
+          <p class="ar" lang="ar" dir="rtl">8 ساعات في اليوم أمام الشاشة</p>
+          <p>Manara aide les parents à reprendre la main, avec des règles simples que l'enfant voit et comprend, plutôt qu'en lui retirant le téléphone.</p>
+          <p class="source">Chiffre cité par le ministre des Technologies de la communication, novembre 2025.</p>
+        </div>
+        <figure>
+          <video controls playsinline preload="metadata" poster="pub/manara-pub-poster.png" aria-label="Vidéo de présentation de Manara, 23 secondes">
+            <source src="pub/manara-pub-vertical.mp4" type="video/mp4" />
+          </video>
+          <figcaption>Manara en 23 secondes · منارة في 23 ثانية</figcaption>
+        </figure>
+      </div>
+    </section>
 
     <section id="fonctions" aria-labelledby="fonctions-title">
       <h2 id="fonctions-title">Ce que Manara fait</h2>
