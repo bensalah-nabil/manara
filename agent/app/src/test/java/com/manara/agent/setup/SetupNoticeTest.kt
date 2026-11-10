@@ -1,5 +1,6 @@
 package com.manara.agent.setup
 
+import com.manara.agent.R
 import com.manara.agent.setup.AccountDump.Account
 import com.manara.agent.setup.SetupFlow.Report
 import com.manara.agent.setup.SetupFlow.Status
@@ -31,13 +32,13 @@ class SetupNoticeTest {
         val report = Report(Step.RECONNECTING, Status.WAITING_FOR_PARENT, "sign in", emptyList(), signBackIn = listOf(facebook, google))
         val button = SetupNotice.buttonFor(report)
         assertEquals(AddAccount(listOf("com.google")), button)
-        assertEquals("Add Google account", button!!.label)
+        assertEquals(R.string.setup_add_google, button!!.label)
     }
 
     @Test
     fun `other missing accounts are offered together`() {
         val report = Report(Step.RECONNECTING, Status.WAITING_FOR_PARENT, "sign in", emptyList(), signBackIn = listOf(facebook))
-        assertEquals("Add account", SetupNotice.buttonFor(report)!!.label)
+        assertEquals(R.string.setup_add_account, SetupNotice.buttonFor(report)!!.label)
     }
 
     @Test

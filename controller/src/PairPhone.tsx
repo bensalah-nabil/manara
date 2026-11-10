@@ -3,7 +3,9 @@ import { isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import { errorText } from './format.ts'
 import { QrCode } from './QrCode.tsx'
+import { Rich } from './Rich.tsx'
 import { pairingCode } from './setup.ts'
+import { t } from './i18n.ts'
 
 type Way = 'qr' | 'code'
 
@@ -27,7 +29,7 @@ export function PairPhone({ api, deviceId, qr, onSessionExpired }: {
         event.preventDefault()
         const digits = pairingCode(code)
         if (!digits) {
-            setError('The pairing code is the 6 digits under "Wi-Fi pairing code" on the phone.')
+            setError(t('pair.badCode'))
             return
         }
         setSending(true)
@@ -46,12 +48,11 @@ export function PairPhone({ api, deviceId, qr, onSessionExpired }: {
 
     return (
         <div class="stack">
-            <strong>Pair the phone</strong>
+            <strong>{t('pair.title')}</strong>
             <p class="hint">
-                On the phone: Settings, Developer options, Wireless debugging. Keep the phone on that screen until pairing
-                is done; everything else happens here.
+                {t('pair.hint')}
             </p>
-            <div class="tabs" role="tablist" aria-label="How to pair">
+            <div class="tabs" role="tablist" aria-label={t('pair.howLabel')}>
                 {(['qr', 'code'] as const).map((key) => (
                     <button
                         key={key}
@@ -61,24 +62,23 @@ export function PairPhone({ api, deviceId, qr, onSessionExpired }: {
                         class={way === key ? 'tab active' : 'tab'}
                         onClick={() => setWay(key)}
                     >
-                        {key === 'qr' ? 'QR code' : 'Pairing code'}
+                        {key === 'qr' ? t('pair.tabQr') : t('pair.tabCode')}
                     </button>
                 ))}
             </div>
             {way === 'qr' ? (
                 <div class="stack">
-                    <p>On the phone, tap <strong>Pair device with QR code</strong> and point its camera at this code.</p>
-                    <QrCode value={qr} label="Wireless debugging pairing QR code" />
-                    <p class="hint">The phone pairs by itself a few seconds after scanning.</p>
+                    <p><Rich text={t('pair.qrHelp')} /></p>
+                    <QrCode value={qr} label={t('pair.qrLabel')} />
+                    <p class="hint">{t('pair.qrAuto')}</p>
                 </div>
             ) : (
                 <form class="stack" onSubmit={send}>
                     <p>
-                        On the phone, tap <strong>Pair device with pairing code</strong>. Type the 6 digits it shows under
-                        "Wi-Fi pairing code".
+                        <Rich text={t('pair.codeHelp')} />
                     </p>
                     <label>
-                        Pairing code
+                        {t('pair.tabCode')}
                         <input
                             value={code}
                             onInput={(event) => { setCode(event.currentTarget.value); setSent(false) }}
@@ -89,9 +89,9 @@ export function PairPhone({ api, deviceId, qr, onSessionExpired }: {
                         />
                     </label>
                     <button type="submit" class="primary" disabled={sending || !code.trim()}>
-                        {sending ? 'Sending...' : 'Send to the phone'}
+                        {sending ? t('pair.sending') : t('pair.send')}
                     </button>
-                    {sent && <p role="status" class="hint">Sent. The phone pairs in a few seconds; its progress shows above.</p>}
+                    {sent && <p role="status" class="hint">{t('pair.sent')}</p>}
                 </form>
             )}
             <p role="alert" class="error">{error}</p>

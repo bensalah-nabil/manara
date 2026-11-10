@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 export type SetupStepKey =
     | 'linked'
     | 'pairing'
@@ -33,15 +34,15 @@ export interface DeviceSetup {
 
 /** Same order as domain.SetupSteps on the server. */
 export const SETUP_STEPS: { key: SetupStepKey; label: string }[] = [
-    { key: 'linked', label: 'Phone linked to your account' },
-    { key: 'pairing', label: 'Wireless debugging paired' },
-    { key: 'checking_accounts', label: 'Accounts on the phone checked' },
-    { key: 'waiting_for_accounts', label: 'Accounts removed in Settings, if this phone needs it' },
-    { key: 'removing_app_accounts', label: 'Apps that hold an account paused for a few seconds' },
-    { key: 'device_owner', label: 'Manara made the phone manager' },
-    { key: 'restoring_apps', label: 'Paused apps turned back on' },
-    { key: 'reconnecting', label: 'Every account back' },
-    { key: 'done', label: 'Setup finished' },
+    { key: 'linked', label: t('setup.step.linked') },
+    { key: 'pairing', label: t('setup.step.pairing') },
+    { key: 'checking_accounts', label: t('setup.step.checking') },
+    { key: 'waiting_for_accounts', label: t('setup.step.waiting') },
+    { key: 'removing_app_accounts', label: t('setup.step.pausing') },
+    { key: 'device_owner', label: t('setup.step.owner') },
+    { key: 'restoring_apps', label: t('setup.step.restoring') },
+    { key: 'reconnecting', label: t('setup.step.reconnecting') },
+    { key: 'done', label: t('setup.step.done') },
 ]
 
 export type StepState = 'done' | 'current' | 'waiting' | 'failed' | 'pending'
@@ -78,8 +79,8 @@ function key(account: SetupAccount): string {
 
 const ACCOUNT_TYPES: Record<string, string> = {
     'com.google': 'Google',
-    'com.osp.app.signin': 'Samsung account',
-    'com.xiaomi': 'Xiaomi account',
+    'com.osp.app.signin': t('setup.account.samsung'),
+    'com.xiaomi': t('setup.account.xiaomi'),
     'com.whatsapp': 'WhatsApp',
     'com.facebook.auth.login': 'Facebook',
     'www.instagram.com': 'Instagram',
@@ -138,18 +139,18 @@ export function signBackInWays(type: string): SignBackInWay[] {
     if (type === 'com.google') {
         return [
             {
-                text: 'With your phone: save a passkey for this account on your phone. Signing back in is then a QR code to scan and your fingerprint, no password.',
-                link: { href: 'https://g.co/passkeys', label: 'Add a passkey' },
+                text: t('setup.way.passkey'),
+                link: { href: 'https://g.co/passkeys', label: t('setup.way.passkeyLink') },
             },
             {
-                text: "With a code by SMS: check the account's recovery phone is a number you have.",
-                link: { href: 'https://myaccount.google.com/signinoptions/rescuephone', label: 'Check the recovery phone' },
+                text: t('setup.way.sms'),
+                link: { href: 'https://myaccount.google.com/signinoptions/rescuephone', label: t('setup.way.smsLink') },
             },
             {
-                text: 'With Family Link, if you created this account for your child: in the Family Link app, your child, Controls, Account settings, Change password.',
-                link: { href: 'https://support.google.com/families/answer/7103262', label: 'How' },
+                text: t('setup.way.familyLink'),
+                link: { href: 'https://support.google.com/families/answer/7103262', label: t('setup.way.familyLinkLink') },
             },
         ]
     }
-    return [{ text: 'Usually nothing to do: the app stays installed with its data, and apps like Facebook add their account back by themselves when opened. Otherwise, sign in again in the app.' }]
+    return [{ text: t('setup.way.other') }]
 }

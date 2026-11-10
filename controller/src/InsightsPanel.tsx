@@ -10,9 +10,10 @@ import type { Day, Insight, Report } from './insights.ts'
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
 import { savedText } from './usePolicyEditor.ts'
+import { dateLocale, t } from './i18n.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAYS = [t('day.sun'), t('day.mon'), t('day.tue'), t('day.wed'), t('day.thu'), t('day.fri'), t('day.sat')]
 /** Rows Monday first, as a week reads. */
 const ROW_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
@@ -22,7 +23,7 @@ function localDate(ms: number): string {
 }
 
 function shortDate(date: string): string {
-    return new Date(date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+    return new Date(date + 'T12:00:00').toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
@@ -60,11 +61,11 @@ function DailyChart({ days, usual, compared }: { days: Day[]; usual: number | nu
 
     return (
         <div class="chart scroll" ref={box}>
-            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Screen time per day, last 30 days">
+            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('insights.chartLabel')}>
                 {[0, topTick / 2, topTick].map((m) => (
                     <g key={m}>
                         <line x1={left} x2={W - right} y1={y(m)} y2={y(m)} class="grid" />
-                        <text x={left - 6} y={y(m) + 4} class="axis" text-anchor="end">{m === 0 ? '0' : `${m / 60} h`}</text>
+                        <text x={left - 6} y={y(m) + 4} class="axis" text-anchor="end">{m === 0 ? '0' : t('common.hours', { n: m / 60 })}</text>
                     </g>
                 ))}
                 {days.map((d, i) => {
@@ -79,7 +80,7 @@ function DailyChart({ days, usual, compared }: { days: Day[]; usual: number | nu
                             d={bar(x, d.minutes)}
                             class={`bar ${high ? 'high' : ''} ${hover === i ? 'hovered' : ''}`}
                             tabIndex={0}
-                            aria-label={`${shortDate(d.date)}: ${minutesText(d.minutes)}${high ? ', well above usual' : ''}`}
+                            aria-label={`${shortDate(d.date)}: ${minutesText(d.minutes)}${high ? t('insights.aboveUsual') : ''}`}
                             onPointerEnter={() => setHover(i)}
                             onPointerLeave={() => setHover(null)}
                             onFocus={() => setHover(i)}
@@ -90,20 +91,20 @@ function DailyChart({ days, usual, compared }: { days: Day[]; usual: number | nu
                 {usual !== null && (
                     <g>
                         <line x1={left} x2={W - right} y1={y(usual)} y2={y(usual)} class="usual" />
-                        <text x={left + 4} y={y(usual) - 5} class="axis halo">usual {minutesText(usual)}</text>
+                        <text x={left + 4} y={y(usual) - 5} class="axis halo">{t('insights.usual', { time: minutesText(usual) })}</text>
                     </g>
                 )}
                 {days.map((d, i) => (i % 7 === days.length % 7 || i === days.length - 1) && (
                     <text key={d.date} x={left + i * slot + slot / 2} y={H - 8} class="axis" text-anchor="middle">
-                        {i === days.length - 1 ? 'Today' : new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                        {i === days.length - 1 ? t('insights.today') : new Date(d.date + 'T12:00:00').toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' })}
                     </text>
                 ))}
             </svg>
             {hovered && hover !== null && (
                 <div class="chart-tip" style={{ left: `${((left + hover * slot + slot / 2) / W) * 100}%` }}>
                     <strong>{shortDate(hovered.date)}</strong>
-                    <span>{hovered.minutes === null ? 'No report' : minutesText(hovered.minutes)}</span>
-                    {usual !== null && hovered.minutes !== null && <span class="muted">usual {minutesText(usual)}</span>}
+                    <span>{hovered.minutes === null ? t('insights.noReport') : minutesText(hovered.minutes)}</span>
+                    {usual !== null && hovered.minutes !== null && <span class="muted">{t('insights.usual', { time: minutesText(usual) })}</span>}
                 </div>
             )}
         </div>
@@ -121,7 +122,7 @@ function HourHeatmap({ grid, days }: { grid: number[][]; days: number[] }) {
 
     return (
         <div class="chart scroll">
-            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Average minutes used per hour, by day of the week">
+            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('insights.heatLabel')}>
                 {/* The night hours, outlined: 22:00 to 24:00 and 00:00 to 06:00. */}
                 <rect x={left - 1} y={top - 1} width={6 * cell + 1} height={7 * cell + 1} class="night" />
                 <rect x={left + 22 * cell - 1} y={top - 1} width={2 * cell + 1} height={7 * cell + 1} class="night" />
@@ -138,7 +139,7 @@ function HourHeatmap({ grid, days }: { grid: number[][]; days: number[] }) {
                                 rx={3}
                                 class={`cell l${level(m)} ${hover?.weekday === weekday && hover.hour === hour ? 'hovered' : ''}`}
                                 tabIndex={days[weekday] ? 0 : -1}
-                                aria-label={`${WEEKDAYS[weekday]} ${hour}:00: about ${Math.round(m)} min`}
+                                aria-label={t('insights.cellLabel', { day: WEEKDAYS[weekday], hour, n: Math.round(m) })}
                                 onPointerEnter={() => setHover({ weekday, hour })}
                                 onPointerLeave={() => setHover(null)}
                                 onFocus={() => setHover({ weekday, hour })}
@@ -152,16 +153,20 @@ function HourHeatmap({ grid, days }: { grid: number[][]; days: number[] }) {
                 ))}
             </svg>
             <div class="heat-legend" aria-hidden="true">
-                <span>Less</span>
+                <span>{t('insights.less')}</span>
                 {[0, 1, 2, 3, 4, 5].map((l) => <span key={l} class={`swatch-cell l${l}`} />)}
-                <span>More</span>
-                <span class="night-key">Night hours outlined</span>
+                <span>{t('insights.more')}</span>
+                <span class="night-key">{t('insights.nightKey')}</span>
             </div>
             {hover && (
                 <p class="chart-readout" role="status">
-                    {WEEKDAYS[hover.weekday]} {String(hover.hour).padStart(2, '0')}:00–{String((hover.hour + 1) % 24).padStart(2, '0')}:00:
-                    about {Math.round(grid[hover.weekday][hover.hour])} min on average
-                    {night(hover.hour) ? ' (night)' : ''}
+                    {t('insights.readout', {
+                        day: WEEKDAYS[hover.weekday],
+                        from: `${String(hover.hour).padStart(2, '0')}:00`,
+                        to: `${String((hover.hour + 1) % 24).padStart(2, '0')}:00`,
+                        n: Math.round(grid[hover.weekday][hover.hour]),
+                    })}
+                    {night(hover.hour) ? t('insights.night') : ''}
                 </p>
             )}
         </div>
@@ -225,7 +230,7 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
     }, [reports, hits, policy])
 
     async function addRule(insight: Insight) {
-        if (!insight.suggestion || !window.confirm(suggestionText(insight.suggestion) + ' The child sees every rule on the phone.')) return
+        if (!insight.suggestion || !window.confirm(suggestionText(insight.suggestion) + t('insights.childSees'))) return
         setBusy(insight.id)
         try {
             const latest = await api.getPolicy(device.deviceId)
@@ -245,30 +250,30 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
     return (
         <section class="card insights">
             <div class="card-head">
-                <h3>Insights</h3>
-                <button type="button" class="ghost small" onClick={() => setReloads((n) => n + 1)}>Refresh</button>
+                <h3>{t('insights.title')}</h3>
+                <button type="button" class="ghost small" onClick={() => setReloads((n) => n + 1)}>{t('common.refresh')}</button>
             </div>
             {error && <p role="alert" class="error">{error}</p>}
             {view === null ? (
-                !error && <p class="muted">Loading…</p>
+                !error && <p class="muted">{t('common.loading')}</p>
             ) : (
                 <>
                     <div class="tiles">
                         <Tile
-                            label="Today"
+                            label={t('insights.today')}
                             value={view.todayMinutes === null ? '—' : minutesText(view.todayMinutes)}
                             note={view.usual !== null && view.todayMinutes !== null
-                                ? `${view.todayMinutes >= view.usual ? '+' : '−'}${minutesText(Math.abs(view.todayMinutes - view.usual))} vs usual`
+                                ? t('insights.vsUsual', { sign: view.todayMinutes >= view.usual ? '+' : '−', time: minutesText(Math.abs(view.todayMinutes - view.usual)) })
                                 : undefined}
                         />
-                        <Tile label="Average, last 7 days" value={view.weekAverage === null ? '—' : minutesText(view.weekAverage)} />
-                        <Tile label="Late nights, last 7" value={String(view.nights)} note="22:00 to 06:00" />
-                        <Tile label="Limits reached, last 7 days" value={String(view.hitsThisWeek)} />
+                        <Tile label={t('insights.weekAverage')} value={view.weekAverage === null ? '—' : minutesText(view.weekAverage)} />
+                        <Tile label={t('insights.lateNights')} value={String(view.nights)} note={t('insights.nightHours')} />
+                        <Tile label={t('insights.limitsReached')} value={String(view.hitsThisWeek)} />
                     </div>
 
                     {view.insights.length > 0 && (
                         <div class="stack">
-                            <strong>Worth a look</strong>
+                            <strong>{t('insights.worthALook')}</strong>
                             <ul class="insight-list">
                                 {view.insights.map((insight) => (
                                     <li key={insight.id} class={`insight ${insight.tone}`}>
@@ -279,7 +284,7 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                                         </div>
                                         {insight.suggestion && !done[insight.id] && (
                                             <button type="button" class="ghost small" disabled={busy === insight.id} onClick={() => addRule(insight)}>
-                                                {busy === insight.id ? 'Adding…' : insight.suggestion.kind === 'limit' ? `Add a ${minutesText(insight.suggestion.minutes)} limit` : 'Add a night lock'}
+                                                {busy === insight.id ? t('insights.adding') : insight.suggestion.kind === 'limit' ? t('insights.addLimit', { time: minutesText(insight.suggestion.minutes) }) : t('insights.addNightLock')}
                                             </button>
                                         )}
                                     </li>
@@ -291,20 +296,19 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                     {reports && reports.length > 0 ? (
                         <>
                             <div class="stack">
-                                <strong>Screen time per day</strong>
+                                <strong>{t('insights.perDay')}</strong>
                                 <DailyChart days={view.days} usual={view.usual} compared={view.compared} />
                                 <p class="muted small">
-                                    Highlighted days are well above this phone's usual day (at least half again, and 30 minutes
-                                    more). A dot means the phone sent no report that day.
+                                    {t('insights.highlightHelp')}
                                 </p>
                                 <details>
-                                    <summary>Show as a table</summary>
+                                    <summary>{t('insights.asTable')}</summary>
                                     <div class="table-wrap">
                                         <table class="data-table">
-                                            <thead><tr><th>Day</th><th>Screen time</th></tr></thead>
+                                            <thead><tr><th>{t('insights.day')}</th><th>{t('insights.screenTime')}</th></tr></thead>
                                             <tbody>
                                                 {[...view.days].reverse().map((d) => (
-                                                    <tr key={d.date}><td>{shortDate(d.date)}</td><td>{d.minutes === null ? 'No report' : minutesText(d.minutes)}</td></tr>
+                                                    <tr key={d.date}><td>{shortDate(d.date)}</td><td>{d.minutes === null ? t('insights.noReport') : minutesText(d.minutes)}</td></tr>
                                                 ))}
                                             </tbody>
                                         </table>
@@ -312,12 +316,11 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                                 </details>
                             </div>
                             <details class="fold">
-                                <summary>When the phone is used, by hour</summary>
+                                <summary>{t('insights.byHour')}</summary>
                                 <div class="stack">
                                     <HourHeatmap grid={view.grid.minutes} days={view.grid.days} />
                                     <p class="muted small">
-                                        Average minutes in each hour, from the phone's hourly reports, so it is approximate. In your
-                                        time zone.
+                                        {t('insights.byHourHelp')}
                                     </p>
                                 </div>
                             </details>
@@ -325,11 +328,11 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                     ) : (
                         <p class="muted">
                             {reportsOn
-                                ? 'No usage reports yet. The first ones arrive within an hour.'
-                                : 'Turn on the daily usage report under Sharing to see screen time, when the phone is used, and what stands out.'}
+                                ? t('insights.noneYet')
+                                : t('insights.turnOn')}
                         </p>
                     )}
-                    <p class="muted small">Built only from what the phone already reports. Your child sees the same data on the phone.</p>
+                    <p class="muted small">{t('insights.source')}</p>
                 </>
             )}
         </section>

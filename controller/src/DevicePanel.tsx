@@ -21,6 +21,7 @@ import { RuleCards } from './RuleCards.tsx'
 import { directionText, durationText, groupByDay, numberText, summarizeCalls, timeText } from './callLog.ts'
 import type { CallItem } from './callLog.ts'
 import { appName } from './insights.ts'
+import { t } from './i18n.ts'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
 function useEvents<T>(
@@ -66,7 +67,7 @@ function useFirst<T>(items: T[] | null, first: number): { shown: T[]; more: Comp
         shown: all ? items : items.slice(0, first),
         more: (
             <button type="button" class="link" aria-expanded={all} onClick={() => setAll(!all)}>
-                {all ? 'Show fewer' : `Show ${hidden} more`}
+                {all ? t('panel.showFewer') : t('panel.showMore', { n: hidden })}
             </button>
         ),
     }
@@ -77,7 +78,7 @@ function Panel({ title, onRefresh, error, children, footnote }: { title: string;
         <section class="card">
             <div class="card-head">
                 <h3>{title}</h3>
-                <button type="button" class="ghost small" onClick={onRefresh}>Refresh</button>
+                <button type="button" class="ghost small" onClick={onRefresh}>{t('common.refresh')}</button>
             </div>
             {error && <p role="alert" class="error">{error}</p>}
             {children}
@@ -92,22 +93,22 @@ function ProtectionStatus(props: Props & { notBefore: number }) {
     const { value: reports, error, reload } = useEvents<ProtectionReport[]>(props, 'enforcement', summarize)
     return (
         <Panel
-            title="Protection status"
+            title={t('protection.title')}
             onRefresh={reload}
             error={error}
-            footnote="What the phone has reported. A phone that is off or offline cannot report, so silence is not proof that everything is fine. Some problems are never marked restored."
+            footnote={t('protection.footnote')}
         >
             {reports === null ? (
-                !error && <p class="muted">Loading…</p>
+                !error && <p class="muted">{t('common.loading')}</p>
             ) : reports.length === 0 ? (
-                <p class="ok-line">No problems reported.</p>
+                <p class="ok-line">{t('protection.none')}</p>
             ) : (
                 <ul class="list">
                     {reports.map((report) => (
                         <li key={report.key} class={report.state}>
-                            <strong>{report.title}: {report.state === 'attention' ? 'needs attention' : 'restored'}</strong>
+                            <strong>{t(report.state === 'attention' ? 'protection.attention' : 'protection.restored', { title: report.title })}</strong>
                             <span>{report.detail}</span>
-                            <span class="muted small">Reported {lastSeenText(report.reportedAt)}</span>
+                            <span class="muted small">{t('panel.reported', { when: lastSeenText(report.reportedAt) })}</span>
                         </li>
                     ))}
                 </ul>
@@ -123,11 +124,11 @@ function CallHistoryPanel(props: Props) {
     const { value: calls, error, reload } = useEvents<CallItem[]>(props, 'call', summarizeCalls)
     const { shown, more } = useFirst(calls, 8)
     return (
-        <Panel title="Call history" onRefresh={reload} error={error} footnote="Numbers, direction, time and length, kept for 30 days. Your child sees on the phone that this is on.">
+        <Panel title={t('calls.title')} onRefresh={reload} error={error} footnote={t('calls.footnote')}>
             {calls === null ? (
-                !error && <p class="muted">Loading…</p>
+                !error && <p class="muted">{t('common.loading')}</p>
             ) : calls.length === 0 ? (
-                <p class="muted">No calls reported. Turn on call history under Sharing to receive them.</p>
+                <p class="muted">{t('calls.none')}</p>
             ) : (
                 <>
                     {groupByDay(shown).map((day) => (
@@ -138,7 +139,7 @@ function CallHistoryPanel(props: Props) {
                                     <li key={call.id} class={call.direction === 'missed' ? 'missed' : undefined}>
                                         <span class="call-time">{timeText(call.occurredAt)}</span>
                                         <b>{numberText(call)}</b>
-                                        <span class="muted">{directionText(call.direction)}{durationText(call) && `, ${durationText(call)}`}</span>
+                                        <span class="muted">{directionText(call.direction)}{durationText(call) && `${t('common.listSeparator')}${durationText(call)}`}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -159,7 +160,7 @@ function UsageDay({ day, open }: { day: DailyUsage; open: boolean }) {
         <details class="day" open={open}>
             <summary>
                 <strong>{day.date}</strong>
-                <span>{minutesText(day.totalMinutes)} in total</span>
+                <span>{t('usage.inTotal', { time: minutesText(day.totalMinutes) })}</span>
             </summary>
             <ul class="bars">
                 {shown.map((usage) => (
@@ -172,7 +173,7 @@ function UsageDay({ day, open }: { day: DailyUsage; open: boolean }) {
             </ul>
             <div class="day-foot">
                 {more}
-                <span class="muted small">Last updated {lastSeenText(day.reportedAt)}</span>
+                <span class="muted small">{t('usage.lastUpdated', { when: lastSeenText(day.reportedAt) })}</span>
             </div>
         </details>
     )
@@ -182,15 +183,15 @@ function DailyUsagePanel(props: Props) {
     const { value: days, error, reload } = useEvents<DailyUsage[]>(props, 'usage_report', summarizeDailyUsage, USAGE_WINDOW_MS)
     return (
         <Panel
-            title="Daily app usage"
+            title={t('usage.title')}
             onRefresh={reload}
             error={error}
-            footnote="Minutes in the foreground per app, as the phone counted them when it last reported (about once an hour, busiest 30 apps per day)."
+            footnote={t('usage.footnote')}
         >
             {days === null ? (
-                !error && <p class="muted">Loading…</p>
+                !error && <p class="muted">{t('common.loading')}</p>
             ) : days.length === 0 ? (
-                <p class="muted">No usage report yet. Turn on the daily usage report under Sharing to receive one.</p>
+                <p class="muted">{t('usage.none')}</p>
             ) : (
                 days.map((day) => <UsageDay key={day.date} day={day} open={day === days[0]} />)
             )}
@@ -203,22 +204,22 @@ function LimitHistory(props: Props) {
     const { shown, more } = useFirst(hits, 5)
     return (
         <Panel
-            title="Limit history"
+            title={t('limits.title')}
             onRefresh={reload}
             error={error}
-            footnote="The 20 most recent times the phone reported a daily limit being reached. It does not show how much time was used."
+            footnote={t('limits.footnote')}
         >
             {hits === null ? (
-                !error && <p class="muted">Loading…</p>
+                !error && <p class="muted">{t('common.loading')}</p>
             ) : hits.length === 0 ? (
-                <p class="muted">No daily limit has been reported as reached.</p>
+                <p class="muted">{t('limits.none')}</p>
             ) : (
                 <>
                     <ul class="list">
                         {shown.map((hit) => (
                             <li key={hit.id}>
                                 <strong>{limitHitText(hit)}</strong>
-                                <span class="muted small">Reported {lastSeenText(hit.occurredAt)}</span>
+                                <span class="muted small">{t('panel.reported', { when: lastSeenText(hit.occurredAt) })}</span>
                             </li>
                         ))}
                     </ul>
@@ -235,15 +236,15 @@ function LockNow({ api, device, onSessionExpired }: Props) {
     const [error, setError] = useState('')
 
     async function lock() {
-        if (!window.confirm(`Lock "${deviceName(device, 'this phone')}" now?`)) return
+        if (!window.confirm(t('lock.confirm', { name: deviceName(device, t('device.thisPhone')) }))) return
         setBusy(true)
         setError('')
         setMessage('')
         try {
             const { woken } = await api.lockNow(device.deviceId)
             setMessage(woken
-                ? 'Lock sent. The phone locks in a few seconds.'
-                : 'Lock sent. This server cannot wake the phone, so it locks at its next check-in, within 15 minutes.')
+                ? t('lock.sentWoken')
+                : t('lock.sentLater'))
         } catch (caught) {
             if (isSessionError(caught)) onSessionExpired()
             else setError(errorText(caught))
@@ -255,7 +256,7 @@ function LockNow({ api, device, onSessionExpired }: Props) {
     return (
         <div class="lock">
             <button type="button" class="primary" onClick={lock} disabled={busy}>
-                {busy ? 'Sending…' : 'Lock now'}
+                {busy ? t('lock.sending') : t('lock.button')}
             </button>
             {message && <p role="status" class="muted small">{message}</p>}
             {error && <p role="alert" class="error">{error}</p>}
@@ -266,10 +267,10 @@ function LockNow({ api, device, onSessionExpired }: Props) {
 type Tab = 'activity' | 'rules' | 'sharing' | 'phone'
 
 const TABS: { key: Tab; label: string }[] = [
-    { key: 'activity', label: 'Activity' },
-    { key: 'rules', label: 'Rules' },
-    { key: 'sharing', label: 'Sharing' },
-    { key: 'phone', label: 'Phone' },
+    { key: 'activity', label: t('tab.activity') },
+    { key: 'rules', label: t('tab.rules') },
+    { key: 'sharing', label: t('tab.sharing') },
+    { key: 'phone', label: t('tab.phone') },
 ]
 
 export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: () => void }) {
@@ -290,7 +291,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                         <h1>{deviceName(device)}</h1>
                         <p class="muted">
                             <span class={`pill ${device.status}`}>{statusText(device.status)}</span>
-                            <span title={lastSeenText(device.lastSeen)}>Last seen {agoText(device.lastSeen)}</span>
+                            <span title={lastSeenText(device.lastSeen)}>{t('device.lastSeen', { when: agoText(device.lastSeen) })}</span>
                             {device.agentVersion && <span>Manara {device.agentVersion}</span>}
                         </p>
                     </div>
@@ -300,7 +301,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
 
             <SetupProgress {...props} onSetup={onSetup} />
 
-            <div class="tabs" role="tablist" aria-label="Phone sections">
+            <div class="tabs" role="tablist" aria-label={t('tab.label')}>
                 {TABS.map(({ key, label }) => (
                     <button
                         key={key}

@@ -485,6 +485,38 @@ paths:
               schema: { $ref: '#/components/schemas/Account' }
         '401':
           $ref: '#/components/responses/Unauthorized'
+    patch:
+      tags: [console]
+      summary: Set the parent's language
+      description: >
+        The language the console and the emails (alerts, weekly summary) are
+        written in for this parent.
+      security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [language]
+              properties:
+                language: { type: string, enum: [en, fr, ar] }
+      responses:
+        '200':
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  language: { type: string, enum: [en, fr, ar] }
+        '400':
+          description: "`unknown_language`."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     delete:
       tags: [console]
       summary: Delete the parent account and all its data
@@ -966,6 +998,10 @@ components:
         twoFactor:
           type: boolean
           description: Two-step sign-in is on.
+        language:
+          type: string
+          enum: [en, fr, ar]
+          description: The language the console and emails use for this parent. `en` until chosen.
 
     AuthResponse:
       type: object

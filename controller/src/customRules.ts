@@ -1,6 +1,7 @@
 import type { Policy } from './policy.ts'
 import { FAMILY_VALUES_SITES, GAMES_RULE, rulesOf, SOCIAL_RULE, SOCIAL_SITES, sitesOf, withRules, withSites } from './ruleCards.ts'
 import { MAX_SITES } from './browser.ts'
+import { t } from './i18n.ts'
 
 /** Common apps by the names parents use for them. Each id was checked on Google Play on 2026-11-09. */
 export const KNOWN_APPS: { name: string; id: string; aliases?: string[] }[] = [
@@ -41,7 +42,7 @@ const WEB_ENDING = new Set(['com', 'org', 'net', 'io', 'co', 'tv', 'me', 'app', 
 /** Understands whatever a parent is likely to paste or type: an app's name, a Play link, an app id, a web address. */
 export function parseTarget(text: string): Target {
     const input = text.trim()
-    if (input === '') return { kind: 'problem', message: 'Type an app name, or paste a Play Store link or a website.' }
+    if (input === '') return { kind: 'problem', message: t('rules.ownEmpty') }
 
     const known = KNOWN_APPS.find((app) => app.name.toLowerCase() === input.toLowerCase() || app.aliases?.includes(input.toLowerCase()))
     if (known) return { kind: 'app', name: known.name, id: known.id }
@@ -50,7 +51,7 @@ export function parseTarget(text: string): Target {
     if (playId) return appFromId(playId)
 
     if (/\s/.test(input)) {
-        return { kind: 'problem', message: `Manara doesn't know "${input}". Paste its Play Store link: open the app in the Play Store, tap Share, then Copy.` }
+        return { kind: 'problem', message: t('rules.ownUnknown', { input }) }
     }
     const isAddress = /^[a-z]+:\/\//i.test(input) || input.includes('/')
     const address = input.replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '').toLowerCase()
@@ -60,7 +61,7 @@ export function parseTarget(text: string): Target {
         if (!WEB_ENDING.has(parts[parts.length - 1]) && parts.length > 2) return appFromId(input)
     }
     if (address.includes('.') && /^[a-z0-9.-]+(\/\S*)?$/.test(address)) return { kind: 'site', site: address }
-    return { kind: 'problem', message: `Manara doesn't know "${input}". Paste its Play Store link: open the app in the Play Store, tap Share, then Copy.` }
+    return { kind: 'problem', message: t('rules.ownUnknown', { input }) }
 }
 
 function appFromId(id: string): Target {
@@ -97,8 +98,8 @@ export function removeApp(policy: Policy, category: string): Policy {
 
 export function addSite(policy: Policy, site: string): { ok: true; policy: Policy } | { ok: false; message: string } {
     const sites = sitesOf(policy)
-    if (sites.includes(site)) return { ok: false, message: `${site} is already blocked.` }
-    if (sites.length >= MAX_SITES) return { ok: false, message: `The list is full, at ${MAX_SITES} websites. Remove one first.` }
+    if (sites.includes(site)) return { ok: false, message: t('rules.ownAlready', { site }) }
+    if (sites.length >= MAX_SITES) return { ok: false, message: t('rules.ownFull', { n: MAX_SITES }) }
     return { ok: true, policy: withSites(policy, [...sites, site]) }
 }
 

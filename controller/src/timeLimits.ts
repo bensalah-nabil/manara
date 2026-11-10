@@ -1,5 +1,6 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
+import { t } from './i18n.ts'
 
 export interface TimeLimitRule {
     category: string
@@ -78,22 +79,22 @@ export function validateDraft(draft: Draft): ValidationResult {
     const categories = new Set<string>()
 
     draft.rules.forEach((rule, index) => {
-        const label = `Rule ${index + 1}`
+        const label = t('limitsEditor.rule', { n: index + 1 })
         const category = rule.category.trim()
-        if (category === '') errors.push(`${label}: enter a name.`)
-        else if (categories.has(category)) errors.push(`${label}: the name "${category}" is already used.`)
+        if (category === '') errors.push(t('limitsEditor.errName', { label }))
+        else if (categories.has(category)) errors.push(t('limitsEditor.errNameUsed', { label, name: category }))
         categories.add(category)
 
         const packages = parsePackages(rule.packages)
-        if (packages.length === 0 && !rule.allGames) errors.push(`${label}: add at least one app package name.`)
+        if (packages.length === 0 && !rule.allGames) errors.push(t('limitsEditor.errNoApp', { label }))
         for (const name of packages) {
-            if (!PACKAGE_NAME.test(name)) errors.push(`${label}: "${name}" is not a valid package name.`)
+            if (!PACKAGE_NAME.test(name)) errors.push(t('limitsEditor.errPackage', { label, name }))
         }
 
         const minutesText = rule.dailyMinutes.trim()
         const minutes = Number(minutesText)
         if (!/^\d+$/.test(minutesText) || minutes > MAX_MINUTES) {
-            errors.push(`${label}: minutes must be a whole number from 0 to ${MAX_MINUTES}.`)
+            errors.push(t('limitsEditor.errMinutes', { label, max: MAX_MINUTES }))
         }
 
         rules.push({ category, packages, dailyMinutes: minutes, ...(rule.allGames ? { allGames: true } : {}) })

@@ -4,28 +4,30 @@ import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText } from './format.ts'
 import { PairPhone } from './PairPhone.tsx'
+import { Rich } from './Rich.tsx'
 import { accountTypeName, canFinish, isActive, phoneQuiet, reconnectChecklist, signBackInWays, stepStates, waitingToPair } from './setup.ts'
 import type { DeviceSetup, SetupAccount, SetupStepKey, StepState } from './setup.ts'
+import { t } from './i18n.ts'
 
 /** While the phone works, the console looks every 2 s; after a failure, every 5 s, to notice a new run. */
 const LIVE_MS = 2000
 const FAILED_MS = 5000
 
 const STATE_TEXT: Record<StepState, string> = {
-    done: 'Done',
-    current: 'In progress',
-    waiting: 'Waiting for you',
-    failed: 'Stopped',
+    done: t('setup.state.done'),
+    current: t('setup.state.current'),
+    waiting: t('setup.state.waiting'),
+    failed: t('setup.state.failed'),
     pending: '',
 }
 
 function secondsAgo(iso: string, now: number): string {
     const seconds = Math.max(0, Math.round((now - Date.parse(iso)) / 1000))
     if (Number.isNaN(seconds)) return ''
-    if (seconds < 5) return 'just now'
-    if (seconds < 60) return `${seconds} s ago`
+    if (seconds < 5) return t('time.justNow')
+    if (seconds < 60) return t('time.sAgo', { n: seconds })
     const minutes = Math.round(seconds / 60)
-    return minutes < 60 ? `${minutes} min ago` : lastSeenText(iso)
+    return minutes < 60 ? t('time.minAgo', { n: minutes }) : lastSeenText(iso)
 }
 
 function Accounts({ accounts }: { accounts: SetupAccount[] }) {
@@ -119,7 +121,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
     }, [active])
 
     async function clearAccounts() {
-        if (!window.confirm('Delete the saved list of accounts? You will no longer see which accounts to sign back in to.')) return
+        if (!window.confirm(t('setup.confirmClear'))) return
         setClearing(true)
         try {
             await api.clearSetupAccounts(device.deviceId)
@@ -152,7 +154,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
     // A phone turned off or restarted mid-setup stops sending: don't call that live.
     const quiet = phoneQuiet(setup, now)
     const live = active && !quiet
-    const message = setup.message && <p role="status" class="notice">Phone: {setup.message}</p>
+    const message = setup.message && <p role="status" class="notice">{t('setup.phoneSays', { message: setup.message })}</p>
 
     const shown = setup
     /** What the step the phone is on needs, shown right under it. */
@@ -162,11 +164,9 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                 <>
                     {message}
                     <p>
-                        Setup stopped here. Nothing is removed, and Manara turns back on any app it had paused. The list of
-                        what was on the phone is kept below. When you're ready, start guided setup again in Manara on the
-                        phone: this page follows the new run by itself.
+                        {t('setup.stopped')}
                     </p>
-                    {checklist.length > 0 && <><strong>What was on the phone</strong><Accounts accounts={checklist} /></>}
+                    {checklist.length > 0 && <><strong>{t('setup.whatWasOn')}</strong><Accounts accounts={checklist} /></>}
                 </>
             )
         }
@@ -186,17 +186,16 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                         {message}
                         {shown.currentAccounts.length > 0 && (
                             <>
-                                <strong>Before removing anything: how you'll get back in</strong>
+                                <strong>{t('setup.beforeRemoving')}</strong>
                                 <ReadyCheck accounts={shown.currentAccounts} ready={ready} onReady={setReady} />
                                 {ready && (
                                     <p>
-                                        On the phone, tap <strong>Open accounts</strong> in Manara's setup notice and remove each account
-                                        below. Don't uninstall any app: the apps and their data stay.
+                                        <Rich text={t('setup.removeHelp')} />
                                     </p>
                                 )}
-                                <strong>Still on the phone ({shown.currentAccounts.length})</strong>
+                                <strong>{t('setup.stillOn', { n: shown.currentAccounts.length })}</strong>
                                 <Accounts accounts={shown.currentAccounts} />
-                                <p class="hint">This list updates by itself as you remove accounts.</p>
+                                <p class="hint">{t('setup.listUpdates')}</p>
                             </>
                         )}
                     </>
@@ -208,19 +207,17 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                             // The phone is checking by itself that the paused apps' accounts came back.
                             message
                         ) : (
-                            <p>Manara now manages the phone. Sign back in only to the accounts you removed and want to keep on it; you don't need all of them.</p>
+                            <p>{t('setup.nowManages')}</p>
                         )}
                         {quiet && (
                             <p class="hint">
-                                The phone hasn't sent an update since {lastSeenText(shown.updatedAt)}: it may be off or have
-                                restarted, so this list may be out of date. Opening Manara on the phone brings it back. You can
-                                finish setup either way.
+                                {t('setup.quietHint', { when: lastSeenText(shown.updatedAt) })}
                             </p>
                         )}
                         <ul class="reports">
                             {checklist.map((account) => (
                                 <li key={`${account.type}\n${account.name}`} class={account.back ? 'restored' : undefined}>
-                                    <strong>{account.back ? 'Back on the phone' : 'Not yet'}: {accountTypeName(account.type)}</strong>
+                                    <strong>{t('setup.accountLine', { state: account.back ? t('setup.back') : t('setup.notYet'), type: accountTypeName(account.type) })}</strong>
                                     <span>{account.name}</span>
                                 </li>
                             ))}
@@ -228,12 +225,10 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                         {state === 'waiting' && (
                             <>
                                 <button type="button" class="primary" onClick={finish} disabled={finishing || !canFinish(shown)}>
-                                    {finishing ? 'Finishing...' : 'Finish setup'}
+                                    {finishing ? t('setup.finishing') : t('setup.finish')}
                                 </button>
                                 <p class="hint">
-                                    On the phone, Manara's setup notice has a button that opens the sign-in for what is missing (Google
-                                    first: its saved passwords bring the others back). Finish when the accounts you want are back; you
-                                    can sign in to others later.
+                                    {t('setup.finishHint')}
                                 </p>
                             </>
                         )}
@@ -249,16 +244,16 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
         <div class="stack">
             {!done && (
                 <div class="consent">
-                    <h3>This is your child's phone: {deviceName(device)}</h3>
-                    <p>Everything below is happening on that phone. Make sure it is your child's phone, not your own.</p>
+                    <h3>{t('setup.childPhoneTitle', { name: deviceName(device) })}</h3>
+                    <p>{t('setup.childPhoneText')}</p>
                 </div>
             )}
             <div class="timeline-head">
-                <strong>Setup</strong>
+                <strong>{t('setup.heading')}</strong>
                 {live ? (
-                    <span class="live"><span class="live-dot" aria-hidden="true" />Live · phone updated {secondsAgo(setup.updatedAt, now)}</span>
+                    <span class="live"><span class="live-dot" aria-hidden="true" />{t('setup.live', { when: secondsAgo(setup.updatedAt, now) })}</span>
                 ) : (
-                    <span class="hint">{quiet ? 'No update from the phone since' : 'Last update from the phone'} {lastSeenText(setup.updatedAt)}</span>
+                    <span class="hint">{t(quiet ? 'setup.noUpdateSince' : 'setup.lastUpdate', { when: lastSeenText(setup.updatedAt) })}</span>
                 )}
             </div>
             <ol class="timeline">
@@ -282,11 +277,11 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
             </ol>
             {setup.status === 'done' && checklist.length > 0 && (
                 <details>
-                    <summary>Accounts that were on the phone ({checklist.length})</summary>
+                    <summary>{t('setup.accountsWere', { n: checklist.length })}</summary>
                     <ul class="reports">
                         {checklist.map((account) => (
                             <li key={`${account.type}\n${account.name}`} class={account.back ? 'restored' : undefined}>
-                                <strong>{account.back ? 'Back on the phone' : 'Not signed back in'}: {accountTypeName(account.type)}</strong>
+                                <strong>{t('setup.accountLine', { state: account.back ? t('setup.back') : t('setup.notSignedBack'), type: accountTypeName(account.type) })}</strong>
                                 <span>{account.name}</span>
                             </li>
                         ))}
@@ -298,11 +293,10 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
             {setup.initialAccounts.length > 0 && (
                 <div class="stack">
                     <p class="hint">
-                        Manara keeps the account names and types (never passwords) for 7 days, so you can see what to sign
-                        back in to. You can delete them sooner.
+                        {t('setup.keepHint')}
                     </p>
                     <button type="button" onClick={clearAccounts} disabled={clearing}>
-                        {clearing ? 'Deleting...' : 'Delete saved account list'}
+                        {clearing ? t('setup.deleting') : t('setup.deleteList')}
                     </button>
                 </div>
             )}
@@ -312,7 +306,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
     if (!done) return body
     return (
         <details class="setup-done">
-            <summary title={lastSeenText(setup.updatedAt)}>✓ Guided setup finished {agoText(setup.updatedAt)}</summary>
+            <summary title={lastSeenText(setup.updatedAt)}>{t('setup.finished', { when: agoText(setup.updatedAt) })}</summary>
             {body}
         </details>
     )

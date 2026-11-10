@@ -1,5 +1,7 @@
 package com.manara.agent.setup
 
+import com.manara.agent.R
+
 /**
  * Which screen guided setup's notice offers to open, so the parent never hunts through Settings.
  * Pure; SetupService turns the answer into a notification button.
@@ -7,17 +9,18 @@ package com.manara.agent.setup
 object SetupNotice {
 
     sealed interface Button {
-        val label: String
+        /** A string resource; SetupService reads it in the phone's language. */
+        val label: Int
     }
 
     /** Settings' account list, where the parent removes the accounts listed in the console. */
     data object OpenAccounts : Button {
-        override val label = "Open accounts"
+        override val label = R.string.setup_open_accounts
     }
 
     /** Android's "add account" screen, limited to [types]. */
     data class AddAccount(val types: List<String>) : Button {
-        override val label = if (types == listOf(GOOGLE)) "Add Google account" else "Add account"
+        override val label = if (types == listOf(GOOGLE)) R.string.setup_add_google else R.string.setup_add_account
     }
 
     const val GOOGLE = "com.google"

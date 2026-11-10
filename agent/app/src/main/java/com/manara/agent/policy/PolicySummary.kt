@@ -78,7 +78,7 @@ object PolicySummary {
         )
         lines += requested.ifEmpty { listOf("None") }
         lines += ""
-        lines += "Chrome: " + (com.manara.agent.ui.ChildView.browserRules(policy.browser) ?: "no rules")
+        lines += "Chrome: " + (if (com.manara.agent.enforcers.BrowserPolicyDecision.restrictions(policy.browser).isEmpty() && !policy.browser.blockOtherBrowsers) "no rules" else "rules set")
         return lines.joinToString("\n")
     }
 

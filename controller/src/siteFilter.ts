@@ -1,5 +1,6 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
+import { t } from './i18n.ts'
 
 export interface SiteFilter {
     enabled: boolean
@@ -32,10 +33,10 @@ export function toDraft(policy: Policy): Draft {
 }
 
 function hostProblem(host: string): string | null {
-    if (/[\s:/@?#]/.test(host)) return 'Enter just a host name such as dns.google, without a web address, port, or IP address.'
-    if (/^\d+(\.\d+){3}$/.test(host)) return 'Enter a host name, not an IP address.'
+    if (/[\s:/@?#]/.test(host)) return t('filterEditor.errJustHost')
+    if (/^\d+(\.\d+){3}$/.test(host)) return t('filterEditor.errIp')
     const labels = host.split('.')
-    if (host.length > 253 || labels.length < 2 || !labels.every((label) => LABEL.test(label))) return 'That is not a valid host name.'
+    if (host.length > 253 || labels.length < 2 || !labels.every((label) => LABEL.test(label))) return t('filterEditor.errInvalid')
     return null
 }
 
@@ -43,7 +44,7 @@ export function validateDraft(draft: Draft): ValidationResult {
     const host = normalizeHost(draft.dnsHost)
     const errors: string[] = []
     if (host === '') {
-        if (draft.enabled) errors.push('Enter the filtering host name. Without one the phone filters nothing.')
+        if (draft.enabled) errors.push(t('filterEditor.errMissing'))
     } else {
         const problem = hostProblem(host)
         if (problem) errors.push(problem)
@@ -64,7 +65,7 @@ export function filterWarning(before: Draft, after: Draft): string | null {
     const host = normalizeHost(after.dnsHost)
     if (!after.enabled || host === '') return null
     if (before.enabled && normalizeHost(before.dnsHost) === host) return null
-    return 'A wrong or unreachable host can stop the phone looking up addresses, which may also stop it from receiving a corrected policy. Test with a host you know works first. Save anyway?'
+    return t('filterEditor.warning')
 }
 
 /** Filtering rests on Private DNS, so the child could undo it unless those settings are locked. */
@@ -72,5 +73,5 @@ export function unlockedNote(enabled: boolean, policy: Policy): string | null {
     if (!enabled) return null
     const restrictions = policy.restrictions as { blockPrivateDnsConfig?: boolean } | undefined
     if (restrictions?.blockPrivateDnsConfig) return null
-    return 'Private DNS settings were not locked when this was opened (see Settings restrictions), so the child could change the filter.'
+    return t('filterEditor.unlocked')
 }

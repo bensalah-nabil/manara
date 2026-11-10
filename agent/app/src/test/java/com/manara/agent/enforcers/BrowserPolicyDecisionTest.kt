@@ -1,6 +1,7 @@
 package com.manara.agent.enforcers
 
 import com.manara.agent.policy.Policy
+import com.manara.agent.text.English
 import com.manara.agent.ui.ChildView
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -14,7 +15,7 @@ class BrowserPolicyDecisionTest {
     @Test
     fun `default policy leaves Chrome alone`() {
         assertTrue(BrowserPolicyDecision.restrictions(Policy.Browser()).isEmpty())
-        assertNull(ChildView.browserRules(Policy.Browser()))
+        assertNull(ChildView.browserRules(English, Policy.Browser()))
     }
 
     @Test
@@ -58,7 +59,7 @@ class BrowserPolicyDecisionTest {
 
     @Test
     fun `the child is told every Chrome rule`() {
-        val text = ChildView.browserRules(Policy.Browser(safeSearch = true, youtube = "moderate", secureDnsOff = true, blockedSites = listOf("a.example", "b.example")))
+        val text = ChildView.browserRules(English, Policy.Browser(safeSearch = true, youtube = "moderate", secureDnsOff = true, blockedSites = listOf("a.example", "b.example")))
         assertEquals(
             "SafeSearch on Google. YouTube Restricted Mode. Chrome's own secure DNS is off, so the website filter applies. 2 websites blocked.",
             text

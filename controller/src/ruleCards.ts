@@ -1,6 +1,7 @@
 import type { Policy } from './policy.ts'
 import { FAMILY_FILTER_HOST } from './siteFilter.ts'
 import { SOCIAL_MEDIA_PACKAGES } from './timeLimits.ts'
+import { t } from './i18n.ts'
 
 /**
  * The Rules screen's cards: each one is a plain name for several policy fields. This file holds no
@@ -184,6 +185,19 @@ export function setBedtimeHour(policy: Policy, hour: number): Policy {
 export const AGES = ['Under 10', '10 to 13', '14 to 17'] as const
 export type Age = (typeof AGES)[number]
 
+/** AGES are identifiers; this is what the parent reads. */
+export function ageLabel(age: Age): string {
+    return age === 'Under 10' ? t('rules.age.under10') : age === '10 to 13' ? t('rules.age.10to13') : t('rules.age.14to17')
+}
+
+/**
+ * A rule's name as the parent reads it. The two card rules keep their English names in the policy,
+ * so a phone and a console in different languages still agree on which rule is which.
+ */
+export function categoryLabel(category: string): string {
+    return category === SOCIAL_RULE ? t('rules.card.social') : category === GAMES_RULE ? t('rules.card.games') : category
+}
+
 const AGE_SETTINGS: Record<Age, { social: number; games: number; bedtime: number; report: boolean }> = {
     'Under 10': { social: 0, games: 30, bedtime: 20, report: true },
     '10 to 13': { social: 30, games: 60, bedtime: 21, report: true },
@@ -217,18 +231,18 @@ export function warningFor(before: Policy, after: Policy): string | null {
     const was = readCards(before)
     const will = readCards(after)
     const lines: string[] = []
-    if (will.on.location && !was.on.location) lines.push('Your child\'s location is sent to you every 15 minutes. The phone shows a notice the whole time.')
-    if (will.on.report && !was.on.report) lines.push('Minutes per app are sent to you each day. The phone says so.')
-    if (will.on.social && will.socialMinutes === 0 && !(was.on.social && was.socialMinutes === 0)) lines.push('TikTok, Facebook and Instagram are blocked at once.')
-    if (will.on.games && will.gamesMinutes === 0 && !(was.on.games && was.gamesMinutes === 0)) lines.push('Games are blocked at once.')
-    return lines.length > 0 ? `${lines.join('\n')}\n\nContinue?` : null
+    if (will.on.location && !was.on.location) lines.push(t('rules.warn.location'))
+    if (will.on.report && !was.on.report) lines.push(t('rules.warn.report'))
+    if (will.on.social && will.socialMinutes === 0 && !(was.on.social && was.socialMinutes === 0)) lines.push(t('rules.warn.social'))
+    if (will.on.games && will.gamesMinutes === 0 && !(was.on.games && was.gamesMinutes === 0)) lines.push(t('rules.warn.games'))
+    return lines.length > 0 ? `${lines.join('\n')}\n\n${t('rules.warn.continue')}` : null
 }
 
 export function minutesLabel(minutes: number): string {
-    if (minutes === 0) return 'Blocked'
+    if (minutes === 0) return t('rules.value.blocked')
     const hours = Math.floor(minutes / 60)
     const rest = minutes % 60
-    return [hours > 0 ? `${hours} h` : '', rest > 0 ? `${rest} min` : ''].filter(Boolean).join(' ')
+    return [hours > 0 ? t('common.hours', { n: hours }) : '', rest > 0 ? t('common.minutes', { n: rest }) : ''].filter(Boolean).join(' ')
 }
 
 export function hourLabel(hour: number): string {
@@ -239,16 +253,16 @@ export function hourLabel(hour: number): string {
 export function childLines(state: CardsState): string[] {
     const { on } = state
     const lines: string[] = []
-    if (on.adult) lines.push('Adult websites are blocked.')
-    if (on.ads) lines.push('Most ads in games and apps are blocked.')
-    if (on.values) lines.push('Gambling, dating and alcohol websites are blocked in Chrome.')
-    if (on.adult || on.ads) lines.push('Browsers other than Chrome are blocked.')
-    if (on.social) lines.push(state.socialMinutes === 0 ? 'TikTok, Facebook and Instagram are blocked.' : `TikTok, Facebook and Instagram: ${minutesLabel(state.socialMinutes)} a day.`)
-    if (on.games) lines.push(state.gamesMinutes === 0 ? 'Games are blocked.' : `Games: ${minutesLabel(state.gamesMinutes)} a day.`)
-    if (on.bedtime) lines.push(state.bedtimeCustom ? 'The phone locks at set times.' : `The phone locks from ${hourLabel(state.bedtimeHour)} to ${hourLabel(BEDTIME_END)}.`)
-    if (on.protect) lines.push('Some settings can\'t be changed.')
-    if (on.location) lines.push('Your parent can see where this phone is.')
-    if (on.report) lines.push('Your parent sees minutes per app.')
-    if (state.calls) lines.push('Your parent sees the number, direction, time and length of your calls, and which app for calls in WhatsApp, Messenger, Telegram and Viber.')
+    if (on.adult) lines.push(t('rules.child.adult'))
+    if (on.ads) lines.push(t('rules.child.ads'))
+    if (on.values) lines.push(t('rules.child.values'))
+    if (on.adult || on.ads) lines.push(t('rules.child.browsers'))
+    if (on.social) lines.push(state.socialMinutes === 0 ? t('rules.child.socialBlocked') : t('rules.child.social', { time: minutesLabel(state.socialMinutes) }))
+    if (on.games) lines.push(state.gamesMinutes === 0 ? t('rules.child.gamesBlocked') : t('rules.child.games', { time: minutesLabel(state.gamesMinutes) }))
+    if (on.bedtime) lines.push(state.bedtimeCustom ? t('rules.child.lockCustom') : t('rules.child.lock', { from: hourLabel(state.bedtimeHour), to: hourLabel(BEDTIME_END) }))
+    if (on.protect) lines.push(t('rules.child.protect'))
+    if (on.location) lines.push(t('rules.child.location'))
+    if (on.report) lines.push(t('rules.child.report'))
+    if (state.calls) lines.push(t('rules.child.calls'))
     return lines
 }

@@ -1,5 +1,6 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
+import { t } from './i18n.ts'
 
 /** Chrome's managed configuration; the phone maps each field to Chrome's own policy (BrowserPolicyDecision.kt). */
 export interface BrowserPolicy {
@@ -13,9 +14,9 @@ export interface BrowserPolicy {
 export type YouTubeMode = 'off' | 'moderate' | 'strict'
 
 export const YOUTUBE_MODES: { key: YouTubeMode; label: string }[] = [
-    { key: 'off', label: 'Off' },
-    { key: 'moderate', label: 'Restricted Mode' },
-    { key: 'strict', label: 'Strict Restricted Mode' },
+    { key: 'off', label: t('chromeEditor.youtubeOff') },
+    { key: 'moderate', label: t('chromeEditor.youtubeModerate') },
+    { key: 'strict', label: t('chromeEditor.youtubeStrict') },
 ]
 
 /** Same limit as the server (domain.MaxBlockedSites) and the phone. */
@@ -56,12 +57,12 @@ export function validateDraft(draft: Draft): ValidationResult {
         const site = normalizeSite(line)
         if (site === '') continue
         if (/\s/.test(site) || site.length > 253) {
-            errors.push(`"${line.trim()}" is not a website. Enter one per line, such as example.com.`)
+            errors.push(t('chromeEditor.errNotSite', { line: line.trim() }))
         } else if (!sites.includes(site)) {
             sites.push(site)
         }
     }
-    if (sites.length > MAX_SITES) errors.push(`At most ${MAX_SITES} websites.`)
+    if (sites.length > MAX_SITES) errors.push(t('chromeEditor.errTooMany', { n: MAX_SITES }))
     if (errors.length > 0) return { ok: false, errors }
     return { ok: true, browser: { safeSearch: draft.safeSearch, youtube: draft.youtube, secureDnsOff: draft.secureDnsOff, blockedSites: sites, blockOtherBrowsers: draft.blockOtherBrowsers } }
 }
@@ -75,6 +76,6 @@ export function applyBrowser(policy: Policy, browser: BrowserPolicy): Policy {
 /** A secure-DNS bypass only matters when site filtering is on, so say so where the parent decides. */
 export function secureDnsNote(siteFilterOn: boolean): string {
     return siteFilterOn
-        ? 'Recommended with site filtering: Chrome can otherwise look up websites through its own encrypted DNS and skip the filter.'
-        : 'Only useful with site filtering on (Rules, Site filtering).'
+        ? t('chromeEditor.secureDnsOn')
+        : t('chromeEditor.secureDnsOff')
 }

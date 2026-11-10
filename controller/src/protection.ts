@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 export interface EventItem {
     id: string
     kind: string
@@ -16,38 +17,38 @@ export interface ProtectionReport {
 }
 
 const ENFORCERS: Record<string, string> = {
-    location: 'Location sharing',
-    'site-filter': 'Site filtering',
-    'time-limit': 'App time limits',
-    restrictions: 'Settings restrictions',
-    lock: 'Scheduled lock',
-    'usage-report': 'Usage reporting',
-    browser: 'Chrome rules',
+    location: t('protection.enforcer.location'),
+    'site-filter': t('protection.enforcer.siteFilter'),
+    'time-limit': t('protection.enforcer.timeLimit'),
+    restrictions: t('protection.enforcer.restrictions'),
+    lock: t('protection.enforcer.lock'),
+    'usage-report': t('protection.enforcer.usageReport'),
+    browser: t('protection.enforcer.browser'),
 }
 
 const DETAILS: Record<string, string> = {
-    usage_access: 'Usage Access is turned off, so app usage cannot be measured.',
-    device_location_on: 'The phone\'s Location setting is off.',
-    location_permission: 'Manara is not allowed to read the phone\'s location.',
-    private_dns_host: 'Private DNS is not set to the filtering server.',
-    host_not_serving: 'The phone could not use the filtering host (it did not answer as a Private DNS server). Check the host name.',
-    failure_setting: 'The phone could not apply the filtering host.',
-    disallow_config_vpn: 'VPN settings are no longer locked.',
-    disallow_config_private_dns: 'Private DNS settings are no longer locked.',
-    disallow_factory_reset: 'Factory reset is no longer blocked.',
-    disallow_safe_boot: 'Safe boot is no longer blocked.',
-    disallow_add_user: 'Adding users is no longer blocked.',
-    disallow_debugging_features: 'Developer options are no longer blocked.',
+    usage_access: t('protection.detail.usageAccess'),
+    device_location_on: t('protection.detail.locationOff'),
+    location_permission: t('protection.detail.locationPermission'),
+    private_dns_host: t('protection.detail.privateDns'),
+    host_not_serving: t('protection.detail.hostNotServing'),
+    failure_setting: t('protection.detail.failureSetting'),
+    disallow_config_vpn: t('protection.detail.vpn'),
+    disallow_config_private_dns: t('protection.detail.privateDnsLock'),
+    disallow_factory_reset: t('protection.detail.factoryReset'),
+    disallow_safe_boot: t('protection.detail.safeBoot'),
+    disallow_add_user: t('protection.detail.addUser'),
+    disallow_debugging_features: t('protection.detail.debugging'),
     // The values the phone actually reports (Android's UserManager constants).
-    no_config_vpn: 'VPN settings are no longer locked.',
-    no_factory_reset: 'Factory reset is no longer blocked.',
-    no_safe_boot: 'Safe boot is no longer blocked.',
-    no_add_user: 'Adding users is no longer blocked.',
-    no_debugging_features: 'Developer options are no longer blocked.',
-    no_config_date_time: 'Date and time settings are no longer locked.',
+    no_config_vpn: t('protection.detail.vpn'),
+    no_factory_reset: t('protection.detail.factoryReset'),
+    no_safe_boot: t('protection.detail.safeBoot'),
+    no_add_user: t('protection.detail.addUser'),
+    no_debugging_features: t('protection.detail.debugging'),
+    no_config_date_time: t('protection.detail.dateTime'),
 }
 
-const RESTORED_TEXT = 'Back in effect.'
+const RESTORED_TEXT = t('protection.backInEffect')
 
 function text(value: unknown): string {
     return typeof value === 'string' ? value : ''
@@ -80,8 +81,8 @@ export function summarizeProtection(events: EventItem[], notBefore = 0): Protect
         reports.push({
             key,
             state: restored ? 'restored' : 'attention',
-            title: ENFORCERS[enforcer] ?? (enforcer || 'Unknown protection'),
-            detail: restored ? RESTORED_TEXT : (DETAILS[detail] ?? (detail || 'A problem was reported.')),
+            title: ENFORCERS[enforcer] ?? (enforcer || t('protection.unknown')),
+            detail: restored ? RESTORED_TEXT : (DETAILS[detail] ?? (detail || t('protection.problem'))),
             reportedAt: event.occurredAt,
         })
     }

@@ -12,6 +12,8 @@ export interface Account {
     passwordReset: boolean
     /** Two-step sign-in with an authenticator app is on. */
     twoFactor: boolean
+    /** The language the console and emails use for this parent: en, fr or ar. */
+    language: string
 }
 
 /** The password was right and two-step sign-in is on: send a code with this challenge. */
@@ -208,7 +210,15 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             if (!value || typeof value.email !== 'string' || typeof value.phones !== 'number') {
                 throw new ApiError(200, 'bad_response', 'Unexpected server response')
             }
-            return { email: value.email, phones: value.phones, passwordReset: value.passwordReset === true, twoFactor: value.twoFactor === true }
+            return {
+                email: value.email, phones: value.phones, passwordReset: value.passwordReset === true, twoFactor: value.twoFactor === true,
+                language: typeof value.language === 'string' ? value.language : 'en',
+            }
+        },
+
+        /** The language the console and the emails are written in for this parent. */
+        async setLanguage(language: string): Promise<void> {
+            await request('PATCH', '/console/account', { language }, true)
         },
 
         /** Needs the password again. Refused (devices_remain) while any phone is still on the account. */

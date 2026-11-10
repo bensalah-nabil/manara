@@ -20,19 +20,20 @@ import { authErrorText } from './format.ts'
 import { QrCode } from './QrCode.tsx'
 import { MANARA_APK_URL, QR_SETUP_STEPS, provisioningQr, qrSetupAvailable } from './provisioning.ts'
 import { signBackInWays } from './setup.ts'
+import { t } from './i18n.ts'
 
 type Step = 'consent' | 'brand' | 'prepare' | 'code'
 
 const STEP_TITLES: Record<Step, string> = {
-    consent: '1. Confirm',
-    brand: '2. Phone type',
-    prepare: '3. Prepare',
-    code: '4. Connect',
+    consent: t('add.step1'),
+    brand: t('add.step2'),
+    prepare: t('add.step3'),
+    code: t('add.step4'),
 }
 
 function Steps({ current }: { current: Step }) {
     return (
-        <ol class="steps" aria-label="Setup steps">
+        <ol class="steps" aria-label={t('add.stepsLabel')}>
             {(Object.keys(STEP_TITLES) as Step[]).map((step) => (
                 <li key={step} aria-current={step === current ? 'step' : undefined}>{STEP_TITLES[step]}</li>
             ))}
@@ -78,9 +79,9 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
         if (token === null) return
         try {
             await navigator.clipboard.writeText(token)
-            setCopyNote('Copied.')
+            setCopyNote(t('add.copied'))
         } catch {
-            setCopyNote('Could not copy automatically. Select the code and copy it.')
+            setCopyNote(t('add.copyFailed'))
         }
     }
 
@@ -90,8 +91,8 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     return (
         <div class="wizard">
             <div class="device-head">
-                <h1>Add your child's phone</h1>
-                <button type="button" class="ghost" onClick={reset}>Cancel</button>
+                <h1>{t('add.title')}</h1>
+                <button type="button" class="ghost" onClick={reset}>{t('common.cancel')}</button>
             </div>
             <Steps current={step} />
             <div class="card stack">
@@ -99,11 +100,9 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
             {step === 'consent' && (
                 <>
                     <div class="consent" role="group" aria-labelledby="consent-title">
-                        <h3 id="consent-title">Only for your own child's phone</h3>
+                        <h3 id="consent-title">{t('add.consentTitle')}</h3>
                         <p>
-                            Manara gives you control over the phone you connect. Use it only on a phone used by your own child,
-                            and never to watch another adult (a partner, an employee, a relative) without their knowledge. That is
-                            illegal in many countries and is not allowed here.
+                            {t('add.consentText')}
                         </p>
                         {STATEMENTS.map(({ key, text }) => (
                             <label key={key} class="check">
@@ -118,10 +117,10 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                                 {text}
                             </label>
                         ))}
-                        <p class="hint">Your confirmation is recorded with the date, together with this phone's setup.</p>
+                        <p class="hint">{t('add.consentRecorded')}</p>
                     </div>
                     <button type="button" class="primary" disabled={!attestationComplete(attestation)} onClick={() => setStep('brand')}>
-                        Continue
+                        {t('common.continue')}
                     </button>
                 </>
             )}
@@ -129,9 +128,9 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
             {step === 'brand' && (
                 <>
                     <label>
-                        Which brand is your child's phone?
+                        {t('add.brandQuestion')}
                         <select value={brand} onChange={(event) => setBrand(event.currentTarget.value)}>
-                            <option value="">Choose a brand</option>
+                            <option value="">{t('add.chooseBrand')}</option>
                             {PHONE_GUIDES.map((g) => (
                                 <option key={g.brand} value={g.brand}>{g.name}</option>
                             ))}
@@ -139,55 +138,55 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     </label>
                     {guide && (
                         <fieldset class="group">
-                            <legend>Is Manara already set up on this phone?</legend>
+                            <legend>{t('add.alreadyQuestion')}</legend>
                             <label class="check">
                                 <input type="radio" name="already" checked={alreadySetUp === false} onChange={() => setAlreadySetUp(false)} />
-                                <span>No, set it up now</span>
+                                <span>{t('add.alreadyNo')}</span>
                             </label>
                             <label class="check">
                                 <input type="radio" name="already" checked={alreadySetUp === true} onChange={() => setAlreadySetUp(true)} />
                                 <span>
-                                    Yes, it already shows Manara's "managed" notice
-                                    <span class="muted small"> Moving it from another account. Its setup stays; it just joins this account.</span>
+                                    {t('add.alreadyYes')}
+                                    <span class="muted small"> {t('add.alreadyYesHelp')}</span>
                                 </span>
                             </label>
                         </fieldset>
                     )}
                     {guide && alreadySetUp === false && qrOffered && (
                         <fieldset class="group">
-                            <legend>How do you want to set it up?</legend>
+                            <legend>{t('add.howQuestion')}</legend>
                             <label class="check">
                                 <input type="radio" name="path" checked={path === 'guided'} onChange={() => setPath('guided')} />
                                 <span>
-                                    Keep everything on the phone
-                                    <span class="muted small"> Guided setup: you turn on wireless debugging, and the console guides each step.</span>
+                                    {t('add.pathGuided')}
+                                    <span class="muted small"> {t('add.pathGuidedHelp')}</span>
                                 </span>
                             </label>
                             <label class="check">
                                 <input type="radio" name="path" checked={path === 'qr'} onChange={() => setPath('qr')} />
                                 <span>
-                                    New phone, or reset it: the easiest
-                                    <span class="muted small"> One QR code to scan, nothing to turn on or remove. Resetting erases everything on the phone.</span>
+                                    {t('add.pathQr')}
+                                    <span class="muted small"> {t('add.pathQrHelp')}</span>
                                 </span>
                             </label>
                         </fieldset>
                     )}
                     {guide && alreadySetUp === false && byQr && (
                         <div class="consent stack" role="group" aria-labelledby="reset-title">
-                            <h3 id="reset-title">Resetting erases the phone</h3>
+                            <h3 id="reset-title">{t('add.resetTitle')}</h3>
                             <p>
                                 Photos, chats, apps and accounts on it are deleted. If any of it matters, back it up first, or choose
-                                "Keep everything on the phone" instead. A brand new phone has nothing to lose.
+                                t('add.pathGuided') instead. A brand new phone has nothing to lose.
                             </p>
                         </div>
                     )}
                     {guide && alreadySetUp === false && !byQr && (
                         <div class="consent stack" role="group" aria-labelledby="accounts-title">
-                            <h3 id="accounts-title">Before you change anything: the phone's accounts</h3>
+                            <h3 id="accounts-title">{t('add.accountsTitle')}</h3>
                             <p>{accountsText(guide)}</p>
                             {needsGoogleCheck(guide) && (
                                 <>
-                                    <strong>Ways back in to Google without remembering the password</strong>
+                                    <strong>{t('add.googleWays')}</strong>
                                     <ul>
                                         {signBackInWays('com.google').map((way) => (
                                             <li key={way.text}>
@@ -198,7 +197,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                                     </ul>
                                     <label class="check">
                                         <input type="checkbox" checked={googleReady} onChange={(event) => setGoogleReady(event.currentTarget.checked)} />
-                                        I can get back in to the Google account on this phone, or it has none
+                                        {t('add.googleReady')}
                                     </label>
                                 </>
                             )}
@@ -207,11 +206,10 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     )}
                     {guide && alreadySetUp === false && !byQr && accountsClear && (
                         <div class="stack">
-                            <strong>Turn on wireless debugging on the {guide.name} phone</strong>
+                            <strong>{t('add.debugTitle', { brand: guide.name })}</strong>
                             {!guide.tested && (
                                 <p class="hint untested">
-                                    Manara has not been tested on this brand yet. These steps are the usual ones, but menu names can
-                                    differ, and setup may not finish on this phone.
+                                    {t('add.untested')}
                                 </p>
                             )}
                             <ol class="guide">
@@ -232,14 +230,14 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     )}
                     {alreadySetUp && <p role="alert" class="error">{error}</p>}
                     <div class="actions">
-                        <button type="button" class="ghost" onClick={() => setStep('consent')}>Back</button>
+                        <button type="button" class="ghost" onClick={() => setStep('consent')}>{t('common.back')}</button>
                         <button
                             type="button"
                             class="primary"
                             disabled={!guide || alreadySetUp === null || (alreadySetUp === false && !byQr && !accountsClear) || busy}
                             onClick={alreadySetUp || byQr ? createCode : () => setStep('prepare')}
                         >
-                            {busy ? 'Please wait…' : 'Continue'}
+                            {busy ? t('common.pleaseWait') : t('common.continue')}
                         </button>
                     </div>
                 </>
@@ -247,7 +245,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
 
             {step === 'prepare' && (
                 <>
-                    <p>Before connecting, make sure of each of these.</p>
+                    <p>{t('add.prepareIntro')}</p>
                     {PREPARE_ITEMS.map(({ key, text }) => (
                         <label key={key} class="check">
                             <input
@@ -263,9 +261,9 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     ))}
                     <p role="alert" class="error">{error}</p>
                     <div class="actions">
-                        <button type="button" class="ghost" onClick={() => setStep('brand')}>Back</button>
+                        <button type="button" class="ghost" onClick={() => setStep('brand')}>{t('common.back')}</button>
                         <button type="button" class="primary" disabled={!preparedComplete(prepared) || busy} onClick={createCode}>
-                            {busy ? 'Please wait…' : 'Continue'}
+                            {busy ? t('common.pleaseWait') : t('common.continue')}
                         </button>
                     </div>
                 </>
@@ -273,43 +271,37 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
 
             {step === 'code' && token !== null && byQr && !alreadySetUp && (
                 <>
-                    <strong>Set up the phone with this QR code</strong>
+                    <strong>{t('add.qrTitle')}</strong>
                     <ol class="guide">
                         {QR_SETUP_STEPS.map((line) => <li key={line}>{line}</li>)}
                     </ol>
-                    <QrCode value={provisioningQr(token, MANARA_APK_URL!)} label="QR code for the phone's setup screen" large />
+                    <QrCode value={provisioningQr(token, MANARA_APK_URL!)} label={t('add.qrLabel')} large />
                     <p class="hint">
-                        It works once, for 24 hours, and is shown only now: keep this page open until the phone has scanned it. The
-                        phone then appears in your list of phones by itself.
+                        {t('add.qrHint')}
                     </p>
                     <div class="actions">
-                        <button type="button" class="primary" onClick={reset}>Done</button>
+                        <button type="button" class="primary" onClick={reset}>{t('common.done')}</button>
                     </div>
                 </>
             )}
 
             {step === 'code' && token !== null && !(byQr && !alreadySetUp) && (
                 <>
-                    <strong>Connection code for this phone</strong>
-                    <QrCode value={token} label="Connection code as a QR code" />
+                    <strong>{t('add.codeTitle')}</strong>
+                    <QrCode value={token} label={t('add.codeQrLabel')} />
                     <code class="token">{token}</code>
                     {alreadySetUp ? (
                         <p class="hint">
-                            The code works once and is shown only now. On the phone, open Manara and tap "Scan the code" (or type
-                            it). The phone keeps its setup, takes this account's rules, and deletes anything it had not yet sent to
-                            the previous account. It then appears in your list of phones.
+                            {t('add.codeHintMove')}
                         </p>
                     ) : (
                         <p class="hint">
-                            The code works once and is shown only now. On the phone, open Manara, tap "Scan the code" and scan it.
-                            Then tap "Start guided setup" in Manara, open Wireless debugging, and leave the phone on that screen. This
-                            phone's page here shows a pairing QR code to scan with the phone, or a box for the phone's pairing code,
-                            then each step: which accounts to remove and, at the end, which to sign back in to.
+                            {t('add.codeHintNew')}
                         </p>
                     )}
                     <div class="actions">
-                        <button type="button" class="ghost" onClick={copy}>Copy code</button>
-                        <button type="button" class="primary" onClick={reset}>Done</button>
+                        <button type="button" class="ghost" onClick={copy}>{t('add.copy')}</button>
+                        <button type="button" class="primary" onClick={reset}>{t('common.done')}</button>
                     </div>
                     <p role="status" class="hint">{copyNote}</p>
                 </>

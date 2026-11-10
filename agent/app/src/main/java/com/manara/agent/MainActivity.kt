@@ -38,6 +38,7 @@ import com.manara.agent.sync.ManaraApiFactory
 import com.manara.agent.sync.SyncManager
 import com.manara.agent.sync.SyncStatusStore
 import com.manara.agent.sync.SyncWorker
+import com.manara.agent.text.AndroidWords
 import com.manara.agent.ui.ChildView
 import com.manara.agent.ui.ConnectScreen
 import com.manara.agent.ui.HomeModel
@@ -151,11 +152,11 @@ class MainActivity : ComponentActivity() {
                         onConnected()
                     }
                     is EnrollmentRepository.Result.Rejected -> message =
-                        "That code didn't work. Codes work once: ask for a new one in the console."
+                        getString(R.string.enroll_rejected)
                     is EnrollmentRepository.Result.NotAllowed -> message =
-                        "This phone is managed for a parent account. Only that parent can release it."
+                        getString(R.string.enroll_not_allowed)
                     is EnrollmentRepository.Result.Failed -> message =
-                        "Couldn't reach Manara. Check the internet connection and try again; the server can take a minute to wake up."
+                        getString(R.string.enroll_failed)
                 }
             }
         }
@@ -166,8 +167,8 @@ class MainActivity : ComponentActivity() {
             message = message,
             onScan = {
                 GmsBarcodeScanning.getClient(this).startScan()
-                    .addOnSuccessListener { barcode -> barcode.rawValue?.let(::enroll) ?: run { message = "That QR code had nothing to read." } }
-                    .addOnFailureListener { message = "The scanner couldn't start. Type the code instead." }
+                    .addOnSuccessListener { barcode -> barcode.rawValue?.let(::enroll) ?: run { message = getString(R.string.scan_empty) } }
+                    .addOnFailureListener { message = getString(R.string.scan_failed) }
             },
             onCode = ::enroll,
             onPrivacy = ::openPrivacyPolicy,
@@ -218,7 +219,7 @@ class MainActivity : ComponentActivity() {
                 val db = ManaraDatabase.get(this@MainActivity)
                 val policy = PolicyCache(db).current()
                 val snapshot = CollectionStatusReader(this@MainActivity, db).read(policy)
-                ChildView.build(policy, snapshot.usage, snapshot.location, SyncStatusStore(this@MainActivity).lastSuccessAt(), System.currentTimeMillis())
+                ChildView.build(AndroidWords(this@MainActivity), policy, snapshot.usage, snapshot.location, SyncStatusStore(this@MainActivity).lastSuccessAt(), System.currentTimeMillis())
             }
         }
 
@@ -267,11 +268,11 @@ class MainActivity : ComponentActivity() {
             onCode = { code ->
                 message = when (val result = releaser.checkCode(code)) {
                     is Releaser.CodeResult.Accepted -> { step = ReleaseStep.Choose; null }
-                    is Releaser.CodeResult.Wrong -> "That code isn't right. Check it with your parent."
+                    is Releaser.CodeResult.Wrong -> getString(R.string.code_wrong)
                     is Releaser.CodeResult.Locked ->
-                        "Too many wrong codes. Try again after ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(result.untilMillis))}."
+                        getString(R.string.code_locked, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(result.untilMillis)))
                     is Releaser.CodeResult.NoSecret ->
-                        "This phone hasn't received its release key yet. Connect to the internet, wait a few minutes, and try again."
+                        getString(R.string.code_no_secret)
                 }
             },
             onMove = {

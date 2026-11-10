@@ -1,5 +1,6 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
+import { t } from './i18n.ts'
 
 export interface UsageReportPolicy {
     enabled: boolean
@@ -19,4 +20,4 @@ export function applyUsageReport(policy: Policy, section: UsageReportPolicy): Po
 }
 
 export const USAGE_REPORT_WARNING =
-    "This starts sending how many minutes each app is used every day. The phone lists this on its own notice and status screen, so the child can see it. Save anyway?"
+    t('usage.warning')

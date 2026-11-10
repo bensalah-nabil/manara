@@ -3,6 +3,7 @@ import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { errorText } from './format.ts'
 import { COLORS, MAX_NAME, checkName, colorHex, initial } from './profile.ts'
+import { t } from './i18n.ts'
 
 /** The child's name and color for this phone, as the parent sees it in the console. */
 export function ProfileEditor({ api, device, onSessionExpired, onChanged }: Props & { onChanged: () => void }) {
@@ -37,23 +38,23 @@ export function ProfileEditor({ api, device, onSessionExpired, onChanged }: Prop
 
     return (
         <form class="card" onSubmit={save}>
-            <h3>Name and color</h3>
+            <h3>{t('profile.title')}</h3>
             <div class="profile-preview">
                 <span class="avatar large" style={{ background: colorHex(color) }} aria-hidden="true">{initial(name || device.model || '')}</span>
-                <span class="muted small">How this phone shows in your list.</span>
+                <span class="muted small">{t('profile.preview')}</span>
             </div>
             <label>
-                Your child's name
+                {t('profile.name')}
                 <input
                     value={name}
                     maxLength={MAX_NAME}
-                    placeholder="For example, Sara"
+                    placeholder={t('profile.placeholder')}
                     onInput={(event) => { setName(event.currentTarget.value); setSaved(false) }}
                 />
             </label>
             <fieldset class="group">
-                <legend>Color</legend>
-                <div class="swatches" role="radiogroup" aria-label="Color">
+                <legend>{t('profile.color')}</legend>
+                <div class="swatches" role="radiogroup" aria-label={t('profile.color')}>
                     {COLORS.map((c) => (
                         <button
                             key={c.key}
@@ -70,9 +71,9 @@ export function ProfileEditor({ api, device, onSessionExpired, onChanged }: Prop
                 </div>
             </fieldset>
             <button type="submit" class="primary" disabled={saving || !changed}>
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? 'Saving...' : t('common.save')}
             </button>
-            {saved && !changed && <p role="status" class="banner ok">Saved.</p>}
+            {saved && !changed && <p role="status" class="banner ok">{t('common.saved')}</p>}
             {error && <p role="alert" class="error">{error}</p>}
         </form>
     )

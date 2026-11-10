@@ -13,6 +13,7 @@ import com.manara.agent.enforcers.LiveRules
 import com.manara.agent.policy.NoticeSummary
 import com.manara.agent.policy.PolicyCache
 import com.manara.agent.storage.ManaraDatabase
+import com.manara.agent.text.AndroidWords
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,7 +44,7 @@ class ManagedNoticeService : Service() {
             try {
                 PolicyCache(ManaraDatabase.get(applicationContext)).observe().collect { policy ->
                     getSystemService(NotificationManager::class.java)
-                        .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(policy)))
+                        .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(AndroidWords(applicationContext), policy)))
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -70,10 +71,10 @@ class ManagedNoticeService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Device management",
+                getString(R.string.notice_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows that this device is managed by Manara."
+                description = getString(R.string.notice_channel_description)
                 setShowBadge(false)
             }
             getSystemService(NotificationManager::class.java)

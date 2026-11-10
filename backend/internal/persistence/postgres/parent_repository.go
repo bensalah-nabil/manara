@@ -33,8 +33,8 @@ func (r *ParentRepository) FindByID(ctx context.Context, id string) (*domain.Par
 	var p domain.Parent
 	var email, hash *string
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, created_at FROM parents WHERE id = $1`, id,
-	).Scan(&p.ID, &email, &hash, &p.CreatedAt)
+		`SELECT id, email, password_hash, created_at, language FROM parents WHERE id = $1`, id,
+	).Scan(&p.ID, &email, &hash, &p.CreatedAt, &p.Language)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -48,6 +48,16 @@ func (r *ParentRepository) FindByID(ctx context.Context, id string) (*domain.Par
 		p.PasswordHash = *hash
 	}
 	return &p, nil
+}
+
+func (r *ParentRepository) SetLanguage(ctx context.Context, id, language string) error {
+	if !domain.Languages[language] {
+		return domain.ErrUnknownLanguage
+	}
+	if _, err := r.db.Pool.Exec(ctx, `UPDATE parents SET language = $2 WHERE id = $1`, id, language); err != nil {
+		return fmt.Errorf("set language: %w", err)
+	}
+	return nil
 }
 
 type AuthRepository struct{ db *DB }

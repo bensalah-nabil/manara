@@ -1,6 +1,7 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
 import type { EventItem } from './protection.ts'
+import { dateLocale, t } from './i18n.ts'
 
 export interface CallLogPolicy {
     enabled: boolean
@@ -20,7 +21,7 @@ export function applyCallLog(policy: Policy, section: CallLogPolicy): Policy {
 }
 
 export const CALL_LOG_WARNING =
-    "This sends the number, direction, time and length of each call on this phone from now on, never what was said. Your child sees this on the phone's notice and status screen. The other person in each call is not told, and the law on this differs by country. Save anyway?"
+    t('calls.warning')
 
 export type Direction = 'incoming' | 'outgoing' | 'missed' | 'rejected' | 'blocked'
 
@@ -36,11 +37,11 @@ export interface CallItem {
 }
 
 const DIRECTIONS: Record<Direction, string> = {
-    incoming: 'Incoming',
-    outgoing: 'Outgoing',
-    missed: 'Missed',
-    rejected: 'Rejected',
-    blocked: 'Blocked',
+    incoming: t('calls.incoming'),
+    outgoing: t('calls.outgoing'),
+    missed: t('calls.missed'),
+    rejected: t('calls.rejected'),
+    blocked: t('calls.blocked'),
 }
 
 export const MAX_SHOWN = 100
@@ -100,8 +101,8 @@ export function groupByDay(calls: CallItem[], now: Date = new Date()): CallDay[]
             last.calls.push(call)
             continue
         }
-        const label = key === today ? 'Today' : key === yesterday ? 'Yesterday'
-            : date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+        const label = key === today ? t('common.today') : key === yesterday ? t('common.yesterday')
+            : date.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
         days.push({ key, label, calls: [call] })
     }
     return days
@@ -109,7 +110,7 @@ export function groupByDay(calls: CallItem[], now: Date = new Date()): CallDay[]
 
 /** The call's local time, as a list of one day's calls reads. */
 export function timeText(occurredAt: string): string {
-    return new Date(occurredAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    return new Date(occurredAt).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
 }
 
 export function directionText(direction: Direction): string {
@@ -118,8 +119,8 @@ export function directionText(direction: Direction): string {
 
 /** A messaging app's call shows the app: it gives no number, and caller names aren't kept. */
 export function numberText(call: Pick<CallItem, 'number' | 'app'>): string {
-    if (call.number === undefined) return call.app ?? 'Unknown'
-    const number = call.number === 'private' ? 'Hidden number' : call.number
+    if (call.number === undefined) return call.app ?? t('calls.unknown')
+    const number = call.number === 'private' ? t('calls.hidden') : call.number
     return call.app ? `${number} (${call.app})` : number
 }
 
@@ -128,6 +129,6 @@ export function durationText(call: CallItem): string {
     if (call.durationSeconds === 0) return ''
     const minutes = Math.floor(call.durationSeconds / 60)
     const seconds = call.durationSeconds % 60
-    if (minutes === 0) return `${seconds} s`
-    return seconds === 0 ? `${minutes} min` : `${minutes} min ${seconds} s`
+    if (minutes === 0) return t('common.seconds', { n: seconds })
+    return seconds === 0 ? t('common.minutes', { n: minutes }) : t('common.minutesSeconds', { m: minutes, s: seconds })
 }

@@ -39,11 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.manara.agent.R
 
 // ---- Building blocks ---------------------------------------------------------
 
@@ -126,7 +128,7 @@ private fun Busy() {
     Row(verticalAlignment = Alignment.CenterVertically) {
         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
         Spacer(Modifier.size(10.dp))
-        Text("Please wait…")
+        Text(stringResource(R.string.please_wait))
     }
 }
 
@@ -138,21 +140,20 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
     var code by remember { mutableStateOf("") }
     Page {
         Header(
-            if (moving) "Connect to the new account" else "Welcome to Manara",
-            if (moving) "Your parent is moving this phone to another account." else "Parental controls your child can always see.",
+            stringResource(if (moving) R.string.connect_title_move else R.string.connect_title_new),
+            stringResource(if (moving) R.string.connect_subtitle_move else R.string.connect_subtitle_new),
         )
-        Section(if (moving) "Scan the new account's code" else "Connect this phone") {
+        Section(stringResource(if (moving) R.string.connect_section_move else R.string.connect_section_new)) {
             Text(
-                if (moving) "In the new parent account, choose Add a phone and say Manara is already set up. Then scan the code it shows."
-                else "On the parent's phone or computer, open the Manara console and choose Add a phone. Then scan the code it shows.",
+                stringResource(if (moving) R.string.connect_help_move else R.string.connect_help_new),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Scan the code") }
+            Button(onClick = onScan, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.connect_scan)) }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             OutlinedTextField(
                 value = code,
                 onValueChange = { code = it.trim() },
-                label = { Text("Or type the code") },
+                label = { Text(stringResource(R.string.connect_type_code)) },
                 singleLine = true,
                 enabled = !busy,
                 // A one-time secret: a password-type field, so the keyboard neither suggests nor learns it
@@ -160,19 +161,18 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedButton(onClick = { onCode(code) }, enabled = !busy && code.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Connect") }
+            OutlinedButton(onClick = { onCode(code) }, enabled = !busy && code.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.connect_button)) }
             if (busy) Busy()
             if (message != null) Note(message, warning = true)
         }
         if (!moving) {
             Text(
-                "Manara is only for a parent managing their own child's phone. The phone always shows that it is managed and " +
-                    "what is shared.",
+                stringResource(R.string.connect_only_for),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        TextButton(onClick = onPrivacy, contentPadding = PaddingValues(0.dp)) { Text("Privacy policy") }
+        TextButton(onClick = onPrivacy, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.privacy_policy)) }
     }
 }
 
@@ -181,21 +181,21 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
 @Composable
 fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onOpenDeveloperOptions: () -> Unit) {
     Page {
-        Header("Almost there", "This phone is connected to a parent account.")
+        Header(stringResource(R.string.setup_title), stringResource(R.string.setup_subtitle))
         if (!supported) {
-            Note("Guided setup needs Android 11 or newer. This phone can't be set up by itself.", warning = true)
+            Note(stringResource(R.string.setup_unsupported), warning = true)
             return@Page
         }
-        Section("Let Manara manage this phone") {
-            Step(1, "Open Settings, then Developer options, and turn on Wireless debugging. The parent's console shows how for this phone.")
-            Step(2, "Tap Start guided setup below, and allow notifications.")
-            Step(3, "In Wireless debugging, tap Pair device with QR code and scan the code in the parent's console. Or tap Pair device with pairing code and type its code in the console.")
-            Step(4, "Keep the phone on that screen. Everything else is done in the console, which shows each step.")
+        Section(stringResource(R.string.setup_section)) {
+            Step(1, stringResource(R.string.setup_step_1))
+            Step(2, stringResource(R.string.setup_step_2))
+            Step(3, stringResource(R.string.setup_step_3))
+            Step(4, stringResource(R.string.setup_step_4))
             if (running) {
-                Note("Setup is running. Pair from the parent's console.")
-                OutlinedButton(onClick = onOpenDeveloperOptions, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Open Developer options") }
+                Note(stringResource(R.string.setup_running))
+                OutlinedButton(onClick = onOpenDeveloperOptions, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.setup_open_developer_options)) }
             } else {
-                Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Start guided setup") }
+                Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.setup_start)) }
             }
         }
     }
@@ -222,18 +222,18 @@ private fun Step(number: Int, text: String) {
 @Composable
 fun ManagedScreen(view: ChildView.View, refreshing: Boolean, onFix: (ChildView.Fix) -> Unit, onRefresh: () -> Unit, onRelease: () -> Unit, onPrivacy: () -> Unit) {
     Page {
-        Header("This phone is managed", "By your parent, with Manara.")
+        Header(stringResource(R.string.managed_title), stringResource(R.string.managed_subtitle))
 
         if (view.attention.isNotEmpty()) {
-            Section("Needs attention") {
+            Section(stringResource(R.string.attention_title)) {
                 view.attention.forEach { item ->
                     Text(item.text)
-                    OutlinedButton(onClick = { onFix(item.fix) }) { Text(if (item.fix == ChildView.Fix.USAGE_ACCESS) "Open usage access" else "Open location settings") }
+                    OutlinedButton(onClick = { onFix(item.fix) }) { Text(stringResource(if (item.fix == ChildView.Fix.USAGE_ACCESS) R.string.fix_usage_access else R.string.fix_location)) }
                 }
             }
         }
 
-        Section("What your parent can see") {
+        Section(stringResource(R.string.seen_title)) {
             view.seen.forEach { LineItem(it.title, it.detail) }
             Text(
                 view.neverShared,
@@ -242,20 +242,20 @@ fun ManagedScreen(view: ChildView.View, refreshing: Boolean, onFix: (ChildView.F
             )
         }
 
-        Section("Rules on this phone") {
-            if (view.rules.isEmpty()) Text("No rules yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Section(stringResource(R.string.rules_title)) {
+            if (view.rules.isEmpty()) Text(stringResource(R.string.no_rules), color = MaterialTheme.colorScheme.onSurfaceVariant)
             view.rules.forEach { LineItem(it.title, it.detail) }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(view.lastContact, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             if (refreshing) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-            else TextButton(onClick = onRefresh) { Text("Check now") }
+            else TextButton(onClick = onRefresh) { Text(stringResource(R.string.check_now)) }
         }
         Row {
-            TextButton(onClick = onRelease, contentPadding = PaddingValues(0.dp)) { Text("Release this phone") }
+            TextButton(onClick = onRelease, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.release_this_phone)) }
             Spacer(Modifier.size(20.dp))
-            TextButton(onClick = onPrivacy, contentPadding = PaddingValues(0.dp)) { Text("Privacy policy") }
+            TextButton(onClick = onPrivacy, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.privacy_policy)) }
         }
     }
 }
@@ -273,31 +273,31 @@ fun ReleaseScreen(step: ReleaseStep, message: String?, onCode: (String) -> Unit,
     var code by remember { mutableStateOf("") }
     var confirmRemove by remember { mutableStateOf(false) }
     Page {
-        Header("Release this phone", "Only your parent can do this.")
+        Header(stringResource(R.string.release_title), stringResource(R.string.release_subtitle))
         when (step) {
-            ReleaseStep.EnterCode -> Section("Your parent's release code") {
+            ReleaseStep.EnterCode -> Section(stringResource(R.string.release_code_section)) {
                 Text(
-                    "Your parent finds it in the Manara console: open this phone, then Phone, then Show release code. It works without a connection.",
+                    stringResource(R.string.release_code_help),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedTextField(
                     value = code,
                     onValueChange = { typed -> code = typed.filter { it.isDigit() }.take(8) },
-                    label = { Text("8-digit code") },
+                    label = { Text(stringResource(R.string.release_code_label)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (message != null) Note(message, warning = true)
-                Button(onClick = { onCode(code) }, enabled = code.length == 8, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Continue") }
-                TextButton(onClick = onBack) { Text("Back") }
+                Button(onClick = { onCode(code) }, enabled = code.length == 8, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.action_continue)) }
+                TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
             }
-            ReleaseStep.Choose -> Section("What should happen?") {
-                Button(onClick = onMove, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Move to another parent account") }
-                Text("Keeps everything set up. For the next 30 minutes the phone accepts the new account's code.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Remove Manara from this phone") }
-                Text("Lifts every rule and stops managing the phone. Manara can then be uninstalled.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = onBack) { Text("Cancel") }
+            ReleaseStep.Choose -> Section(stringResource(R.string.release_choose_title)) {
+                Button(onClick = onMove, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.release_move)) }
+                Text(stringResource(R.string.release_move_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = { confirmRemove = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.release_remove)) }
+                Text(stringResource(R.string.release_remove_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onBack) { Text(stringResource(R.string.action_cancel)) }
             }
             ReleaseStep.Working -> Busy()
         }
@@ -305,10 +305,10 @@ fun ReleaseScreen(step: ReleaseStep, message: String?, onCode: (String) -> Unit,
     if (confirmRemove) {
         AlertDialog(
             onDismissRequest = { confirmRemove = false },
-            title = { Text("Remove Manara?") },
-            text = { Text("Every rule is lifted and Manara stops managing this phone. Setting it up again means the full guided setup.") },
-            confirmButton = { TextButton(onClick = { confirmRemove = false; onRemove() }) { Text("Remove", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.remove_confirm_title)) },
+            text = { Text(stringResource(R.string.remove_confirm_text)) },
+            confirmButton = { TextButton(onClick = { confirmRemove = false; onRemove() }) { Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -316,12 +316,12 @@ fun ReleaseScreen(step: ReleaseStep, message: String?, onCode: (String) -> Unit,
 @Composable
 fun ReleasedScreen() {
     Page {
-        Header("Manara is off", "This phone is no longer managed.")
-        Section("All done") {
-            Text("Every rule has been lifted. You can uninstall Manara from Settings, Apps.")
+        Header(stringResource(R.string.released_title), stringResource(R.string.released_subtitle))
+        Section(stringResource(R.string.released_section)) {
+            Text(stringResource(R.string.released_text))
         }
         Text(
-            "Thanks for using Manara.",
+            stringResource(R.string.released_thanks),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
