@@ -18,6 +18,7 @@ import { usePolicyEditor } from './usePolicyEditor.ts'
 import type { Section } from './usePolicyEditor.ts'
 import { applyUsageReport, toDraft as usageReportDraft, USAGE_REPORT_WARNING } from './usageReport.ts'
 import type { Draft as UsageReportDraft, UsageReportPolicy } from './usageReport.ts'
+import { t } from './i18n.ts'
 
 export interface Props {
     api: Api
@@ -33,7 +34,7 @@ const limitsSection: Section<LimitsDraft, TimeLimits> = {
     },
     apply: applyTimeLimits,
     confirm: (_before, after) =>
-        blocksImmediately(after) ? 'A limit of 0 minutes blocks those apps as soon as the phone applies it. Save anyway?' : null,
+        blocksImmediately(after) ? t('limitsEditor.confirmZero') : null,
 }
 
 const scheduleSection: Section<ScheduleDraft, LockSchedule> = {
@@ -45,7 +46,7 @@ const scheduleSection: Section<ScheduleDraft, LockSchedule> = {
     apply: applySchedule,
     confirm: (_before, after) =>
         after.enabled && after.windows.length > 0
-            ? "While a lock window is active, the phone is locked at each check-in (about every 15 minutes), using the phone's own clock. Save anyway?"
+            ? t('scheduleEditor.confirm')
             : null,
 }
 
@@ -57,7 +58,7 @@ const locationSection: Section<LocationDraft, LocationPolicy> = {
     },
     apply: applyLocation,
     confirm: (before, after) =>
-        after.enabled && !before.enabled ? "This starts sharing the phone's location. The phone shows its own notice that location is being shared. Save anyway?" : null,
+        after.enabled && !before.enabled ? t('locationEditor.confirm') : null,
 }
 
 const filterSection: Section<FilterDraft, SiteFilter> = {
@@ -76,7 +77,7 @@ const restrictionsSection: Section<RestrictionsDraft, RestrictionsDraft> = {
     apply: applyRestrictions,
     confirm: (before, after) => {
         const added = RESTRICTIONS.filter(({ key }) => after[key] && !before[key]).map(({ label }) => label)
-        return added.length === 0 ? null : `This takes effect on the child's phone: ${added.join('; ')}. Save anyway?`
+        return added.length === 0 ? null : t('restrictEditor.confirm', { list: added.join('; ') })
     },
 }
 
@@ -114,8 +115,8 @@ function Row({ title, summary, editor }: { title: string; summary: string; edito
                 <p class="muted">{summary}</p>
                 {editor.error && <p role="alert" class="error">{editor.error}</p>}
             </div>
-            <button type="button" onClick={editor.load} disabled={editor.loading} aria-label={`Edit ${title.toLowerCase()}`}>
-                {editor.loading ? 'Loading…' : 'Edit'}
+            <button type="button" onClick={editor.load} disabled={editor.loading} aria-label={t('editor.editLabel', { title })}>
+                {editor.loading ? t('common.loading') : t('common.edit')}
             </button>
         </section>
     )
@@ -126,7 +127,7 @@ function Open({ title, version, children }: { title: string; version: number; ch
         <section class="card editing">
             <div class="card-head">
                 <h3>{title}</h3>
-                <span class="muted small">Policy version {version}</span>
+                <span class="muted small">{t('editor.policyVersion', { n: version })}</span>
             </div>
             {children}
         </section>
@@ -144,8 +145,8 @@ function Footer({ editor, saveLabel }: { editor: Pick<Editor, 'problems' | 'erro
             {editor.error && <p role="alert" class="error">{editor.error}</p>}
             {editor.saved && <p role="status" class="banner ok">{editor.saved}</p>}
             <div class="actions">
-                <button type="button" class="ghost" onClick={editor.close}>Close</button>
-                <button type="button" class="primary" onClick={editor.save} disabled={editor.saving}>{editor.saving ? 'Saving…' : saveLabel}</button>
+                <button type="button" class="ghost" onClick={editor.close}>{t('common.close')}</button>
+                <button type="button" class="primary" onClick={editor.save} disabled={editor.saving}>{editor.saving ? t('common.saving') : saveLabel}</button>
             </div>
         </>
     )
@@ -166,7 +167,7 @@ export function TimeLimitsEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: limitsSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="App time limits" summary="Daily minutes for the apps you choose, shared within each rule." editor={editor} />
+        return <Row title={t('limitsEditor.title')} summary={t('limitsEditor.summary')} editor={editor} />
     }
 
     function updateRule(index: number, change: Partial<RuleDraft>) {
@@ -174,32 +175,32 @@ export function TimeLimitsEditor(props: Props) {
     }
 
     return (
-        <Open title="App time limits" version={policy.version}>
-            <p class="muted">Only time limits change here; the phone's other settings are kept.</p>
-            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>Enforce these limits</Toggle>
+        <Open title={t('limitsEditor.title')} version={policy.version}>
+            <p class="muted">{t('limitsEditor.only')}</p>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>{t('limitsEditor.enforce')}</Toggle>
             {draft.rules.map((rule, index) => (
                 <fieldset key={index} class="group">
-                    <legend>Rule {index + 1}</legend>
+                    <legend>{t('limitsEditor.rule', { n: index + 1 })}</legend>
                     <label>
-                        Name
+                        {t('limitsEditor.name')}
                         <input value={rule.category} onInput={(event) => updateRule(index, { category: event.currentTarget.value })} />
                     </label>
                     <label>
-                        App package names, one per line
+                        {t('limitsEditor.packages')}
                         <textarea rows={3} spellcheck={false} value={rule.packages} onInput={(event) => updateRule(index, { packages: event.currentTarget.value })} />
                     </label>
                     <label class="narrow">
-                        Minutes per day, shared by these apps
+                        {t('limitsEditor.minutes')}
                         <input inputMode="numeric" value={rule.dailyMinutes} onInput={(event) => updateRule(index, { dailyMinutes: event.currentTarget.value })} />
                     </label>
                     <button type="button" class="link danger" onClick={() => setDraft({ ...draft, rules: draft.rules.filter((_, i) => i !== index) })}>
-                        Remove rule {index + 1}
+                        {t('limitsEditor.removeRule', { n: index + 1 })}
                     </button>
                 </fieldset>
             ))}
-            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, rules: [...draft.rules, emptyRule()] })}>+ Add a rule</button>
-            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, enabled: true, rules: [...draft.rules, socialMediaRule()] })}>+ Add TikTok, Facebook and Instagram</button>
-            <Footer editor={editor} saveLabel="Save time limits" />
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, rules: [...draft.rules, emptyRule()] })}>{t('limitsEditor.addRule')}</button>
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, enabled: true, rules: [...draft.rules, socialMediaRule()] })}>{t('limitsEditor.addSocial')}</button>
+            <Footer editor={editor} saveLabel={t('limitsEditor.save')} />
         </Open>
     )
 }
@@ -208,7 +209,7 @@ export function ScheduleEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: scheduleSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Lock schedule" summary="Hours when the phone stays locked, such as bedtime or school." editor={editor} />
+        return <Row title={t('scheduleEditor.title')} summary={t('scheduleEditor.summary')} editor={editor} />
     }
 
     function updateWindow(index: number, change: Partial<LockWindow>) {
@@ -221,16 +222,15 @@ export function ScheduleEditor(props: Props) {
     }
 
     return (
-        <Open title="Lock schedule" version={policy.version}>
+        <Open title={t('scheduleEditor.title')} version={policy.version}>
             <p class="muted">
-                Hours use the phone's own clock. If the end is earlier than the start, the window runs past midnight and belongs to
-                the day it starts on.
+                {t('scheduleEditor.help')}
             </p>
-            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>Enforce this schedule</Toggle>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>{t('scheduleEditor.enforce')}</Toggle>
             {draft.windows.map((window, index) => (
                 <fieldset key={index} class="group">
-                    <legend>Window {index + 1}</legend>
-                    <div class="days" role="group" aria-label={`Days for window ${index + 1}`}>
+                    <legend>{t('scheduleEditor.window', { n: index + 1 })}</legend>
+                    <div class="days" role="group" aria-label={t('scheduleEditor.daysLabel', { n: index + 1 })}>
                         {DAYS.map((day) => (
                             <label key={day.value} class="chip">
                                 <input type="checkbox" checked={window.days.includes(day.value)} onChange={(event) => toggleDay(index, day.value, event.currentTarget.checked)} />
@@ -240,25 +240,25 @@ export function ScheduleEditor(props: Props) {
                     </div>
                     <div class="pair">
                         <label>
-                            From
+                            {t('scheduleEditor.from')}
                             <select value={window.fromHour} onChange={(event) => updateWindow(index, { fromHour: Number(event.currentTarget.value) })}>
                                 {HOURS.map((hour) => <option key={hour} value={hour}>{String(hour).padStart(2, '0')}:00</option>)}
                             </select>
                         </label>
                         <label>
-                            Until
+                            {t('scheduleEditor.until')}
                             <select value={window.toHour} onChange={(event) => updateWindow(index, { toHour: Number(event.currentTarget.value) })}>
                                 {HOURS.map((hour) => <option key={hour} value={hour}>{String(hour).padStart(2, '0')}:00</option>)}
                             </select>
                         </label>
                     </div>
                     <button type="button" class="link danger" onClick={() => setDraft({ ...draft, windows: draft.windows.filter((_, i) => i !== index) })}>
-                        Remove window {index + 1}
+                        {t('scheduleEditor.removeWindow', { n: index + 1 })}
                     </button>
                 </fieldset>
             ))}
-            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, windows: [...draft.windows, emptyWindow()] })}>+ Add a window</button>
-            <Footer editor={editor} saveLabel="Save lock schedule" />
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, windows: [...draft.windows, emptyWindow()] })}>{t('scheduleEditor.addWindow')}</button>
+            <Footer editor={editor} saveLabel={t('scheduleEditor.save')} />
         </Open>
     )
 }
@@ -267,21 +267,20 @@ export function LocationEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: locationSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Location sharing" summary="The phone's position at a set interval. The phone shows its own notice while it's on." editor={editor} />
+        return <Row title={t('locationEditor.title')} summary={t('locationEditor.summary')} editor={editor} />
     }
 
     return (
-        <Open title="Location sharing" version={policy.version}>
+        <Open title={t('locationEditor.title')} version={policy.version}>
             <p class="muted">
-                When on, the phone shows its own notice that location is being shared. Shorter intervals use more battery, so this
-                console asks for {MIN_INTERVAL} to {MAX_INTERVAL} minutes.
+                {t('locationEditor.help', { min: MIN_INTERVAL, max: MAX_INTERVAL })}
             </p>
-            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>Share this phone's location</Toggle>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>{t('locationEditor.share')}</Toggle>
             <label class="narrow">
-                Minutes between updates
+                {t('locationEditor.interval')}
                 <input inputMode="numeric" value={draft.intervalMinutes} onInput={(event) => setDraft({ ...draft, intervalMinutes: event.currentTarget.value })} />
             </label>
-            <Footer editor={editor} saveLabel="Save location sharing" />
+            <Footer editor={editor} saveLabel={t('locationEditor.save')} />
         </Open>
     )
 }
@@ -290,25 +289,19 @@ export function CallLogEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: callLogSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Call history" summary="The number, direction, time and length of each call. Listed on the phone's own notice." editor={editor} />
+        return <Row title={t('calls.title')} summary={t('callEditor.summary')} editor={editor} />
     }
 
     return (
-        <Open title="Call history" version={policy.version}>
+        <Open title={t('calls.title')} version={policy.version}>
             <p class="muted">
-                When on, the phone sends the number, direction, time and length of each call made from now on. Never what was said,
-                contact names or text messages. The phone lists this on its own notice and status screen, and this server keeps
-                calls for 30 days. It works only with Manara installed from the website, not from Google Play.
+                {t('callEditor.help1')}
             </p>
             <p class="muted">
-                Calls in WhatsApp, Messenger, Telegram and Viber show the app, the time and roughly how long, never who called.
-                For those, turn on notification access for Manara on the phone: Settings, Apps, Manara, then Allow restricted
-                settings if asked, and Settings, Notifications, Device and app notifications (or Notification access), Manara.
-                Manara reads only call notifications from those apps. Some calls may still be missed, so an empty list doesn't
-                prove there were none.
+                {t('callEditor.help2')}
             </p>
-            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>Send call history</Toggle>
-            <Footer editor={editor} saveLabel="Save call history" />
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>{t('callEditor.send')}</Toggle>
+            <Footer editor={editor} saveLabel={t('callEditor.save')} />
         </Open>
     )
 }
@@ -317,18 +310,16 @@ export function UsageReportEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: usageReportSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Daily usage report" summary="Minutes per app, sent about once an hour. Listed on the phone's own notice." editor={editor} />
+        return <Row title={t('usageEditor.title')} summary={t('usageEditor.summary')} editor={editor} />
     }
 
     return (
-        <Open title="Daily usage report" version={policy.version}>
+        <Open title={t('usageEditor.title')} version={policy.version}>
             <p class="muted">
-                When on, the phone sends how many minutes each app was used today, about once an hour (the busiest 30 apps, by
-                package name). The phone lists this on its own notice and status screen, and this server keeps the reports for 30
-                days. It needs Usage Access to be on for Manara.
+                {t('usageEditor.help')}
             </p>
-            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>Send daily app usage</Toggle>
-            <Footer editor={editor} saveLabel="Save usage report" />
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>{t('usageEditor.send')}</Toggle>
+            <Footer editor={editor} saveLabel={t('usageEditor.save')} />
         </Open>
     )
 }
@@ -337,24 +328,23 @@ export function SiteFilterEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: filterSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Site filtering" summary="Filter websites through a family Private DNS host." editor={editor} />
+        return <Row title={t('filterEditor.title')} summary={t('filterEditor.summary')} editor={editor} />
     }
     const note = unlockedNote(draft.enabled, policy)
 
     return (
-        <Open title="Site filtering" version={policy.version}>
+        <Open title={t('filterEditor.title')} version={policy.version}>
             <p class="muted">
-                The phone is pointed at a filtering Private DNS host, for example family.adguard-dns.com. Enter a host name only (no
-                web address, port or IP address).
+                {t('filterEditor.help')}
             </p>
-            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>Filter sites on this phone</Toggle>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>{t('filterEditor.enable')}</Toggle>
             <label>
-                Filtering host name
+                {t('filterEditor.host')}
                 <input value={draft.dnsHost} autoCapitalize="off" spellcheck={false} onInput={(event) => setDraft({ ...draft, dnsHost: event.currentTarget.value })} />
             </label>
-            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, enabled: true, dnsHost: FAMILY_FILTER_HOST })}>Block adult sites (AdGuard family filter)</button>
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, enabled: true, dnsHost: FAMILY_FILTER_HOST })}>{t('filterEditor.family')}</button>
             {note && <p role="note" class="banner">{note}</p>}
-            <Footer editor={editor} saveLabel="Save site filtering" />
+            <Footer editor={editor} saveLabel={t('filterEditor.save')} />
         </Open>
     )
 }
@@ -363,19 +353,19 @@ export function RestrictionsEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: restrictionsSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Settings restrictions" summary="Stop the child changing the phone's own settings." editor={editor} />
+        return <Row title={t('restrictEditor.title')} summary={t('restrictEditor.summary')} editor={editor} />
     }
     const draftNow = draft
 
     return (
-        <Open title="Settings restrictions" version={policy.version}>
-            <p class="muted">Turning one off lets the child use that setting again.</p>
+        <Open title={t('restrictEditor.title')} version={policy.version}>
+            <p class="muted">{t('restrictEditor.help')}</p>
             {RESTRICTIONS.map(({ key, label, help }) => (
                 <Toggle key={key} checked={draftNow[key]} onChange={(on) => setDraft({ ...draftNow, [key]: on })}>
                     {label}{help && <span class="muted small"> {help}</span>}
                 </Toggle>
             ))}
-            <Footer editor={editor} saveLabel="Save restrictions" />
+            <Footer editor={editor} saveLabel={t('restrictEditor.save')} />
         </Open>
     )
 }
@@ -384,44 +374,43 @@ export function BrowserEditor(props: Props) {
     const editor = usePolicyEditor({ ...props, section: browserSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title="Chrome" summary="SafeSearch, YouTube Restricted Mode, and websites to block in Chrome." editor={editor} />
+        return <Row title={t('chromeEditor.title')} summary={t('chromeEditor.summary')} editor={editor} />
     }
     const draftNow = draft
     const filterOn = (policy.siteFilter as { enabled?: boolean } | undefined)?.enabled === true
 
     return (
-        <Open title="Chrome" version={policy.version}>
+        <Open title={t('chromeEditor.title')} version={policy.version}>
             <p class="muted">
-                These rules apply in Chrome only, so another browser could go around them and the site filter. Block other browsers below.
-                The child sees each rule on the phone.
+                {t('chromeEditor.help')}
             </p>
             <Toggle checked={draftNow.safeSearch} onChange={(on) => setDraft({ ...draftNow, safeSearch: on })}>
-                SafeSearch on Google<span class="muted small"> Hides explicit results in Google Search.</span>
+                {t('chromeEditor.safeSearch')}<span class="muted small"> {t('chromeEditor.safeSearchHelp')}</span>
             </Toggle>
             <label>
-                YouTube in Chrome
+                {t('chromeEditor.youtube')}
                 <select value={draftNow.youtube} onChange={(event) => setDraft({ ...draftNow, youtube: event.currentTarget.value as YouTubeMode })}>
                     {YOUTUBE_MODES.map((mode) => <option key={mode.key} value={mode.key}>{mode.label}</option>)}
                 </select>
-                <span class="muted small">The YouTube app is separate: give it a time limit to control it.</span>
+                <span class="muted small">{t('chromeEditor.youtubeHelp')}</span>
             </label>
             <Toggle checked={draftNow.secureDnsOff} onChange={(on) => setDraft({ ...draftNow, secureDnsOff: on })}>
-                Turn off Chrome's own secure DNS<span class="muted small"> {secureDnsNote(filterOn)}</span>
+                {t('chromeEditor.secureDns')}<span class="muted small"> {secureDnsNote(filterOn)}</span>
             </Toggle>
             <Toggle checked={draftNow.blockOtherBrowsers} onChange={(on) => setDraft({ ...draftNow, blockOtherBrowsers: on })}>
-                Block every browser except Chrome<span class="muted small"> Includes browsers installed later. Make sure Chrome is installed and set as the phone's default browser.</span>
+                {t('chromeEditor.otherBrowsers')}<span class="muted small"> {t('chromeEditor.otherBrowsersHelp')}</span>
             </Toggle>
             <label>
-                Websites to block
+                {t('chromeEditor.sites')}
                 <textarea
                     rows={5}
                     placeholder={'example.com\nanother.example'}
                     value={draftNow.sitesText}
                     onInput={(event) => setDraft({ ...draftNow, sitesText: event.currentTarget.value })}
                 />
-                <span class="muted small">One per line, up to {MAX_SITES}. A site also blocks its subdomains.</span>
+                <span class="muted small">{t('chromeEditor.sitesHelp', { n: MAX_SITES })}</span>
             </label>
-            <Footer editor={editor} saveLabel="Save Chrome rules" />
+            <Footer editor={editor} saveLabel={t('chromeEditor.save')} />
         </Open>
     )
 }

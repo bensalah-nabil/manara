@@ -55,6 +55,7 @@ own minor child's. See [`docs/legal-and-ethics.md`](docs/legal-and-ethics.md).
 | Controller (parent web app) | ✅ done (Preact + Vite + TS) | Phones with the child's name and color, live setup timeline, activity, rules, sharing, release, account; parent guide; hosted on Vercel, with Netlify as a fallback |
 | Testing           | ✅ in place | Unit tests, a 5,000-run chaos test of guided setup, an emulator matrix (Android 11 to 16), CI with dependency scans — see [`docs/testing.md`](docs/testing.md) |
 | Security          | in progress | Rate limits, two-step sign-in, expiring sessions, CSP; aiming at the MASA badge — see [`docs/security.md`](docs/security.md) and [`docs/threat-model.md`](docs/threat-model.md) |
+| Arabic and French | built, not yet seen on a phone | The app follows the phone's language (`values-fr`, `values-ar`, right to left); the console has a language switch saved on the parent's account, and mirrors for Arabic. The Arabic is Modern Standard Arabic and waits for a native reader's review (`TODO-REVIEW`). Still English: the step messages the phone sends during guided setup, alert and password-reset emails, and the privacy, guide and delete-account pages |
 | Insights          | ✅ done | Screen time trend, when the phone is used, and suggested rules, from the opt-in daily usage report |
 
 See **[`docs/roadmap.md`](docs/roadmap.md)** for the phase-by-phase detail and

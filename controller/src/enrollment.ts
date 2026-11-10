@@ -1,14 +1,15 @@
+import { t } from './i18n.ts'
 /** Must equal domain.AttestationVersion on the server; a mismatch makes the server reject the code request. */
 export const ATTESTATION_VERSION = '2026-11-06'
 
 export type StatementKey = 'parentOrGuardian' | 'minorChild' | 'childInformed'
 
 export const STATEMENTS: { key: StatementKey; text: string }[] = [
-    { key: 'parentOrGuardian', text: "I am this child's parent or legal guardian." },
-    { key: 'minorChild', text: 'This phone is used by my child, who is a minor where we live.' },
+    { key: 'parentOrGuardian', text: t('enroll.statement.parent') },
+    { key: 'minorChild', text: t('enroll.statement.minor') },
     {
         key: 'childInformed',
-        text: 'My child will be told that this phone is managed. The phone always shows a notice saying so, and Manara cannot hide it.',
+        text: t('enroll.statement.informed'),
     },
 ]
 
@@ -51,14 +52,14 @@ export interface GuidePicture {
 
 /** Android's own Settings (Android 14 emulator, 2026-11-09): what a Pixel shows. */
 const STOCK_PICTURES: GuidePicture[] = [
-    { src: '/guide-img/stock-1-build-number.png', alt: 'About phone, with Build number outlined at the bottom', caption: 'Tap Build number seven times.' },
-    { src: '/guide-img/stock-2-wireless-debugging.png', alt: 'Developer options, with Wireless debugging outlined under Debugging', caption: 'In Developer options, open Wireless debugging and turn it on.' },
-    { src: '/guide-img/stock-3-allow.png', alt: 'The prompt Allow wireless debugging on this network, with Allow outlined', caption: 'Android asks first: tap Allow. Manara turns wireless debugging off again at the end.' },
-    { src: '/guide-img/stock-4-pair.png', alt: 'Wireless debugging turned on, with Pair device with QR code and Pair device with pairing code outlined', caption: 'Stay on this screen. Later, the console tells you which of these two to tap.' },
+    { src: '/guide-img/stock-1-build-number.png', alt: t('enroll.picture.build.alt'), caption: t('enroll.picture.build.caption') },
+    { src: '/guide-img/stock-2-wireless-debugging.png', alt: t('enroll.picture.wireless.alt'), caption: t('enroll.picture.wireless.caption') },
+    { src: '/guide-img/stock-3-allow.png', alt: t('enroll.picture.allow.alt'), caption: t('enroll.picture.allow.caption') },
+    { src: '/guide-img/stock-4-pair.png', alt: t('enroll.picture.pair.alt'), caption: t('enroll.picture.pair.caption') },
 ]
 
 /** Menu names vary by phone model and Android version; every guide ends with the Settings search fallback. */
-const SEARCH_TIP = 'If a menu name differs on this phone, use the search box at the top of Settings: search "Build number", then "Wireless debugging".'
+const SEARCH_TIP = t('enroll.searchTip')
 
 export const PHONE_GUIDES: PhoneGuide[] = [
     {
@@ -68,14 +69,14 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         // SM-A045F, Android 14: refused device owner with every account's app paused (ADR-0006).
         accounts: 'removed',
         developerOptions: [
-            'Open Settings, then About phone, then Software information.',
-            'Tap "Build number" seven times, then enter the phone\'s PIN when asked.',
-            'Go back to Settings. Open Developer options at the bottom and turn on "Wireless debugging".',
+            t('enroll.step.samsungAbout'),
+            t('enroll.step.buildPin'),
+            t('enroll.step.samsungDev'),
             SEARCH_TIP,
         ],
         notes: [
-            'Removing the Samsung account asks for its password, so have it ready.',
-            'If the phone has a Secure Folder, it must be removed first. Anything stored inside it is deleted, so move what you need out of it.',
+            t('enroll.note.samsungPassword'),
+            t('enroll.note.secureFolder'),
         ],
     },
     {
@@ -85,9 +86,9 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         // Stock Android: pausing was enough on the emulator; not yet seen on a Pixel.
         accounts: 'paused',
         developerOptions: [
-            'Open Settings, then About phone.',
-            'Tap "Build number" seven times, then enter the phone\'s PIN when asked.',
-            'Open Settings, then System, then Developer options, and turn on "Wireless debugging".',
+            t('enroll.step.aboutPhone'),
+            t('enroll.step.buildPin'),
+            t('enroll.step.systemDev'),
             SEARCH_TIP,
         ],
         notes: [],
@@ -95,27 +96,27 @@ export const PHONE_GUIDES: PhoneGuide[] = [
     },
     {
         brand: 'xiaomi',
-        name: 'Xiaomi, Redmi or POCO',
+        name: t('enroll.brand.xiaomi'),
         tested: false,
         accounts: 'unknown',
         developerOptions: [
-            'Open Settings, then About phone.',
-            'Tap "OS version" (or "MIUI version") seven times.',
-            'Open Settings, then Additional settings, then Developer options, and turn on "Wireless debugging".',
-            'Also turn on "Install via USB" and "USB debugging (Security settings)". These need a signed-in Xiaomi account and may need a SIM card.',
+            t('enroll.step.aboutPhone'),
+            t('enroll.step.xiaomiVersion'),
+            t('enroll.step.additionalDev'),
+            t('enroll.step.xiaomiUsb'),
             SEARCH_TIP,
         ],
-        notes: ['The Xiaomi account still has to be removed later, before the phone can be connected to Manara.'],
+        notes: [t('enroll.note.xiaomiAccount')],
     },
     {
         brand: 'oppo-realme',
-        name: 'Oppo or Realme',
+        name: t('enroll.brand.oppo'),
         tested: false,
         accounts: 'unknown',
         developerOptions: [
-            'Open Settings, then About device, then Version.',
-            'Tap "Build number" seven times.',
-            'Open Settings, then Additional settings, then Developer options, and turn on "Wireless debugging".',
+            t('enroll.step.aboutVersion'),
+            t('enroll.step.build'),
+            t('enroll.step.additionalDev'),
             SEARCH_TIP,
         ],
         notes: [],
@@ -126,9 +127,9 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         tested: false,
         accounts: 'unknown',
         developerOptions: [
-            'Open Settings, then About device, then Version.',
-            'Tap "Build number" seven times.',
-            'Open Settings, then System, then Developer options, and turn on "Wireless debugging".',
+            t('enroll.step.aboutVersion'),
+            t('enroll.step.build'),
+            t('enroll.step.systemDev'),
             SEARCH_TIP,
         ],
         notes: [],
@@ -139,22 +140,22 @@ export const PHONE_GUIDES: PhoneGuide[] = [
         tested: false,
         accounts: 'unknown',
         developerOptions: [
-            'Open Settings, then About phone.',
-            'Tap "Build number" seven times.',
-            'Open Settings, then System, then Developer options, and turn on "Wireless debugging".',
+            t('enroll.step.aboutPhone'),
+            t('enroll.step.build'),
+            t('enroll.step.systemDev'),
             SEARCH_TIP,
         ],
         notes: [],
     },
     {
         brand: 'other',
-        name: 'Another brand',
+        name: t('enroll.brand.other'),
         tested: false,
         accounts: 'unknown',
         developerOptions: [
-            'Open Settings and find "About phone" (sometimes under "System" or "Software information").',
-            'Tap "Build number" seven times.',
-            'Find "Developer options" (often under "System" or "Additional settings") and turn on "Wireless debugging".',
+            t('enroll.step.otherAbout'),
+            t('enroll.step.build'),
+            t('enroll.step.otherDev'),
             SEARCH_TIP,
         ],
         notes: [],
@@ -169,11 +170,11 @@ export function guideFor(brand: string): PhoneGuide | undefined {
 export function accountsText(guide: PhoneGuide): string {
     switch (guide.accounts) {
         case 'paused':
-            return `On this phone, setup should only pause the apps that hold an account for a few seconds: no account is removed and nothing needs signing back in. ${guide.tested ? '' : 'This has not been tested on this brand yet, so be ready in case it does.'}`.trim()
+            return `${t('enroll.accounts.paused')} ${guide.tested ? '' : t('enroll.accounts.pausedUntested')}`.trim()
         case 'removed':
-            return `On ${guide.name} phones, every account (Google and the others) has to be removed for a moment during setup, then signed back in at the end. No app is uninstalled and no app data is lost, but you will need to get back in to the Google account.`
+            return t('enroll.accounts.removed', { brand: guide.name })
         case 'unknown':
-            return 'On some phones every account has to be removed for a moment during setup, then signed back in at the end. Manara has not been tested on this brand, so be ready for it. No app is uninstalled and no app data is lost.'
+            return t('enroll.accounts.unknown')
     }
 }
 
@@ -187,23 +188,23 @@ export function needsGoogleCheck(guide: PhoneGuide): boolean {
  * removes nothing (SetupFlow: a phone with no accounts goes straight to device owner).
  */
 export const NO_ACCOUNTS_YET =
-    "A new phone, or one you are resetting anyway? Set it up without signing in to Google (choose Skip), install Manara and finish guided setup first, then sign in. Nothing has to be removed. This works when Manara is installed from a file or link, not from the Play Store, which needs a Google account."
+    t('enroll.noAccountsYet')
 
 
 export type PrepareKey = 'charged' | 'chatsBackedUp' | 'passwordsNoted' | 'wifiReady' | 'debuggingOn'
 
 export const PREPARE_ITEMS: { key: PrepareKey; text: string }[] = [
-    { key: 'charged', text: 'The phone is charged above 50% and can stay plugged in.' },
+    { key: 'charged', text: t('enroll.prepare.charged') },
     {
         key: 'chatsBackedUp',
-        text: 'As a precaution, WhatsApp and other chat apps are backed up (for WhatsApp: Settings, Chats, Chat backup). Setup does not uninstall any app or delete app data.',
+        text: t('enroll.prepare.chats'),
     },
     {
         key: 'passwordsNoted',
-        text: "I can get back in to the phone's accounts if setup needs them removed for a moment: for Google, a passkey on my phone, a code by SMS, or the password. Manara never sees or stores passwords.",
+        text: t('enroll.prepare.passwords'),
     },
-    { key: 'wifiReady', text: 'The phone runs Android 11 or newer and is connected to Wi-Fi. No computer or cable is needed.' },
-    { key: 'debuggingOn', text: 'Wireless debugging is on, following the steps for this phone.' },
+    { key: 'wifiReady', text: t('enroll.prepare.wifi') },
+    { key: 'debuggingOn', text: t('enroll.prepare.debugging') },
 ]
 
 export type Prepared = Record<PrepareKey, boolean>

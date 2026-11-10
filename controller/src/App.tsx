@@ -8,10 +8,12 @@ import { AddDevice } from './AddDevice.tsx'
 import { DevicePanel } from './DevicePanel.tsx'
 import { agoText, authErrorText, deviceName, lastSeenText, statusText } from './format.ts'
 import { createSessionStore } from './session.ts'
+import { chooseLanguage, language, languageSync, storedLanguage, t } from './i18n.ts'
+import { LanguageSwitch } from './LanguageSwitch.tsx'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
 
-const EXPIRED = 'Your session has expired. Please sign in again.'
+const EXPIRED = t('auth.expired')
 
 /** `#add` or `#phone/<id>`, so the browser's back button works on a narrow screen. */
 type Route = { view: 'home' } | { view: 'add' } | { view: 'account' } | { view: 'phone'; deviceId: string }
@@ -89,25 +91,25 @@ function AuthForm({ onSubmit, onForgot, notice }: {
         return (
             <div class="auth">
                 <div class="auth-brand"><Logo /><span>Manara</span></div>
+            <LanguageSwitch />
                 <form class="card auth-card" onSubmit={submit}>
-                    <h1>Reset your password</h1>
+                    <h1>{t('auth.resetTitle')}</h1>
                     {sent ? (
                         <p role="status" class="banner ok">
-                            If an account uses {email.trim()}, a link to choose a new password is on its way. It works for one hour.
-                            Check your spam folder if it doesn't arrive in a few minutes.
+                            {t('auth.resetSent', { email: email.trim() })}
                         </p>
                     ) : (
                         <>
-                            <p class="muted">Enter the email address you signed up with. We'll send a link to choose a new password.</p>
+                            <p class="muted">{t('auth.resetHelp')}</p>
                             <label>
-                                Email
+                                {t('auth.email')}
                                 <input type="email" autoComplete="email" required value={email} onInput={(event) => setEmail(event.currentTarget.value)} />
                             </label>
                             <p role="alert" class="error">{error}</p>
-                            <button type="submit" class="primary wide" disabled={busy}>{busy ? 'Please wait…' : 'Send the link'}</button>
+                            <button type="submit" class="primary wide" disabled={busy}>{busy ? t('common.pleaseWait') : t('auth.sendLink')}</button>
                         </>
                     )}
-                    <button type="button" class="link" onClick={() => switchTo('login')}>Back to sign in</button>
+                    <button type="button" class="link" onClick={() => switchTo('login')}>{t('auth.backToSignIn')}</button>
                 </form>
             </div>
         )
@@ -119,16 +121,17 @@ function AuthForm({ onSubmit, onForgot, notice }: {
                 <Logo />
                 <span>Manara</span>
             </div>
+            <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
-                <h1>{mode === 'login' ? 'Sign in' : 'Create a parent account'}</h1>
-                <p class="muted">Manage your child's phone, openly: the phone always shows what is collected.</p>
+                <h1>{mode === 'login' ? t('auth.signIn') : t('auth.createTitle')}</h1>
+                <p class="muted">{t('auth.tagline')}</p>
                 {notice && <p role="status" class="banner">{notice}</p>}
                 <label>
-                    Email
+                    {t('auth.email')}
                     <input type="email" autoComplete="email" required value={email} onInput={(event) => setEmail(event.currentTarget.value)} />
                 </label>
                 <label>
-                    Password
+                    {t('auth.password')}
                     <input
                         type="password"
                         autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -137,19 +140,19 @@ function AuthForm({ onSubmit, onForgot, notice }: {
                         value={password}
                         onInput={(event) => setPassword(event.currentTarget.value)}
                     />
-                    {mode === 'signup' && <span class="muted small">At least 8 characters.</span>}
+                    {mode === 'signup' && <span class="muted small">{t('auth.min8')}</span>}
                 </label>
                 <p role="alert" class="error">{error}</p>
                 <button type="submit" class="primary wide" disabled={busy}>
-                    {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+                    {busy ? t('common.pleaseWait') : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
                 </button>
                 <button type="button" class="link" onClick={() => switchTo(mode === 'login' ? 'signup' : 'login')}>
-                    {mode === 'login' ? 'New here? Create an account' : 'I already have an account'}
+                    {mode === 'login' ? t('auth.newHere') : t('auth.haveAccount')}
                 </button>
-                {mode === 'login' && <button type="button" class="link" onClick={() => switchTo('forgot')}>Forgot your password?</button>}
+                {mode === 'login' && <button type="button" class="link" onClick={() => switchTo('forgot')}>{t('auth.forgot')}</button>}
             </form>
             <p class="muted small">
-                <a href="/privacy.html">Privacy policy</a> · <a href="/delete-account.html">Delete your account</a> · <a href="/guide.html">Parent guide</a>
+                <a href="/privacy.html">{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
             </p>
         </div>
     )
@@ -176,16 +179,17 @@ function SecondStep({ onCode, onCancel }: { onCode: (code: string) => Promise<vo
     return (
         <div class="auth">
             <div class="auth-brand"><Logo /><span>Manara</span></div>
+            <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
-                <h1>Two-step sign-in</h1>
-                <p class="muted">Enter the 6-digit code from your authenticator app. Lost the phone with the app? Enter one of your recovery codes instead.</p>
+                <h1>{t('auth.twoStepTitle')}</h1>
+                <p class="muted">{t('auth.twoStepHelp')}</p>
                 <label>
-                    Code
+                    {t('auth.code')}
                     <input autoComplete="one-time-code" inputMode="text" required value={code} onInput={(event) => setCode(event.currentTarget.value)} />
                 </label>
                 <p role="alert" class="error">{error}</p>
-                <button type="submit" class="primary wide" disabled={busy}>{busy ? 'Please wait…' : 'Sign in'}</button>
-                <button type="button" class="link" onClick={onCancel}>Back</button>
+                <button type="submit" class="primary wide" disabled={busy}>{busy ? t('common.pleaseWait') : t('auth.signIn')}</button>
+                <button type="button" class="link" onClick={onCancel}>{t('common.back')}</button>
             </form>
         </div>
     )
@@ -200,7 +204,7 @@ function ResetPassword({ token, onReset, onCancel }: { token: string; onReset: (
     async function submit(event: Event) {
         event.preventDefault()
         if (password !== again) {
-            setError('The two passwords are not the same.')
+            setError(t('auth.passwordsDiffer'))
             return
         }
         setBusy(true)
@@ -216,21 +220,22 @@ function ResetPassword({ token, onReset, onCancel }: { token: string; onReset: (
     return (
         <div class="auth">
             <div class="auth-brand"><Logo /><span>Manara</span></div>
+            <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
-                <h1>Choose a new password</h1>
-                <p class="muted">Every other place you're signed in is signed out.</p>
+                <h1>{t('auth.newPasswordTitle')}</h1>
+                <p class="muted">{t('auth.newPasswordHelp')}</p>
                 <label>
-                    New password
+                    {t('auth.newPassword')}
                     <input type="password" autoComplete="new-password" required minLength={8} value={password} onInput={(event) => setPassword(event.currentTarget.value)} />
-                    <span class="muted small">At least 8 characters.</span>
+                    <span class="muted small">{t('auth.min8')}</span>
                 </label>
                 <label>
-                    The same password again
+                    {t('auth.passwordAgain')}
                     <input type="password" autoComplete="new-password" required minLength={8} value={again} onInput={(event) => setAgain(event.currentTarget.value)} />
                 </label>
                 <p role="alert" class="error">{error}</p>
-                <button type="submit" class="primary wide" disabled={busy}>{busy ? 'Please wait…' : 'Save and sign in'}</button>
-                <button type="button" class="link" onClick={onCancel}>Cancel</button>
+                <button type="submit" class="primary wide" disabled={busy}>{busy ? t('common.pleaseWait') : t('auth.saveAndSignIn')}</button>
+                <button type="button" class="link" onClick={onCancel}>{t('common.cancel')}</button>
             </form>
         </div>
     )
@@ -238,17 +243,17 @@ function ResetPassword({ token, onReset, onCancel }: { token: string; onReset: (
 
 function PhoneList({ devices, selected, onRefresh, error }: { devices: DeviceSummary[] | null; selected: string | null; onRefresh: () => void; error: string }) {
     return (
-        <nav class="sidebar" aria-label="Phones">
+        <nav class="sidebar" aria-label={t('nav.phones')}>
             <div class="sidebar-head">
-                <h2>Phones</h2>
-                <button type="button" class="ghost small" onClick={onRefresh} aria-label="Refresh the list of phones">Refresh</button>
+                <h2>{t('nav.phones')}</h2>
+                <button type="button" class="ghost small" onClick={onRefresh} aria-label={t('nav.refreshPhones')}>{t('common.refresh')}</button>
             </div>
-            <button type="button" class="primary wide" onClick={() => go('add')}>+ Add a phone</button>
+            <button type="button" class="primary wide" onClick={() => go('add')}>{t('nav.addPhone')}</button>
             {error && <p role="alert" class="error">{error}</p>}
             {devices === null ? (
-                !error && <p class="muted">Loading…</p>
+                !error && <p class="muted">{t('common.loading')}</p>
             ) : devices.length === 0 ? (
-                <p class="muted">No phones yet. Add your child's phone to get started.</p>
+                <p class="muted">{t('nav.noPhones')}</p>
             ) : (
                 <ul class="phones">
                     {devices.map((device) => (
@@ -264,7 +269,7 @@ function PhoneList({ devices, selected, onRefresh, error }: { devices: DeviceSum
                                 </span>
                                 <span class="phone-text">
                                     <strong>{deviceName(device)}</strong>
-                                    <span class="muted small" title={`Last seen ${lastSeenText(device.lastSeen)}`}>{statusText(device.status)} · {agoText(device.lastSeen)}</span>
+                                    <span class="muted small" title={t('nav.lastSeenTitle', { when: lastSeenText(device.lastSeen) })}>{statusText(device.status)} · {agoText(device.lastSeen)}</span>
                                 </span>
                             </a>
                         </li>
@@ -279,13 +284,13 @@ function Welcome({ hasPhones }: { hasPhones: boolean }) {
     return (
         <div class="empty">
             <Logo />
-            <h2>{hasPhones ? 'Choose a phone' : 'Welcome to Manara'}</h2>
+            <h2>{hasPhones ? t('nav.choosePhone') : t('nav.welcome')}</h2>
             <p class="muted">
                 {hasPhones
-                    ? 'Pick a phone from the list to see its activity and change its rules.'
-                    : "Connect your child's phone to set screen-time limits, a bedtime and more."}
+                    ? t('nav.choosePhoneHelp')
+                    : t('nav.welcomeHelp')}
             </p>
-            {!hasPhones && <button type="button" class="primary" onClick={() => go('add')}>Add your child's phone</button>}
+            {!hasPhones && <button type="button" class="primary" onClick={() => go('add')}>{t('nav.addChildPhone')}</button>}
         </div>
     )
 }
@@ -315,6 +320,17 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
         }
     }, [api, onExpired, reloads])
 
+    // Once per sign-in: bring this browser and the account to the same language.
+    useEffect(() => {
+        api.getAccount()
+            .then((account) => {
+                const { adopt, save } = languageSync(storedLanguage(), language(), account.language)
+                if (adopt) chooseLanguage(adopt)
+                else if (save) api.setLanguage(save).catch(() => undefined)
+            })
+            .catch(() => undefined) // the list of phones reports a lost session
+    }, [api])
+
     const refresh = () => {
         setError('')
         setReloads((count) => count + 1)
@@ -331,9 +347,9 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
         detail = selected ? (
             <DevicePanel key={selected.deviceId} api={api} device={selected} onSessionExpired={onExpired} onRemoved={() => { refresh(); go('') }} onChanged={refresh} />
         ) : devices === null ? (
-            <p class="muted">Loading…</p>
+            <p class="muted">{t('common.loading')}</p>
         ) : (
-            <div class="empty"><h2>Phone not found</h2><p class="muted">It may have been removed from this account.</p></div>
+            <div class="empty"><h2>{t('nav.notFound')}</h2><p class="muted">{t('nav.notFoundHelp')}</p></div>
         )
     } else {
         detail = <Welcome hasPhones={(devices?.length ?? 0) > 0} />
@@ -344,14 +360,15 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
             <header class="topbar">
                 <a href="#" class="brand"><Logo /><span>Manara</span></a>
                 <span class="topbar-actions">
-                    <a href="#account" class="ghost small button-link">Account</a>
-                    <button type="button" class="ghost small" onClick={onSignOut}>Sign out</button>
+                    <LanguageSwitch onChoose={(lang) => api.setLanguage(lang)} />
+                    <a href="#account" class="ghost small button-link">{t('nav.account')}</a>
+                    <button type="button" class="ghost small" onClick={onSignOut}>{t('nav.signOut')}</button>
                 </span>
             </header>
             <div class={route.view === 'home' ? 'layout' : 'layout has-detail'}>
                 <PhoneList devices={devices} selected={selectedId} onRefresh={refresh} error={error} />
                 <main class="detail">
-                    {route.view !== 'home' && <a href="#" class="back">← All phones</a>}
+                    {route.view !== 'home' && <a href="#" class="back">{t('nav.allPhones')}</a>}
                     {detail}
                 </main>
             </div>
@@ -429,7 +446,7 @@ export default function App() {
                 signOut()
             }}
             onExpired={expire}
-            onDeleted={() => { go(''); signOut('Your account and all its data were deleted.') }}
+            onDeleted={() => { go(''); signOut(t('nav.accountDeleted')) }}
         />
     ) : (
         <AuthForm onSubmit={authenticate} onForgot={(email) => api.requestPasswordReset(email)} notice={notice} />

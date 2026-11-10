@@ -103,14 +103,14 @@ object LocationSharing {
     private fun showNotice(context: Context, intervalMinutes: Int) {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Location sharing", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Shows that this phone's location is shared with your parent."
+            NotificationChannel(CHANNEL_ID, context.getString(R.string.location_channel_name), NotificationManager.IMPORTANCE_LOW).apply {
+                description = context.getString(R.string.location_channel_description)
                 setShowBadge(false)
             }
         )
         val notice = Notification.Builder(context, CHANNEL_ID)
-            .setContentTitle("Your location is shared")
-            .setContentText("Your parent sees where this phone is, every $intervalMinutes minutes.")
+            .setContentTitle(context.getString(R.string.location_notice_title))
+            .setContentText(context.getString(R.string.location_notice_text, intervalMinutes.toString()))
             .setSmallIcon(R.drawable.ic_stat_manara)
             .setOngoing(true)
             .build()

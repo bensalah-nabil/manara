@@ -73,6 +73,7 @@ func (f fakeParents) Create(context.Context, *domain.Parent) error { return nil 
 func (f fakeParents) FindByID(_ context.Context, id string) (*domain.Parent, error) {
 	return f.byID[id], nil
 }
+func (f fakeParents) SetLanguage(context.Context, string, string) error { return nil }
 
 type recordingMailer struct{ to, subject, text []string }
 

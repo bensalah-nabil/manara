@@ -1,4 +1,5 @@
 import type { EventItem } from './protection.ts'
+import { t } from './i18n.ts'
 
 export interface AppUsage {
     packageName: string
@@ -56,6 +57,6 @@ export function summarizeDailyUsage(events: EventItem[]): DailyUsage[] {
 
 export function minutesText(minutes: number): string {
     const whole = Math.round(minutes)
-    if (whole < 60) return `${whole} min`
-    return `${Math.floor(whole / 60)} h ${String(whole % 60).padStart(2, '0')} min`
+    if (whole < 60) return t('common.minutes', { n: whole })
+    return t('common.hoursMinutes', { h: Math.floor(whole / 60), m: String(whole % 60).padStart(2, '0') })
 }

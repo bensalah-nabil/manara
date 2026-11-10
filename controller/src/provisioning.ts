@@ -1,3 +1,4 @@
+import { t } from './i18n.ts'
 /**
  * The QR code Android reads during setup of a new or factory-reset phone (Android Enterprise QR
  * provisioning, Android 7+: tap the welcome screen six times, then scan). Keys are the
@@ -43,9 +44,9 @@ export function provisioningQr(token: string, apkUrl: string): string {
 
 /** What the parent does, in order, once the QR code is on screen. */
 export const QR_SETUP_STEPS: string[] = [
-    'On the phone, reset it: open Settings and search "Factory data reset" (or "Erase all data"). This erases everything on it.',
-    'When the phone shows its first welcome screen, tap the same spot on it six times. A QR code scanner opens.',
-    'If the phone asks, connect it to Wi-Fi.',
-    'Scan the QR code below. The phone explains that it will be managed and installs Manara by itself: follow its screens.',
-    'When the phone has finished, sign in to Google on it if you want. Manara is already connected to your account.',
+    t('enroll.qr.reset'),
+    t('enroll.qr.tap'),
+    t('enroll.qr.wifi'),
+    t('enroll.qr.scan'),
+    t('enroll.qr.google'),
 ]

@@ -1,6 +1,8 @@
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
 import { minutesText } from './dailyUsage.ts'
+import { t } from './i18n.ts'
+import { categoryLabel } from './ruleCards.ts'
 
 /**
  * Insights from what the phone already reports (daily usage reports and limit hits): nothing new
@@ -240,8 +242,8 @@ export function findInsights(input: {
             insights.push({
                 id: `new:${pkg}`,
                 tone: 'attention',
-                title: `New app: ${appName(pkg)}`,
-                detail: `About ${minutesText(average)} a day since it appeared, not seen before.`,
+                title: t('insights.newApp', { app: appName(pkg) }),
+                detail: t('insights.newAppDetail', { time: minutesText(average) }),
                 suggestion: limited === undefined ? { kind: 'limit', packageName: pkg, minutes: 30 } : undefined,
             })
         }
@@ -257,9 +259,9 @@ export function findInsights(input: {
                 insights.push({
                     id: `spike:${pkg}`,
                     tone: 'attention',
-                    title: `${appName(pkg)}: ${minutesText(minutes)} today`,
-                    detail: `Usually about ${minutesText(usual)} a day.` +
-                        (limited !== undefined ? ` It already has a ${minutesText(limited)} daily limit.` : ''),
+                    title: t('insights.spike', { app: appName(pkg), time: minutesText(minutes) }),
+                    detail: t('insights.spikeDetail', { time: minutesText(usual) }) +
+                        (limited !== undefined ? t('insights.alreadyLimited', { time: minutesText(limited) }) : ''),
                     suggestion: limited === undefined ? { kind: 'limit', packageName: pkg, minutes: roundTo15(Math.max(usual, 30)) } : undefined,
                 })
             }
@@ -272,9 +274,9 @@ export function findInsights(input: {
         insights.push({
             id: 'late-nights',
             tone: 'attention',
-            title: `Used late at night on ${nights.count} of the last 7 nights`,
-            detail: `Between 22:00 and 06:00${nights.latestHour !== null ? `, as late as about ${String(nights.latestHour).padStart(2, '0')}:00` : ''}.` +
-                (rules.hasNightLock ? ' A night lock is already set: check its days and hours.' : ''),
+            title: t('insights.lateTitle', { n: nights.count }),
+            detail: t('insights.lateDetail', { latest: nights.latestHour !== null ? t('insights.lateLatest', { hour: String(nights.latestHour).padStart(2, '0') }) : '' }) +
+                (rules.hasNightLock ? t('insights.lateLocked') : ''),
             suggestion: rules.hasNightLock ? undefined : { kind: 'bedtime', fromHour: 22, toHour: 7 },
         })
     }
@@ -294,8 +296,8 @@ export function findInsights(input: {
         insights.push({
             id: `limit:${category}`,
             tone: 'info',
-            title: `"${category}" limit reached on ${days.size} of the last 7 days`,
-            detail: 'The limit is doing its job. If it is reached early every day, it may be worth talking about, or adjusting it.',
+            title: t('insights.limitTitle', { name: categoryLabel(category), n: days.size }),
+            detail: t('insights.limitDetail'),
         })
     }
 
@@ -310,8 +312,8 @@ export function findInsights(input: {
             insights.push({
                 id: 'rising',
                 tone: 'info',
-                title: `Screen time up ${Math.round((avgNow / avgBefore - 1) * 100)}% this week`,
-                detail: `About ${minutesText(avgNow)} a day, against ${minutesText(avgBefore)} the week before.`,
+                title: t('insights.upTitle', { n: Math.round((avgNow / avgBefore - 1) * 100) }),
+                detail: t('insights.upDetail', { now: minutesText(avgNow), before: minutesText(avgBefore) }),
             })
         }
     }
@@ -333,6 +335,6 @@ export function applySuggestion(policy: Policy, suggestion: Suggestion): Policy 
 /** What the parent is asked before a suggestion is saved. */
 export function suggestionText(suggestion: Suggestion): string {
     return suggestion.kind === 'limit'
-        ? `Add a daily limit of ${minutesText(suggestion.minutes)} for ${appName(suggestion.packageName)}?`
-        : `Lock the phone every night from ${String(suggestion.fromHour).padStart(2, '0')}:00 to ${String(suggestion.toHour).padStart(2, '0')}:00?`
+        ? t('insights.suggestLimit', { time: minutesText(suggestion.minutes), app: appName(suggestion.packageName) })
+        : t('insights.suggestLock', { from: String(suggestion.fromHour).padStart(2, '0'), to: String(suggestion.toHour).padStart(2, '0') })
 }

@@ -123,6 +123,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/auth/password-reset", limited(consoleHandlers.RequestPasswordReset))
 	mux.HandleFunc("POST /api/v1/console/auth/password-reset/confirm", limited(consoleHandlers.ConfirmPasswordReset))
 	mux.HandleFunc("GET /api/v1/console/account", consoleHandlers.GetAccount)
+	mux.HandleFunc("PATCH /api/v1/console/account", consoleHandlers.UpdateAccount)
 	mux.HandleFunc("DELETE /api/v1/console/account", consoleHandlers.DeleteAccount)
 	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
 	mux.HandleFunc("GET /api/v1/console/devices", consoleHandlers.ListDevices)

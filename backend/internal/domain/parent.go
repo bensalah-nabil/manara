@@ -19,12 +19,32 @@ type Parent struct {
 	ID           string
 	Email        string
 	PasswordHash string // bcrypt -- see AuthRepository.SignUp; never compared directly
-	CreatedAt    time.Time
+	// Language is what the console and emails are written in for this parent.
+	Language  string
+	CreatedAt time.Time
 }
 
 type ParentRepository interface {
 	Create(ctx context.Context, p *Parent) error
 	FindByID(ctx context.Context, id string) (*Parent, error)
+	// SetLanguage stores one of Languages for the parent.
+	SetLanguage(ctx context.Context, id, language string) error
+}
+
+// DefaultLanguage is what an account has until the parent chooses.
+const DefaultLanguage = "en"
+
+// Languages the console and the emails are written in.
+var Languages = map[string]bool{"en": true, "fr": true, "ar": true}
+
+var ErrUnknownLanguage = errors.New("language must be en, fr or ar")
+
+// NormalizeLanguage returns a supported language, or DefaultLanguage.
+func NormalizeLanguage(language string) string {
+	if Languages[language] {
+		return language
+	}
+	return DefaultLanguage
 }
 
 // AuthRepository owns password hashing/verification -- kept separate from

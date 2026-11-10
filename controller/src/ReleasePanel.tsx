@@ -4,21 +4,19 @@ import type { ReleaseCode, ReleaseMode } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { errorText } from './format.ts'
 import { minutesLeft, releaseCodeText } from './release.ts'
+import { t } from './i18n.ts'
 
 const CONFIRM: Record<ReleaseMode, string> = {
     transfer:
-        'Move this phone to another parent account? For the next 30 minutes the phone accepts one connection code. ' +
-        'This account stays in charge until the new one takes over.',
+        t('release.confirmTransfer'),
     remove:
-        'Remove Manara from this phone? It lifts every rule, stops being managed, and disappears from this list. ' +
-        'Setting it up again later means the full guided setup.',
+        t('release.confirmRemove'),
 }
 
 const SENT: Record<ReleaseMode, string> = {
     transfer:
-        'Sent. Within 30 minutes, add the phone from the other account and scan that code on the phone. ' +
-        'The phone then leaves this list by itself.',
-    remove: 'Sent. The phone lifts its rules and stops being managed as soon as it receives this, then leaves this list.',
+        t('release.sentTransfer'),
+    remove: t('release.sentRemove'),
 }
 
 export function ReleasePanel({ api, device, onSessionExpired, onRemoved }: Props & { onRemoved: () => void }) {
@@ -61,8 +59,7 @@ export function ReleasePanel({ api, device, onSessionExpired, onRemoved }: Props
 
     async function removeFromList() {
         if (!window.confirm(
-            'Remove this phone from your list? Do this only once it has been released, or if it is lost. ' +
-            'A phone that has not been released stays managed, and its release code cannot be shown again.',
+            t('release.confirmForget'),
         )) return
         setBusy(true)
         try {
@@ -77,38 +74,35 @@ export function ReleasePanel({ api, device, onSessionExpired, onRemoved }: Props
     return (
         <>
             <section class="card">
-                <h3>Move or remove this phone</h3>
+                <h3>{t('release.title')}</h3>
                 <p class="muted">
-                    Only you can do this. Manara on the phone has no button for it, so your child cannot take the phone out of
-                    your account.
+                    {t('release.onlyYou')}
                 </p>
                 <div class="actions start">
-                    <button type="button" class="ghost" disabled={busy} onClick={() => release('transfer')}>Move to another account</button>
-                    <button type="button" class="ghost danger" disabled={busy} onClick={() => release('remove')}>Remove Manara from this phone</button>
+                    <button type="button" class="ghost" disabled={busy} onClick={() => release('transfer')}>{t('release.move')}</button>
+                    <button type="button" class="ghost danger" disabled={busy} onClick={() => release('remove')}>{t('release.remove')}</button>
                 </div>
                 {message && <p role="status" class="banner ok">{message}</p>}
                 {error && <p role="alert" class="error">{error}</p>}
             </section>
 
             <section class="card">
-                <h3>Phone can't be reached?</h3>
+                <h3>{t('release.unreachableTitle')}</h3>
                 <p class="muted">
-                    If the phone is offline, use a release code instead. On the phone, open Manara, tap "Release this phone" and
-                    type the code. It works without a connection.
+                    {t('release.unreachableHelp')}
                 </p>
                 {code === null ? (
-                    <button type="button" class="ghost" disabled={busy} onClick={showCode}>Show release code</button>
+                    <button type="button" class="ghost" disabled={busy} onClick={showCode}>{t('release.showCode')}</button>
                 ) : (
                     <div class="stack">
-                        <code class="release-code" aria-label="Release code">{releaseCodeText(code.code)}</code>
+                        <code class="release-code" aria-label={t('release.codeLabel')}>{releaseCodeText(code.code)}</code>
                         <p class="muted small">
-                            Changes in about {minutesLeft(code.validUntil)} min, and still works for 10 min after that.{' '}
-                            <button type="button" class="link" onClick={showCode}>New code</button>
+                            {t('release.codeChanges', { n: minutesLeft(code.validUntil) })}{' '}
+                            <button type="button" class="link" onClick={showCode}>{t('release.newCode')}</button>
                         </p>
                         {!code.phoneReady && (
                             <p class="banner">
-                                This phone hasn't received its release key yet. It gets it at its next check-in; until then a code
-                                typed on the phone won't work.
+                                {t('release.notReady')}
                             </p>
                         )}
                     </div>
@@ -116,9 +110,9 @@ export function ReleasePanel({ api, device, onSessionExpired, onRemoved }: Props
             </section>
 
             <section class="card">
-                <h3>Remove from your list</h3>
-                <p class="muted">For a phone that is lost, or that you released with a code while it was offline.</p>
-                <button type="button" class="link danger" disabled={busy} onClick={removeFromList}>Remove from my list</button>
+                <h3>{t('release.forgetTitle')}</h3>
+                <p class="muted">{t('release.forgetHelp')}</p>
+                <button type="button" class="link danger" disabled={busy} onClick={removeFromList}>{t('release.forget')}</button>
             </section>
         </>
     )

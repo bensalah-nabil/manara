@@ -3,6 +3,8 @@ import { isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import { errorText } from './format.ts'
 import { QrCode } from './QrCode.tsx'
+import { Rich } from './Rich.tsx'
+import { t } from './i18n.ts'
 
 type Stage =
     | { kind: 'idle' }
@@ -44,76 +46,75 @@ export function TwoStepPanel({ api, on, onChanged, onSessionExpired }: {
 
     return (
         <section class="card stack">
-            <h3>Two-step sign-in</h3>
+            <h3>{t('twoStep.title')}</h3>
             {stage.kind === 'idle' && (
                 <>
                     <p>
                         {on
-                            ? 'On. Signing in asks for a code from your authenticator app as well as your password.'
-                            : 'Off. Turn it on so that a stolen password alone cannot open this console, which controls your child\'s phone.'}
+                            ? t('twoStep.on')
+                            : t('twoStep.off')}
                     </p>
                     <button type="button" class={on ? 'ghost danger' : 'primary'} onClick={() => setStage({ kind: on ? 'turnOff' : 'password' })}>
-                        {on ? 'Turn off two-step sign-in' : 'Turn on two-step sign-in'}
+                        {on ? t('twoStep.turnOff') : t('twoStep.turnOn')}
                     </button>
                 </>
             )}
 
             {stage.kind === 'password' && (
                 <form class="stack" onSubmit={(e) => { e.preventDefault(); void run(async () => setStage({ kind: 'scan', ...(await api.setupTwoFactor(password)) })) }}>
-                    <p class="muted">You need an authenticator app on your own phone, such as Google Authenticator or Microsoft Authenticator.</p>
+                    <p class="muted">{t('twoStep.needApp')}</p>
                     <label>
-                        Your password
+                        {t('account.yourPassword')}
                         <input type="password" autoComplete="current-password" required value={password} onInput={(e) => setPassword(e.currentTarget.value)} />
                     </label>
                     <div class="actions">
-                        <button type="button" class="ghost" onClick={reset}>Cancel</button>
-                        <button type="submit" class="primary" disabled={busy}>{busy ? 'Please wait…' : 'Continue'}</button>
+                        <button type="button" class="ghost" onClick={reset}>{t('common.cancel')}</button>
+                        <button type="submit" class="primary" disabled={busy}>{busy ? t('common.pleaseWait') : t('common.continue')}</button>
                     </div>
                 </form>
             )}
 
             {stage.kind === 'scan' && (
                 <form class="stack" onSubmit={(e) => { e.preventDefault(); void run(async () => { setStage({ kind: 'codes', codes: await api.enableTwoFactor(code) }); onChanged() }) }}>
-                    <p>In your authenticator app, add an account and scan this code.</p>
-                    <QrCode value={stage.uri} label="Two-step sign-in code for the authenticator app" />
-                    <p class="muted small">Can't scan? Enter this key in the app instead: <code class="token">{stage.secret}</code></p>
+                    <p>{t('twoStep.scan')}</p>
+                    <QrCode value={stage.uri} label={t('twoStep.qrLabel')} />
+                    <p class="muted small">{t('twoStep.cantScan')} <code class="token">{stage.secret}</code></p>
                     <label>
-                        The 6-digit code the app shows now
+                        {t('twoStep.codeNow')}
                         <input autoComplete="one-time-code" inputMode="numeric" required value={code} onInput={(e) => setCode(e.currentTarget.value)} />
                     </label>
                     <div class="actions">
-                        <button type="button" class="ghost" onClick={reset}>Cancel</button>
-                        <button type="submit" class="primary" disabled={busy}>{busy ? 'Checking…' : 'Turn on'}</button>
+                        <button type="button" class="ghost" onClick={reset}>{t('common.cancel')}</button>
+                        <button type="submit" class="primary" disabled={busy}>{busy ? t('twoStep.checking') : t('twoStep.turnOnShort')}</button>
                     </div>
                 </form>
             )}
 
             {stage.kind === 'codes' && (
                 <div class="stack">
-                    <p role="status" class="banner ok">Two-step sign-in is on.</p>
+                    <p role="status" class="banner ok">{t('twoStep.isOn')}</p>
                     <p>
-                        <strong>Save these recovery codes now.</strong> Each one signs you in once if you lose the phone with
-                        the app. They are shown only this once: write them down or store them in a password manager.
+                        <Rich text={t('twoStep.saveCodes')} />
                     </p>
                     <ul class="recovery-codes">{stage.codes.map((c) => <li key={c}><code>{c}</code></li>)}</ul>
-                    <button type="button" class="primary" onClick={reset}>I saved them</button>
+                    <button type="button" class="primary" onClick={reset}>{t('twoStep.savedThem')}</button>
                 </div>
             )}
 
             {stage.kind === 'turnOff' && (
                 <form class="stack" onSubmit={(e) => { e.preventDefault(); void run(async () => { await api.disableTwoFactor(password, code); reset(); onChanged() }) }}>
-                    <p>Signing in will need only your password again. Your recovery codes stop working.</p>
+                    <p>{t('twoStep.offExplain')}</p>
                     <label>
-                        Your password
+                        {t('account.yourPassword')}
                         <input type="password" autoComplete="current-password" required value={password} onInput={(e) => setPassword(e.currentTarget.value)} />
                     </label>
                     <label>
-                        A code from the app, or a recovery code
+                        {t('twoStep.codeOrRecovery')}
                         <input autoComplete="one-time-code" required value={code} onInput={(e) => setCode(e.currentTarget.value)} />
                     </label>
                     <div class="actions">
-                        <button type="button" class="ghost" onClick={reset}>Cancel</button>
-                        <button type="submit" class="danger" disabled={busy}>{busy ? 'Please wait…' : 'Turn off'}</button>
+                        <button type="button" class="ghost" onClick={reset}>{t('common.cancel')}</button>
+                        <button type="submit" class="danger" disabled={busy}>{busy ? t('common.pleaseWait') : t('twoStep.turnOffShort')}</button>
                     </div>
                 </form>
             )}

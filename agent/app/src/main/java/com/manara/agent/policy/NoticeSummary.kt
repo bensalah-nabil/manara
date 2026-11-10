@@ -1,28 +1,31 @@
 package com.manara.agent.policy
 
+import com.manara.agent.R
+import com.manara.agent.enforcers.BrowserPolicyDecision
+import com.manara.agent.text.Words
+
 /** Short, lock-screen-safe lines for the managed notice: what the parent has configured, not what is confirmed working. */
 object NoticeSummary {
-    fun lines(policy: Policy?): List<String> {
-        if (policy == null) return listOf("No policy received yet")
+    /** [first] goes on top: what is happening right now, such as a prayer-time pause. */
+    fun lines(words: Words, policy: Policy?, first: List<String> = emptyList()): List<String> {
+        if (policy == null) return listOf(words.get(R.string.summary_no_policy))
         val lines = mutableListOf<String>()
         val rules = policy.timeLimits.rules.size
-        if (policy.timeLimits.enabled && rules > 0) {
-            lines += "App time limits configured: $rules ${if (rules == 1) "rule" else "rules"}"
-        }
-        if (policy.siteFilter.enabled) lines += "Site filtering requested"
-        if (policy.location.enabled) lines += "Location sharing requested, every ${policy.location.intervalMinutes} min"
-        if (policy.usageReport.enabled) lines += "Daily app usage is reported to your parent"
+        if (policy.timeLimits.enabled && rules > 0) lines += words.get(R.string.summary_limits, rules)
+        if (policy.siteFilter.enabled) lines += words.get(R.string.summary_filter)
+        if (policy.location.enabled) lines += words.get(R.string.summary_location, policy.location.intervalMinutes)
+        if (policy.usageReport.enabled) lines += words.get(R.string.summary_usage)
         val windows = policy.lockSchedule?.takeIf { it.enabled }?.windows?.size ?: 0
-        if (windows > 0) lines += "Scheduled lock: $windows ${if (windows == 1) "window" else "windows"}"
+        if (windows > 0) lines += words.get(R.string.summary_lock, windows)
         with(policy.restrictions) {
             val count = listOf(blockVpnConfig, blockPrivateDnsConfig, blockFactoryReset, blockSafeBoot, blockAddUser, blockDebugging, blockDateTime).count { it }
-            if (count > 0) lines += "Settings restrictions requested: $count"
+            if (count > 0) lines += words.get(R.string.summary_restrictions, count)
         }
-        if (com.manara.agent.enforcers.BrowserPolicyDecision.restrictions(policy.browser).isNotEmpty()) lines += "Chrome rules set by your parent"
-        if (policy.browser.blockOtherBrowsers) lines += "Browsers other than Chrome are blocked"
-        if (policy.callLog.enabled) lines += "Call history is sent to your parent"
-        if (lines.isEmpty()) lines += "No limits or collection configured"
-        if (!policy.callLog.enabled) lines += "Call logs: not collected"
-        return lines
+        if (BrowserPolicyDecision.restrictions(policy.browser).isNotEmpty()) lines += words.get(R.string.summary_chrome)
+        if (policy.browser.blockOtherBrowsers) lines += words.get(R.string.summary_other_browsers)
+        if (policy.callLog.enabled) lines += words.get(R.string.summary_calls)
+        if (lines.isEmpty() && first.isEmpty()) lines += words.get(R.string.summary_nothing)
+        if (!policy.callLog.enabled) lines += words.get(R.string.summary_no_calls)
+        return first + lines
     }
 }

@@ -1,7 +1,10 @@
 package com.manara.agent.ui
 
 import com.manara.agent.policy.CollectionStatusSummary
+import com.manara.agent.R
+import com.manara.agent.enforcers.BrowserPolicyDecision
 import com.manara.agent.policy.Policy
+import com.manara.agent.text.Words
 
 /** Pure. Which of the app's few screens the phone is on. */
 object HomeModel {
@@ -28,6 +31,7 @@ object HomeModel {
  * Pure. What the child's screen says: what the parent can see, which rules
  * are on, and what needs fixing. Kept to what the parent has actually turned on,
  * in plain words, because the child must always be able to see it (ADR-0001).
+ * The wording comes from string resources through [Words], in the phone's language.
  */
 object ChildView {
     data class Line(val title: String, val detail: String)
@@ -45,138 +49,146 @@ object ChildView {
     )
 
     fun build(
+        words: Words,
         policy: Policy?,
         usage: CollectionStatusSummary.Usage,
         location: CollectionStatusSummary.LocationStatus,
         lastSyncAt: Long?,
         now: Long,
+        extraRules: List<Line> = emptyList(),
     ): View = View(
-        seen = seen(policy),
-        neverShared = neverShared(policy),
-        rules = rules(policy),
-        attention = attention(policy, usage, location),
-        lastContact = lastContact(lastSyncAt, now),
+        seen = seen(words, policy),
+        neverShared = neverShared(words, policy),
+        rules = extraRules + rules(words, policy),
+        attention = attention(words, policy, usage, location),
+        lastContact = lastContact(words, lastSyncAt, now),
     )
 
-    fun seen(policy: Policy?): List<Line> = buildList {
+    fun seen(words: Words, policy: Policy?): List<Line> = buildList {
         if (policy?.location?.enabled == true) {
-            add(Line("Where this phone is", "Sent every ${policy.location.intervalMinutes} minutes. A notice shows while it's on."))
+            add(Line(words.get(R.string.seen_location_title), words.get(R.string.seen_location_detail, policy.location.intervalMinutes)))
         }
         if (policy?.usageReport?.enabled == true) {
-            add(Line("Time spent in each app", "Minutes per app today, sent about once an hour."))
+            add(Line(words.get(R.string.seen_usage_title), words.get(R.string.seen_usage_detail)))
         }
         if (policy?.timeLimits?.enabled == true && policy.timeLimits.rules.isNotEmpty()) {
-            add(Line("When a time limit is reached", "Which limit, not what you were doing."))
+            add(Line(words.get(R.string.seen_limit_title), words.get(R.string.seen_limit_detail)))
         }
         if (policy?.callLog?.enabled == true) {
-            add(Line("Your calls", "The number, direction, time and length of each call. Never what was said."))
-            add(Line("Calls in WhatsApp, Messenger, Telegram and Viber", "Which app, when and how long, if notification access is on. Manara looks at notifications only to spot calls and keeps nothing else, not even who called."))
+            add(Line(words.get(R.string.seen_calls_title), words.get(R.string.seen_calls_detail)))
+            add(Line(words.get(R.string.seen_app_calls_title), words.get(R.string.seen_app_calls_detail)))
         }
-        add(Line("Whether Manara is working", "For example if a setting it needs was turned off."))
+        add(Line(words.get(R.string.seen_health_title), words.get(R.string.seen_health_detail)))
     }
 
     /** The promise changes with the rule: it must never say calls are private while their details are sent. */
-    fun neverShared(policy: Policy?): String =
-        if (policy?.callLog?.enabled == true) {
-            "Never your messages, photos or passwords, or what is said on a call."
-        } else {
-            "Never your messages, photos, calls or passwords."
-        }
+    fun neverShared(words: Words, policy: Policy?): String =
+        words.get(if (policy?.callLog?.enabled == true) R.string.never_shared_calls else R.string.never_shared)
 
-    fun rules(policy: Policy?): List<Line> = buildList {
+    fun rules(words: Words, policy: Policy?): List<Line> = buildList {
         if (policy == null) return@buildList
+        val separator = words.get(R.string.list_separator)
         val limits = policy.timeLimits
         if (limits.enabled) {
             limits.rules.forEach { rule ->
-                val apps = rule.packages.size
-                val appsText = if (rule.allGames) "all games" else if (apps == 1) "1 app" else "$apps apps"
-                val detail = if (rule.dailyMinutes == 0) "Blocked, $appsText" else "${minutes(rule.dailyMinutes)} a day, $appsText"
-                add(Line(rule.category.ifBlank { "App limit" }.replaceFirstChar { it.uppercase() }, detail))
+                val appsText = if (rule.allGames) words.get(R.string.rule_all_games) else words.plural(R.plurals.apps_count, rule.packages.size)
+                val detail = if (rule.dailyMinutes == 0) words.get(R.string.rule_blocked, appsText)
+                else words.get(R.string.rule_daily, minutes(words, rule.dailyMinutes), appsText)
+                add(Line(categoryName(words, rule.category), detail))
             }
         }
         val schedule = policy.lockSchedule
         if (schedule?.enabled == true) {
-            schedule.windows.forEach { add(Line("Locked ${hour(it.fromHour)}–${hour(it.toHour)}", days(it.days))) }
+            schedule.windows.forEach { add(Line(words.get(R.string.rule_locked, hour(it.fromHour), hour(it.toHour)), days(words, it.days))) }
         }
-        if (policy.siteFilter.enabled) add(Line("Website filter", "Some websites are blocked."))
+        if (policy.siteFilter.enabled) add(Line(words.get(R.string.rule_filter_title), words.get(R.string.rule_filter_detail)))
         val blocked = with(policy.restrictions) {
             listOfNotNull(
-                "factory reset".takeIf { blockFactoryReset },
-                "safe mode".takeIf { blockSafeBoot },
-                "new users".takeIf { blockAddUser },
-                "developer options".takeIf { blockDebugging },
-                "date and time".takeIf { blockDateTime },
-                "VPN settings".takeIf { blockVpnConfig },
-                "Private DNS settings".takeIf { blockPrivateDnsConfig },
-            )
+                R.string.restrict_factory_reset.takeIf { blockFactoryReset },
+                R.string.restrict_safe_mode.takeIf { blockSafeBoot },
+                R.string.restrict_new_users.takeIf { blockAddUser },
+                R.string.restrict_developer.takeIf { blockDebugging },
+                R.string.restrict_date_time.takeIf { blockDateTime },
+                R.string.restrict_vpn.takeIf { blockVpnConfig },
+                R.string.restrict_private_dns.takeIf { blockPrivateDnsConfig },
+            ).map { words.get(it) }
         }
-        if (blocked.isNotEmpty()) add(Line("Settings you can't change", blocked.joinToString(", ").replaceFirstChar { it.uppercase() }))
-        browserRules(policy.browser)?.let { add(Line("Chrome", it)) }
+        if (blocked.isNotEmpty()) add(Line(words.get(R.string.restrict_title), blocked.joinToString(separator).replaceFirstChar { it.uppercase() }))
+        browserRules(words, policy.browser)?.let { add(Line(words.get(R.string.chrome_title), it)) }
+    }
+
+    /**
+     * A rule's name as the child reads it. The console's two card rules are stored under fixed English
+     * names ("Social media", "Games"), so they are shown in the phone's language; any other name is the
+     * parent's own wording.
+     */
+    fun categoryName(words: Words, category: String): String = when {
+        category.isBlank() -> words.get(R.string.rule_app_limit)
+        category == "Social media" -> words.get(R.string.rule_social)
+        category == "Games" -> words.get(R.string.rule_games)
+        else -> category.replaceFirstChar { it.uppercase() }
     }
 
     /** Every Chrome rule in one sentence, or null when Chrome is left alone. */
-    fun browserRules(browser: Policy.Browser): String? {
-        val sites = com.manara.agent.enforcers.BrowserPolicyDecision.sites(browser.blockedSites).size
+    fun browserRules(words: Words, browser: Policy.Browser): String? {
+        val sites = BrowserPolicyDecision.sites(browser.blockedSites).size
         val parts = listOfNotNull(
-            "SafeSearch on Google".takeIf { browser.safeSearch },
-            when (com.manara.agent.enforcers.BrowserPolicyDecision.youtubeLevel(browser.youtube)) {
-                1 -> "YouTube Restricted Mode"
-                2 -> "YouTube strict Restricted Mode"
+            words.get(R.string.chrome_safesearch).takeIf { browser.safeSearch },
+            when (BrowserPolicyDecision.youtubeLevel(browser.youtube)) {
+                1 -> words.get(R.string.chrome_youtube)
+                2 -> words.get(R.string.chrome_youtube_strict)
                 else -> null
             },
-            "Chrome's own secure DNS is off, so the website filter applies".takeIf { browser.secureDnsOff },
-            when (sites) {
-                0 -> null
-                1 -> "1 website blocked"
-                else -> "$sites websites blocked"
-            },
-            "Other browsers are blocked".takeIf { browser.blockOtherBrowsers },
+            words.get(R.string.chrome_secure_dns).takeIf { browser.secureDnsOff },
+            if (sites == 0) null else words.plural(R.plurals.sites_blocked, sites),
+            words.get(R.string.chrome_other_browsers).takeIf { browser.blockOtherBrowsers },
         )
         return parts.takeIf { it.isNotEmpty() }?.joinToString(". ")?.plus(".")
     }
 
     fun attention(
+        words: Words,
         policy: Policy?,
         usage: CollectionStatusSummary.Usage,
         location: CollectionStatusSummary.LocationStatus,
     ): List<Attention> = buildList {
         if (CollectionStatusSummary.usageDataNeeded(policy) && usage == CollectionStatusSummary.Usage.ACCESS_MISSING) {
-            add(Attention("Usage access is off for Manara, so app limits can't be counted.", Fix.USAGE_ACCESS))
+            add(Attention(words.get(R.string.attention_usage), Fix.USAGE_ACCESS))
         }
         if (policy?.location?.enabled == true && location.toggleOn == false) {
-            add(Attention("Location is turned off on this phone.", Fix.LOCATION_SETTING))
+            add(Attention(words.get(R.string.attention_location), Fix.LOCATION_SETTING))
         }
     }
 
-    fun lastContact(lastSyncAt: Long?, now: Long): String {
-        if (lastSyncAt == null || lastSyncAt <= 0L) return "Not connected yet"
+    fun lastContact(words: Words, lastSyncAt: Long?, now: Long): String {
+        if (lastSyncAt == null || lastSyncAt <= 0L) return words.get(R.string.contact_never)
         val minutes = (now - lastSyncAt) / 60_000
         return when {
-            minutes < 1 -> "Connected just now"
-            minutes < 60 -> "Last connected $minutes min ago"
-            minutes < 48 * 60 -> "Last connected ${minutes / 60} h ago"
-            else -> "Last connected ${minutes / (24 * 60)} days ago"
+            minutes < 1 -> words.get(R.string.contact_now)
+            minutes < 60 -> words.get(R.string.contact_minutes, minutes)
+            minutes < 48 * 60 -> words.get(R.string.contact_hours, minutes / 60)
+            else -> words.get(R.string.contact_days, minutes / (24 * 60))
         }
     }
 
-    private fun minutes(value: Int): String = when {
-        value < 60 -> "$value min"
-        value % 60 == 0 -> "${value / 60} h"
-        else -> "${value / 60} h ${value % 60} min"
+    fun minutes(words: Words, value: Int): String = when {
+        value < 60 -> words.get(R.string.duration_min, value)
+        value % 60 == 0 -> words.get(R.string.duration_h, value / 60)
+        else -> words.get(R.string.duration_h_min, value / 60, value % 60)
     }
 
     private fun hour(value: Int): String = value.toString().padStart(2, '0') + ":00"
 
-    private val DAY_NAMES = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    private val DAY_NAMES = listOf(R.string.day_sun, R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu, R.string.day_fri, R.string.day_sat)
 
     /** Days are 1 (Sunday) to 7 (Saturday), as in the policy and java.util.Calendar. */
-    private fun days(days: List<Int>): String {
+    private fun days(words: Words, days: List<Int>): String {
         val sorted = days.filter { it in 1..7 }.distinct().sorted()
         return when (sorted) {
-            (1..7).toList() -> "Every day"
-            (2..6).toList() -> "Weekdays"
-            listOf(1, 7) -> "Weekends"
-            else -> sorted.joinToString(", ") { DAY_NAMES[it - 1] }
+            (1..7).toList() -> words.get(R.string.days_every)
+            (2..6).toList() -> words.get(R.string.days_weekdays)
+            listOf(1, 7) -> words.get(R.string.days_weekends)
+            else -> sorted.joinToString(words.get(R.string.list_separator)) { words.get(DAY_NAMES[it - 1]) }
         }
     }
 }

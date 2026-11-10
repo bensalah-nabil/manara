@@ -6,8 +6,9 @@ import type { Target } from './customRules.ts'
 import type { Props } from './Editors.tsx'
 import { errorText } from './format.ts'
 import type { Policy } from './policy.ts'
-import { AGES, applyAge, childLines, hourLabel, matchingAge, minutesLabel, readCards, setBedtimeHour, setCard, setMinutes, warningFor } from './ruleCards.ts'
+import { AGES, ageLabel, applyAge, childLines, hourLabel, matchingAge, minutesLabel, readCards, setBedtimeHour, setCard, setMinutes, warningFor } from './ruleCards.ts'
 import type { Age, CardId, CardsState } from './ruleCards.ts'
+import { t } from './i18n.ts'
 
 const ART: Record<CardId, ComponentChildren> = {
     adult: <><circle cx="24" cy="24" r="15" /><path d="M9 24h30M24 9c-9 9-9 21 0 30M24 9c9 9 9 21 0 30" /><path d="m13 13 22 22" stroke-width="3.4" /></>,
@@ -23,46 +24,46 @@ const ART: Record<CardId, ComponentChildren> = {
 
 const GROUPS: { title: string; cards: { id: CardId; title: string; text: string }[] }[] = [
     {
-        title: 'What gets blocked',
+        title: t('rules.group.blocked'),
         cards: [
-            { id: 'adult', title: 'Adult sites', text: 'Blocked in Chrome and in apps. Other browsers are closed, and Google stays on SafeSearch.' },
-            { id: 'ads', title: 'Ads in games and apps', text: 'Stops most ad networks in games and apps. It can\'t remove YouTube or Facebook ads.' },
-            { id: 'values', title: 'Family values', text: 'Well-known gambling, dating and alcohol websites, in Chrome only. Add more below.' },
+            { id: 'adult', title: t('rules.card.adult'), text: t('rules.card.adultText') },
+            { id: 'ads', title: t('rules.card.ads'), text: t('rules.card.adsText') },
+            { id: 'values', title: t('rules.card.values'), text: t('rules.card.valuesText') },
         ],
     },
     {
-        title: 'How long and when',
+        title: t('rules.group.time'),
         cards: [
-            { id: 'social', title: 'Social media', text: 'TikTok, Facebook and Instagram share one daily budget. Their websites stay closed.' },
-            { id: 'games', title: 'Games', text: 'Apps that say they are games share one daily budget, including ones installed later.' },
-            { id: 'bedtime', title: 'Bedtime', text: 'Locks every night until 07:00, and locks again if it is unlocked.' },
+            { id: 'social', title: t('rules.card.social'), text: t('rules.card.socialText') },
+            { id: 'games', title: t('rules.card.games'), text: t('rules.card.gamesText') },
+            { id: 'bedtime', title: t('rules.card.bedtime'), text: t('rules.card.bedtimeText') },
         ],
     },
     {
-        title: 'Safety',
+        title: t('rules.group.safety'),
         cards: [
-            { id: 'protect', title: 'Keep the rules on', text: 'No factory reset from Settings, safe mode, new users or clock changes.' },
-            { id: 'location', title: 'Where the phone is', text: 'Sent to you every 15 minutes. The phone shows a notice the whole time.' },
-            { id: 'report', title: 'Daily app report', text: 'Minutes per app each day. Never messages, photos, calls or passwords.' },
+            { id: 'protect', title: t('rules.card.protect'), text: t('rules.card.protectText') },
+            { id: 'location', title: t('rules.card.location'), text: t('rules.card.locationText') },
+            { id: 'report', title: t('rules.card.report'), text: t('rules.card.reportText') },
         ],
     },
 ]
 
 const FIXED_LABEL: Partial<Record<CardId, [string, string]>> = {
-    adult: ['Blocked', 'Allowed'],
-    ads: ['Blocked', 'Allowed'],
-    values: ['Blocked', 'Allowed'],
-    protect: ['Locked', 'Not locked'],
-    location: ['Every 15 min', 'Not shared'],
-    report: ['Sent daily', 'Not sent'],
+    adult: [t('rules.value.blocked'), t('rules.value.allowed')],
+    ads: [t('rules.value.blocked'), t('rules.value.allowed')],
+    values: [t('rules.value.blocked'), t('rules.value.allowed')],
+    protect: [t('rules.value.locked'), t('rules.value.notLocked')],
+    location: [t('rules.value.every15'), t('rules.value.notShared')],
+    report: [t('rules.value.sentDaily'), t('rules.value.notSent')],
 }
 
 function Stepper({ label, value, busy, onLess, onMore }: { label: string; value: string; busy: boolean; onLess: () => void; onMore: () => void }) {
     return (
         <span class="stepper">
-            <button type="button" class="step" disabled={busy} aria-label={`${label}: less`} onClick={onLess}>−</button>
+            <button type="button" class="step" disabled={busy} aria-label={t('rules.stepLess', { label })} onClick={onLess}>−</button>
             <b aria-live="polite">{value}</b>
-            <button type="button" class="step" disabled={busy} aria-label={`${label}: more`} onClick={onMore}>+</button>
+            <button type="button" class="step" disabled={busy} aria-label={t('rules.stepMore', { label })} onClick={onMore}>+</button>
         </span>
     )
 }
@@ -71,13 +72,13 @@ function CardFoot({ id, state, busy, change }: { id: CardId; state: CardsState; 
     const on = state.on[id]
     if (id === 'social' || id === 'games') {
         const minutes = id === 'social' ? state.socialMinutes : state.gamesMinutes
-        if (!on) return <span class="rule-value">No limit</span>
-        return <Stepper label={`${id === 'social' ? 'Social media' : 'Games'} minutes`} value={minutesLabel(minutes)} busy={busy} onLess={() => change((p) => setMinutes(p, id, minutes - 15))} onMore={() => change((p) => setMinutes(p, id, minutes + 15))} />
+        if (!on) return <span class="rule-value">{t('rules.value.noLimit')}</span>
+        return <Stepper label={id === 'social' ? t('rules.socialMinutes') : t('rules.gamesMinutes')} value={minutesLabel(minutes)} busy={busy} onLess={() => change((p) => setMinutes(p, id, minutes - 15))} onMore={() => change((p) => setMinutes(p, id, minutes + 15))} />
     }
     if (id === 'bedtime') {
-        if (!on) return <span class="rule-value">No bedtime</span>
-        if (state.bedtimeCustom) return <span class="rule-value">Custom times, see Advanced</span>
-        return <Stepper label="Bedtime" value={`From ${hourLabel(state.bedtimeHour)}`} busy={busy} onLess={() => change((p) => setBedtimeHour(p, state.bedtimeHour - 1))} onMore={() => change((p) => setBedtimeHour(p, state.bedtimeHour + 1))} />
+        if (!on) return <span class="rule-value">{t('rules.value.noBedtime')}</span>
+        if (state.bedtimeCustom) return <span class="rule-value">{t('rules.value.customTimes')}</span>
+        return <Stepper label={t('rules.card.bedtime')} value={t('rules.value.from', { hour: hourLabel(state.bedtimeHour) })} busy={busy} onLess={() => change((p) => setBedtimeHour(p, state.bedtimeHour - 1))} onMore={() => change((p) => setBedtimeHour(p, state.bedtimeHour + 1))} />
     }
     const labels = FIXED_LABEL[id]
     return <span class="rule-value">{labels ? labels[on ? 0 : 1] : ''}</span>
@@ -120,17 +121,17 @@ function CustomRules({ policy, busy, change }: { policy: Policy; busy: boolean; 
 
     return (
         <section class="rule-group">
-            <h2 class="rule-heading">Your own rules</h2>
+            <h2 class="rule-heading">{t('rules.ownTitle')}</h2>
             <div class="custom">
                 <form class="custom-form" onSubmit={add}>
                     <label>
-                        App or website
+                        {t('rules.ownTarget')}
                         <input
                             id="custom-target"
                             list="known-apps"
                             autoCapitalize="off"
                             spellcheck={false}
-                            placeholder="Roblox, a Play Store link, or example.com"
+                            placeholder={t('rules.ownPlaceholder')}
                             value={text}
                             onInput={(event) => { setText(event.currentTarget.value); setProblem('') }}
                         />
@@ -140,32 +141,32 @@ function CustomRules({ policy, busy, change }: { policy: Policy; busy: boolean; 
                         <label>
                             {target.name}
                             <select id="custom-minutes" value={minutes} onChange={(event) => setMinutesChoice(Number(event.currentTarget.value))}>
-                                <option value={0}>Block it completely</option>
-                                {MINUTE_CHOICES.map((value) => <option key={value} value={value}>{minutesLabel(value)} a day</option>)}
+                                <option value={0}>{t('rules.ownBlock')}</option>
+                                {MINUTE_CHOICES.map((value) => <option key={value} value={value}>{t('common.perDay', { time: minutesLabel(value) })}</option>)}
                             </select>
                         </label>
                     )}
-                    {target?.kind === 'site' && <p class="muted small">Blocks {target.site} in Chrome.</p>}
+                    {target?.kind === 'site' && <p class="muted small">{t('rules.ownSite', { site: target.site })}</p>}
                     {problem && <p role="alert" class="error">{problem}</p>}
-                    <button type="submit" disabled={busy || text.trim() === ''}>Add rule</button>
+                    <button type="submit" disabled={busy || text.trim() === ''}>{t('rules.ownAdd')}</button>
                 </form>
                 {apps.length + sites.length > 0 ? (
                     <ul class="custom-list">
                         {apps.map((app) => (
                             <li key={app.category}>
-                                <span><b>{app.category}</b> <span class="muted">{app.dailyMinutes === 0 ? 'Blocked' : `${minutesLabel(app.dailyMinutes)} a day`}</span></span>
-                                <button type="button" class="link danger" disabled={busy} aria-label={`Remove the rule for ${app.category}`} onClick={() => change((latest) => removeApp(latest, app.category))}>Remove</button>
+                                <span><b>{app.category}</b> <span class="muted">{app.dailyMinutes === 0 ? t('rules.value.blocked') : t('common.perDay', { time: minutesLabel(app.dailyMinutes) })}</span></span>
+                                <button type="button" class="link danger" disabled={busy} aria-label={t('rules.ownRemoveLabel', { name: app.category })} onClick={() => change((latest) => removeApp(latest, app.category))}>{t('common.remove')}</button>
                             </li>
                         ))}
                         {sites.map((site) => (
                             <li key={site}>
-                                <span><b>{site}</b> <span class="muted">Blocked in Chrome</span></span>
-                                <button type="button" class="link danger" disabled={busy} aria-label={`Remove the rule for ${site}`} onClick={() => change((latest) => removeSite(latest, site))}>Remove</button>
+                                <span><b>{site}</b> <span class="muted">{t('rules.ownBlockedChrome')}</span></span>
+                                <button type="button" class="link danger" disabled={busy} aria-label={t('rules.ownRemoveLabel', { name: site })} onClick={() => change((latest) => removeSite(latest, site))}>{t('common.remove')}</button>
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    <p class="muted small">Limit or block any app, or block any website. Type a name, or paste a link.</p>
+                    <p class="muted small">{t('rules.ownHelp')}</p>
                 )}
             </div>
         </section>
@@ -204,7 +205,7 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
             }
             const { policy: stored, woken } = await api.setPolicy(device.deviceId, updated)
             setPolicy(stored)
-            setMessage(woken ? 'Saved. The phone applies it in a few seconds.' : 'Saved. The phone applies it at its next check-in, within about 15 minutes.')
+            setMessage(woken ? t('rules.savedWoken') : t('rules.savedLater'))
         } catch (caught) {
             fail(caught)
         } finally {
@@ -213,7 +214,7 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
     }
 
     if (policy === null) {
-        return error ? <p role="alert" class="error">{error}</p> : <p class="muted">Loading rules…</p>
+        return error ? <p role="alert" class="error">{error}</p> : <p class="muted">{t('rules.loading')}</p>
     }
 
     const state = readCards(policy)
@@ -225,14 +226,14 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
         <div class="rules-screen">
             <div class="rules-top">
                 <p>
-                    <b>{onCount} of {Object.keys(state.on).length} rules on</b>
-                    <span class="muted small rule-status" role="status">{busy ? 'Saving…' : message}</span>
+                    <b>{t('rules.count', { on: onCount, all: Object.keys(state.on).length })}</b>
+                    <span class="muted small rule-status" role="status">{busy ? t('common.saving') : message}</span>
                 </p>
                 <div class="ages">
-                    <span id="ages-label">Start from your child's age</span>
+                    <span id="ages-label">{t('rules.ageLabel')}</span>
                     <div class="seg" role="group" aria-labelledby="ages-label">
                         {AGES.map((name: Age) => (
-                            <button key={name} type="button" aria-pressed={age === name} disabled={busy} onClick={() => change((latest) => applyAge(latest, name))}>{name}</button>
+                            <button key={name} type="button" aria-pressed={age === name} disabled={busy} onClick={() => change((latest) => applyAge(latest, name))}>{ageLabel(name)}</button>
                         ))}
                     </div>
                 </div>
@@ -262,17 +263,17 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
                     ))}
                     <CustomRules policy={policy} busy={busy} change={change} />
                     <details class="advanced">
-                        <summary>Advanced settings</summary>
+                        <summary>{t('rules.advanced')}</summary>
                         <div class="stack">{advanced}</div>
                     </details>
                 </div>
-                <aside class="child-preview" aria-label="What your child sees">
-                    <h2 class="rule-heading">What your child sees</h2>
+                <aside class="child-preview" aria-label={t('rules.childSees')}>
+                    <h2 class="rule-heading">{t('rules.childSees')}</h2>
                     <div class="phone-frame">
                         <div class="phone-screen">
-                            <b>This phone is managed</b>
-                            <span class="muted small">By your parent, with Manara.</span>
-                            {lines.length > 0 ? <ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul> : <p class="muted small">No rules are on.</p>}
+                            <b>{t('rules.childTitle')}</b>
+                            <span class="muted small">{t('rules.childSubtitle')}</span>
+                            {lines.length > 0 ? <ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul> : <p class="muted small">{t('rules.childNone')}</p>}
                         </div>
                     </div>
                 </aside>

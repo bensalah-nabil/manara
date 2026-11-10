@@ -1,5 +1,6 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
+import { t } from './i18n.ts'
 
 export interface LocationPolicy {
     enabled: boolean
@@ -30,7 +31,7 @@ export function validateDraft(draft: Draft): ValidationResult {
     const text = draft.intervalMinutes.trim()
     const minutes = Number(text)
     if (!/^\d+$/.test(text) || minutes < MIN_INTERVAL || minutes > MAX_INTERVAL) {
-        return { ok: false, errors: [`Minutes between updates must be a whole number from ${MIN_INTERVAL} to ${MAX_INTERVAL}.`] }
+        return { ok: false, errors: [t('locationEditor.errInterval', { min: MIN_INTERVAL, max: MAX_INTERVAL })] }
     }
     return { ok: true, location: { enabled: draft.enabled, intervalMinutes: minutes } }
 }

@@ -58,11 +58,18 @@ func (f *fakeAccounts) Delete(_ context.Context, id string) error {
 	return nil
 }
 
-type fakeParentRepo struct{}
+// languages is shared by copies of the fake, so a handler's write is seen by the test.
+type fakeParentRepo struct{ languages map[string]string }
 
 func (fakeParentRepo) Create(context.Context, *domain.Parent) error { return nil }
-func (fakeParentRepo) FindByID(_ context.Context, id string) (*domain.Parent, error) {
-	return &domain.Parent{ID: id, Email: "sara.mum@example.com"}, nil
+func (f fakeParentRepo) FindByID(_ context.Context, id string) (*domain.Parent, error) {
+	return &domain.Parent{ID: id, Email: "sara.mum@example.com", Language: f.languages[id]}, nil
+}
+func (f fakeParentRepo) SetLanguage(_ context.Context, id, language string) error {
+	if f.languages != nil {
+		f.languages[id] = language
+	}
+	return nil
 }
 
 type issuingSessions struct{ fakeSessions }
@@ -171,5 +178,25 @@ func TestSignUpRefusesAWeakPassword(t *testing.T) {
 	w := call(h.SignUp, http.MethodPost, `{"email":"a@b.c","password":"short"}`, "")
 	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "weak_password") {
 		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+}
+
+func TestTheParentChoosesTheirLanguage(t *testing.T) {
+	h, _, _, _ := accountHandlers()
+	h.Parents = fakeParentRepo{languages: map[string]string{}}
+	if w := call(h.GetAccount, http.MethodGet, "", "mine"); !strings.Contains(w.Body.String(), `"language":"en"`) {
+		t.Errorf("default language: %s", w.Body)
+	}
+	if w := call(h.UpdateAccount, http.MethodPatch, `{"language":"ar"}`, ""); w.Code != http.StatusUnauthorized {
+		t.Errorf("no session: %d", w.Code)
+	}
+	if w := call(h.UpdateAccount, http.MethodPatch, `{"language":"de"}`, "mine"); w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "unknown_language") {
+		t.Errorf("unknown language: %d %s", w.Code, w.Body)
+	}
+	if w := call(h.UpdateAccount, http.MethodPatch, `{"language":"ar"}`, "mine"); w.Code != http.StatusOK {
+		t.Fatalf("set: %d %s", w.Code, w.Body)
+	}
+	if w := call(h.GetAccount, http.MethodGet, "", "mine"); !strings.Contains(w.Body.String(), `"language":"ar"`) {
+		t.Errorf("after set: %s", w.Body)
 	}
 }

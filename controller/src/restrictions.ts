@@ -1,15 +1,16 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
+import { t } from './i18n.ts'
 
 /** Each flag maps to a UserManager.DISALLOW_* key set by the agent; the wording follows the agent's own notes on what each covers. */
 export const RESTRICTIONS = [
-    { key: 'blockVpnConfig', label: 'Block VPN settings', help: 'Also stops the child starting their own VPN.' },
-    { key: 'blockPrivateDnsConfig', label: 'Block Private DNS settings', help: 'Needs Android 10 or newer; ignored on older phones.' },
-    { key: 'blockFactoryReset', label: 'Block factory reset from Settings', help: 'Covers the Settings reset only, not necessarily recovery mode.' },
-    { key: 'blockSafeBoot', label: 'Block safe mode', help: '' },
-    { key: 'blockAddUser', label: 'Block adding users', help: '' },
-    { key: 'blockDebugging', label: 'Block developer options and debugging', help: 'Stops a computer being used to undo these rules. Waits until guided setup has finished.' },
-    { key: 'blockDateTime', label: 'Lock the date and time', help: "Keeps the clock automatic, so changing it can't escape a lock window or reset a daily limit." },
+    { key: 'blockVpnConfig', label: t('restrict.vpn'), help: t('restrict.vpnHelp') },
+    { key: 'blockPrivateDnsConfig', label: t('restrict.privateDns'), help: t('restrict.privateDnsHelp') },
+    { key: 'blockFactoryReset', label: t('restrict.factoryReset'), help: t('restrict.factoryResetHelp') },
+    { key: 'blockSafeBoot', label: t('restrict.safeMode'), help: '' },
+    { key: 'blockAddUser', label: t('restrict.addUser'), help: '' },
+    { key: 'blockDebugging', label: t('restrict.debugging'), help: t('restrict.debuggingHelp') },
+    { key: 'blockDateTime', label: t('restrict.dateTime'), help: t('restrict.dateTimeHelp') },
 ] as const
 
 export type RestrictionKey = (typeof RESTRICTIONS)[number]['key']

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Modern Standard Arabic. Instructions use the masculine singular imperative, the usual
+  convention in Android's own Arabic. "Your parent" is "ولي أمرك" (guardian), which reads the
+  same for a boy or a girl and for a mother or a father.
+  Strings marked TODO-REVIEW are the ones the translator was least sure of.
+-->
+<resources>
+    <!-- TODO-REVIEW: "managed" rendered as "under supervision" (خاضع للإشراف); alternative: "مُدار" -->
+    <string name="notice_title">هذا الجهاز خاضع للإشراف</string>
+    <string name="notice_text">منارة يشرف على هذا الجهاز. لا يمكن إزالة هذا الإشعار.</string>
+    <string name="notice_channel_name">الإشراف على الجهاز</string>
+    <string name="notice_channel_description">يبيّن أن هذا الجهاز خاضع لإشراف منارة.</string>
+    <string name="summary_no_policy">لم تصل أي قواعد بعد</string>
+    <string name="summary_limits">حدود وقت التطبيقات: %1$s</string>
+    <string name="summary_filter">حجب المواقع مطلوب</string>
+    <string name="summary_location">مشاركة الموقع مطلوبة، كل %1$s دقيقة</string>
+    <string name="summary_usage">يُرسَل استخدام التطبيقات اليومي إلى ولي أمرك</string>
+    <string name="summary_lock">فترات القفل المجدولة: %1$s</string>
+    <string name="summary_restrictions">الإعدادات المقيَّدة المطلوبة: %1$s</string>
+    <string name="summary_chrome">قواعد Chrome حدّدها ولي أمرك</string>
+    <string name="summary_other_browsers">المتصفحات الأخرى غير Chrome محجوبة</string>
+    <string name="summary_calls">يُرسَل سجل المكالمات إلى ولي أمرك</string>
+    <string name="summary_nothing">لا توجد حدود ولا جمع بيانات</string>
+    <string name="summary_no_calls">سجل المكالمات: لا يُجمَع</string>
+    <string name="summary_prayer_now">وقت الصلاة: تعود تطبيقاتك عند %1$s</string>
+    <string name="summary_prayer_next">التوقف القادم للصلاة: %1$s عند %2$s، لمدة %3$s دقيقة</string>
+
+    <string name="location_channel_name">مشاركة الموقع</string>
+    <string name="location_channel_description">يبيّن أن موقع هذا الهاتف يُشارَك مع ولي أمرك.</string>
+    <string name="location_notice_title">موقعك يُشارَك</string>
+    <string name="location_notice_text">يرى ولي أمرك مكان هذا الهاتف، كل %1$s دقيقة.</string>
+
+    <!-- TODO-REVIEW: "guided setup" rendered as "الإعداد الموجَّه" -->
+    <string name="setup_channel_name">الإعداد الموجَّه</string>
+    <string name="setup_channel_description">يعرض كل خطوة من خطوات الإعداد الموجَّه.</string>
+    <string name="setup_notice_title">إعداد منارة: يجري إعداد هذا الهاتف للإشراف الأبوي</string>
+    <string name="setup_open_accounts">فتح الحسابات</string>
+    <string name="setup_add_google">إضافة حساب Google</string>
+    <string name="setup_add_account">إضافة حساب</string>
+
+    <string name="please_wait">يُرجى الانتظار…</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="action_continue">متابعة</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="list_separator">"، "</string>
+    <string name="duration_min">%1$s د</string>
+    <string name="duration_h">%1$s س</string>
+    <string name="duration_h_min">%1$s س %2$s د</string>
+
+    <string name="connect_title_new">مرحبًا بك في منارة</string>
+    <string name="connect_title_move">الربط بالحساب الجديد</string>
+    <string name="connect_subtitle_new">إشراف أبوي يستطيع طفلك رؤيته دائمًا.</string>
+    <string name="connect_subtitle_move">ولي أمرك ينقل هذا الهاتف إلى حساب آخر.</string>
+    <string name="connect_section_new">ربط هذا الهاتف</string>
+    <string name="connect_section_move">مسح رمز الحساب الجديد</string>
+    <!-- TODO-REVIEW: "console" rendered as "لوحة التحكم" (control panel) everywhere -->
+    <string name="connect_help_new">على هاتف ولي الأمر أو حاسوبه، افتح لوحة تحكم منارة واختر «إضافة هاتف». ثم امسح الرمز الذي تعرضه.</string>
+    <string name="connect_help_move">في حساب ولي الأمر الجديد، اختر «إضافة هاتف» وأجب بأن منارة مُعَدّ مسبقًا. ثم امسح الرمز الذي يعرضه.</string>
+    <string name="connect_scan">مسح الرمز</string>
+    <string name="connect_type_code">أو اكتب الرمز</string>
+    <string name="connect_button">ربط</string>
+    <string name="connect_only_for">منارة مخصَّص فقط لولي أمر يشرف على هاتف طفله. يعرض الهاتف دائمًا أنه خاضع للإشراف وما الذي يُشارَك.</string>
+    <string name="enroll_rejected">لم ينجح هذا الرمز. الرمز يعمل مرة واحدة: اطلب رمزًا جديدًا من لوحة التحكم.</string>
+    <string name="enroll_not_allowed">هذا الهاتف خاضع لإشراف حساب ولي أمر. لا يستطيع تحريره إلا ولي الأمر نفسه.</string>
+    <string name="enroll_failed">تعذّر الوصول إلى منارة. تحقّق من الاتصال بالإنترنت وأعد المحاولة؛ قد يحتاج الخادم دقيقة ليبدأ العمل.</string>
+    <string name="scan_empty">رمز QR هذا لا يحتوي على ما يُقرأ.</string>
+    <string name="scan_failed">تعذّر تشغيل الماسح. اكتب الرمز بدلًا من ذلك.</string>
+
+    <string name="setup_title">اقتربنا من النهاية</string>
+    <string name="setup_subtitle">هذا الهاتف مرتبط بحساب ولي أمر.</string>
+    <string name="setup_unsupported">يحتاج الإعداد الموجَّه إلى Android 11 أو أحدث. لا يمكن إعداد هذا الهاتف تلقائيًا.</string>
+    <string name="setup_section">السماح لمنارة بالإشراف على هذا الهاتف</string>
+    <!-- TODO-REVIEW: Android menu names must match the phone's own Arabic: "خيارات المطوّر" (Developer options), "تصحيح الأخطاء اللاسلكي" (Wireless debugging) -->
+    <string name="setup_step_1">افتح «الإعدادات»، ثم «خيارات المطوّر»، وشغّل «تصحيح الأخطاء اللاسلكي». تشرح لوحة تحكم ولي الأمر طريقة ذلك على هذا الهاتف.</string>
+    <string name="setup_step_2">اضغط «بدء الإعداد الموجَّه» أدناه، واسمح بالإشعارات.</string>
+    <!-- TODO-REVIEW: Android menu names: "إقران الجهاز باستخدام رمز الاستجابة السريعة" (Pair device with QR code), "إقران الجهاز باستخدام رمز الإقران" (Pair device with pairing code) -->
+    <string name="setup_step_3">في «تصحيح الأخطاء اللاسلكي»، اضغط «إقران الجهاز باستخدام رمز الاستجابة السريعة» وامسح الرمز المعروض في لوحة تحكم ولي الأمر. أو اضغط «إقران الجهاز باستخدام رمز الإقران» واكتب رمزه في لوحة التحكم.</string>
+    <string name="setup_step_4">أبقِ الهاتف على تلك الشاشة. كل ما تبقّى يتم في لوحة التحكم، وهي تعرض كل خطوة.</string>
+    <string name="setup_running">الإعداد جارٍ. أتمّ الإقران من لوحة تحكم ولي الأمر.</string>
+    <string name="setup_open_developer_options">فتح خيارات المطوّر</string>
+    <string name="setup_start">بدء الإعداد الموجَّه</string>
+
+    <string name="managed_title">هذا الهاتف خاضع للإشراف</string>
+    <string name="managed_subtitle">من قِبل ولي أمرك، عبر منارة.</string>
+    <string name="attention_title">يحتاج إلى انتباه</string>
+    <!-- TODO-REVIEW: "usage access" rendered as "الوصول إلى بيانات الاستخدام" -->
+    <string name="fix_usage_access">فتح الوصول إلى بيانات الاستخدام</string>
+    <string name="fix_location">فتح إعدادات الموقع</string>
+    <string name="attention_usage">الوصول إلى بيانات الاستخدام متوقف لمنارة، لذلك لا يمكن احتساب حدود التطبيقات.</string>
+    <string name="attention_location">خدمة الموقع متوقفة على هذا الهاتف.</string>
+    <string name="seen_title">ما الذي يستطيع ولي أمرك رؤيته</string>
+    <string name="seen_location_title">مكان هذا الهاتف</string>
+    <string name="seen_location_detail">يُرسَل كل %1$s دقيقة. يظهر إشعار ما دام ذلك مفعّلًا.</string>
+    <string name="seen_usage_title">الوقت الذي تقضيه في كل تطبيق</string>
+    <string name="seen_usage_detail">الدقائق لكل تطبيق اليوم، وتُرسَل مرة كل ساعة تقريبًا.</string>
+    <string name="seen_limit_title">متى يُبلَغ حدّ زمني</string>
+    <string name="seen_limit_detail">أيّ حدّ، لا ما كنت تفعله.</string>
+    <string name="seen_calls_title">مكالماتك</string>
+    <!-- TODO-REVIEW: "direction" of a call rendered as "اتجاهها" (incoming or outgoing) -->
+    <string name="seen_calls_detail">رقم كل مكالمة واتجاهها ووقتها ومدتها. لا يُرسَل أبدًا ما قيل فيها.</string>
+    <string name="seen_app_calls_title">المكالمات في WhatsApp وMessenger وTelegram وViber</string>
+    <string name="seen_app_calls_detail">أيّ تطبيق ومتى وكم دامت، إذا كان الوصول إلى الإشعارات مفعّلًا. ينظر منارة إلى الإشعارات لرصد المكالمات فقط ولا يحتفظ بأي شيء آخر، ولا حتى بمن اتصل.</string>
+    <string name="seen_requests_title">متى تطلب وقتًا إضافيًا</string>
+    <string name="seen_requests_detail">أيّ تطبيق وكم دقيقة طلبت.</string>
+    <string name="seen_health_title">هل يعمل منارة</string>
+    <string name="seen_health_detail">مثلًا إذا أُوقف إعداد يحتاج إليه.</string>
+    <string name="never_shared">لا تُرسَل أبدًا رسائلك ولا صورك ولا مكالماتك ولا كلمات مرورك.</string>
+    <string name="never_shared_calls">لا تُرسَل أبدًا رسائلك ولا صورك ولا كلمات مرورك، ولا ما يُقال في المكالمة.</string>
+    <string name="rules_title">القواعد على هذا الهاتف</string>
+    <string name="no_rules">لا توجد قواعد بعد.</string>
+    <string name="rule_app_limit">حدّ تطبيق</string>
+    <string name="rule_social">وسائل التواصل الاجتماعي</string>
+    <string name="rule_games">الألعاب</string>
+    <string name="rule_blocked">محجوب، %1$s</string>
+    <string name="rule_daily">%1$s في اليوم، %2$s</string>
+    <string name="rule_all_games">كل الألعاب</string>
+    <!-- TODO-REVIEW: Arabic number agreement, six forms -->
+    <plurals name="apps_count">
+        <item quantity="zero">لا تطبيقات</item>
+        <item quantity="one">تطبيق واحد</item>
+        <item quantity="two">تطبيقان</item>
+        <item quantity="few">%1$s تطبيقات</item>
+        <item quantity="many">%1$s تطبيقًا</item>
+        <item quantity="other">%1$s تطبيق</item>
+    </plurals>
+    <string name="rule_locked">مقفل %1$s–%2$s</string>
+    <string name="days_every">كل يوم</string>
+    <!-- TODO-REVIEW: "weekdays" means Monday to Friday here, "weekends" Saturday and Sunday (Tunisia's week) -->
+    <string name="days_weekdays">من الاثنين إلى الجمعة</string>
+    <string name="days_weekends">السبت والأحد</string>
+    <string name="day_sun">الأحد</string>
+    <string name="day_mon">الاثنين</string>
+    <string name="day_tue">الثلاثاء</string>
+    <string name="day_wed">الأربعاء</string>
+    <string name="day_thu">الخميس</string>
+    <string name="day_fri">الجمعة</string>
+    <string name="day_sat">السبت</string>
+    <string name="rule_filter_title">حجب المواقع</string>
+    <string name="rule_filter_detail">بعض المواقع محجوبة.</string>
+    <string name="restrict_title">إعدادات لا يمكنك تغييرها</string>
+    <string name="restrict_factory_reset">إعادة ضبط المصنع</string>
+    <string name="restrict_safe_mode">الوضع الآمن</string>
+    <string name="restrict_new_users">مستخدمون جدد</string>
+    <string name="restrict_developer">خيارات المطوّر</string>
+    <string name="restrict_date_time">التاريخ والوقت</string>
+    <string name="restrict_vpn">إعدادات VPN</string>
+    <!-- TODO-REVIEW: "Private DNS" rendered as "DNS الخاص" -->
+    <string name="restrict_private_dns">إعدادات DNS الخاص</string>
+    <string name="chrome_safesearch">البحث الآمن في Google</string>
+    <string name="chrome_youtube">وضع تقييد المحتوى في YouTube</string>
+    <string name="chrome_youtube_strict">وضع تقييد المحتوى الصارم في YouTube</string>
+    <string name="chrome_secure_dns">DNS الآمن الخاص بـChrome متوقف، لذلك يُطبَّق حجب المواقع</string>
+    <!-- TODO-REVIEW: Arabic number agreement, six forms -->
+    <plurals name="sites_blocked">
+        <item quantity="zero">لا مواقع محجوبة</item>
+        <item quantity="one">موقع واحد محجوب</item>
+        <item quantity="two">موقعان محجوبان</item>
+        <item quantity="few">%1$s مواقع محجوبة</item>
+        <item quantity="many">%1$s موقعًا محجوبًا</item>
+        <item quantity="other">%1$s موقع محجوب</item>
+    </plurals>
+    <string name="chrome_other_browsers">المتصفحات الأخرى محجوبة</string>
+    <!-- TODO-REVIEW: "prayer-time pause" rendered as "توقف وقت الصلاة" -->
+    <string name="rule_prayer_title">توقف وقت الصلاة</string>
+    <string name="rule_prayer_detail">تُغلَق تطبيقاتك المحدودة لمدة %1$s دقيقة عند: %2$s.</string>
+    <string name="rule_prayer_now">وقت الصلاة: تعود تطبيقاتك عند %1$s.</string>
+    <string name="rule_prayer_next">التوقف القادم: %1$s عند %2$s.</string>
+    <string name="prayer_fajr">الفجر</string>
+    <string name="prayer_dhuhr">الظهر</string>
+    <string name="prayer_asr">العصر</string>
+    <string name="prayer_maghrib">المغرب</string>
+    <string name="prayer_isha">العشاء</string>
+    <string name="rule_bonus_title">وقت إضافي من ولي أمرك</string>
+    <string name="rule_bonus_detail">%1$s: %2$s دقيقة إضافية اليوم.</string>
+    <string name="rule_paused_title">القواعد متوقفة مؤقتًا بقرار ولي أمرك</string>
+    <string name="rule_paused_detail">الحدود وفترات التوقف معلّقة حتى %1$s.</string>
+    <string name="contact_never">لم يتصل بعد</string>
+    <string name="contact_now">اتصل للتو</string>
+    <string name="contact_minutes">آخر اتصال قبل %1$s دقيقة</string>
+    <string name="contact_hours">آخر اتصال قبل %1$s ساعة</string>
+    <string name="contact_days">آخر اتصال قبل %1$s يوم</string>
+    <string name="check_now">تحقّق الآن</string>
+    <!-- TODO-REVIEW: "release this phone" rendered as "تحرير هذا الهاتف" -->
+    <string name="release_this_phone">تحرير هذا الهاتف</string>
+
+    <string name="blocked_limit">أُغلق بقواعد منارة التي وضعها ولي أمرك: انتهى وقت اليوم المخصَّص لـ%1$s. يُفتح من جديد غدًا.</string>
+    <string name="blocked_always">أُغلق بقواعد منارة التي وضعها ولي أمرك: %1$s محجوب.</string>
+    <string name="blocked_prayer">وقت الصلاة. أُغلق بقواعد منارة التي وضعها ولي أمرك حتى %1$s.</string>
+    <string name="blocked_browser">أُغلق بقواعد منارة التي وضعها ولي أمرك: لا يُسمح إلا بـChrome، حتى يعمل حجب المواقع.</string>
+    <string name="blocked_generic">أُغلق بقواعد منارة التي وضعها ولي أمرك.</string>
+    <string name="blocked_why">لماذا؟</string>
+    <string name="blocked_ask">طلب وقت إضافي</string>
+    <string name="bedtime_notice_title">وقت النوم</string>
+    <string name="bedtime_notice_text">قواعد منارة التي وضعها ولي أمرك تقفل هذا الهاتف حتى %1$s.</string>
+
+    <string name="ask_title">طلب وقت إضافي</string>
+    <string name="ask_subtitle">يرى ولي أمرك الطلب في لوحة التحكم.</string>
+    <string name="ask_app">لتطبيق %1$s</string>
+    <string name="ask_how_long">كم من الوقت؟</string>
+    <string name="ask_minutes">%1$s دقيقة</string>
+    <string name="ask_send">إرسال إلى ولي أمري</string>
+    <string name="ask_sent">أُرسل الطلب. يرى ولي أمرك أيّ تطبيق وكم دقيقة. إذا وافق، يُفتح التطبيق تلقائيًا.</string>
+    <string name="ask_too_soon">لقد طلبت قبل دقائق قليلة. الطلب عند ولي أمرك.</string>
+    <string name="ask_nothing">لا يوجد الآن تطبيق مغلق بسبب حدّ زمني.</string>
+
+    <string name="release_title">تحرير هذا الهاتف</string>
+    <string name="release_subtitle">لا يستطيع ذلك إلا ولي أمرك.</string>
+    <string name="release_code_section">رمز التحرير الخاص بولي أمرك</string>
+    <string name="release_code_help">يجده ولي أمرك في لوحة تحكم منارة: يفتح هذا الهاتف، ثم «الهاتف»، ثم «إظهار رمز التحرير». يعمل الرمز دون اتصال.</string>
+    <string name="release_code_label">رمز من 8 أرقام</string>
+    <string name="release_choose_title">ما المطلوب؟</string>
+    <string name="release_move">النقل إلى حساب ولي أمر آخر</string>
+    <string name="release_move_help">يبقى كل شيء مُعَدًّا. خلال الثلاثين دقيقة القادمة يقبل الهاتف رمز الحساب الجديد.</string>
+    <string name="release_remove">إزالة منارة من هذا الهاتف</string>
+    <string name="release_remove_help">يرفع كل القواعد ويوقف الإشراف على الهاتف. يمكن بعدها إلغاء تثبيت منارة.</string>
+    <string name="remove_confirm_title">إزالة منارة؟</string>
+    <string name="remove_confirm_text">تُرفع كل القواعد ويتوقف منارة عن الإشراف على هذا الهاتف. إعداده من جديد يتطلب الإعداد الموجَّه كاملًا.</string>
+    <string name="action_remove">إزالة</string>
+    <string name="code_wrong">هذا الرمز غير صحيح. راجعه مع ولي أمرك.</string>
+    <string name="code_locked">رموز خاطئة كثيرة. أعد المحاولة بعد %1$s.</string>
+    <string name="code_no_secret">لم يستلم هذا الهاتف مفتاح التحرير بعد. صِله بالإنترنت، وانتظر بضع دقائق، ثم أعد المحاولة.</string>
+    <string name="released_title">منارة متوقف</string>
+    <string name="released_subtitle">هذا الهاتف لم يعد خاضعًا للإشراف.</string>
+    <string name="released_section">تمّ كل شيء</string>
+    <string name="released_text">رُفعت كل القواعد. يمكنك إلغاء تثبيت منارة من «الإعدادات»، «التطبيقات».</string>
+    <string name="released_thanks">شكرًا لاستخدامك منارة.</string>
+</resources>

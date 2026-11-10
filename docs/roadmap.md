@@ -391,6 +391,12 @@ See [`backend/README.md`](../backend/README.md) for how to run it.
 
 ## Phase 4 — Hardening (current focus)
 
+> Before new capabilities: the 10 parent interviews in
+> [`validation.md`](validation.md) §7. Hardening and shorter setup go on;
+> new rule types and new messengers wait for what parents actually report.
+> Exception, decided 2026-11-10: Phase 5.0 and four parity features (Phase 5,
+> decision 2) go ahead alongside the interviews.
+
 Quality and security, aiming at an independent security assessment
 (OWASP MASVS, as App Defense Alliance MASA checks it); the gap analysis and
 plan are in [`security.md`](security.md).
@@ -410,6 +416,153 @@ plan are in [`security.md`](security.md).
 
 The full list, with why and when each is done, is in
 [security.md](security.md), "What's left".
+
+## Phase 5 — Compete with what parents already have
+
+From [`market-study.md`](market-study.md) (2026-11-10). IDs like C5 refer to
+[`capability-plan.md`](capability-plan.md), which holds the design; new items
+get an ID here (P1…). Every item still passes that plan's guardrails G1–G7:
+visible to the child, opt-in collection, verified on a phone.
+
+**Decided 2026-11-10** (developer, interactively):
+
+1. **Build order:** P3 → P4 → P8 → C5 + D2 + D3 → P5 → P6 → P1 → P2.
+   P3 and P4 were chosen first. The order after them is a default: smallest
+   first, and P6 last among the parity items because its Device Owner
+   behaviour must be verified before coding.
+2. **The four parity features start now, alongside the interviews:** ask for
+   more time, approve new apps, place alerts, weekly email. The rest of 5.1,
+   and all of 5.2, still wait for the 10 interviews in
+   [`validation.md`](validation.md) §7.
+3. **Revenue model to test first: free for parents, funded by grants or
+   donations.** Dinar pricing (P11) and paid setup (P12) stay as fallbacks,
+   still asked about in interviews.
+
+Consequence: P8's weekly email ships in English first and gets Arabic and
+French with P1.
+
+**Re-decided 2026-11-10, evening** (the developer delegated the decision: "review
+the roadmap and re-decide priorities, start without my OK"). It replaces
+decision 1's order; decisions 2 and 3 stand.
+
+4. **New build order:** P3 → P1 → P14 → D2 → P2 → P8 → C5 + D3 → P4 → P5 → P6.
+   - **P1 moves from last to second.** The goal is now to advertise in the
+     region, and an English-only app can't be advertised to Tunisian parents
+     (validation §3). An advert in Arabic that opens an English console loses
+     the parent at the first screen.
+   - **P14 (prayer-time pause) is new** and is the feature the regional advert
+     can lead with. No competitor in market-study §2 lists it. *Hypothesis:*
+     parents want it; add it to the interview questions.
+   - **D2 before C5/D3:** it is the smallest of the three and every pause,
+     limit and bedtime needs a screen that says why.
+   - **P2 moves up from last:** a locked child who can't call the parent is a
+     safety gap (validation §9), and P14 is designed not to add to it.
+   - P8, P4, P5, P6 keep their relative order.
+5. **Regional positioning:** an optional pack for Muslim families (5.4), off by
+   default, inside the same guardrails. The product keeps one name and one
+   codebase; nothing is renamed. Manara makes no religious claim of its own
+   and names no authority that hasn't reviewed it (P18).
+
+**P1 built 2026-11-10** (branch `regional-pack`), not yet seen on a phone:
+
+- **App:** every string of `ui/Screens.kt`, the three notices and the status screen moved to
+  `res/values/strings.xml`, with `values-fr` and `values-ar`. Pure code asks for wording through
+  `text/Words`, so `ChildView` and `NoticeSummary` stay unit-tested; a test fails the build when a
+  language misses a string or a placeholder. Android 13+ offers the three languages per app
+  (`locales_config.xml`).
+- **Console:** `messages/en.ts`, `fr.ts`, `ar.ts` (TypeScript refuses a missing key), a language
+  switch on the sign-in page, the top bar and the Account page, saved on the parent's account
+  (`PATCH /console/account`, migration 0012), `lang` and `dir` set on `<html>`, every `left`/`right`
+  rule in `styles.css` replaced by a logical property, base font 16 px and nothing under 14 px.
+- **Left in English:** the step messages the phone writes during guided setup (`SetupFlow`, sent to
+  the console as text), alert and password-reset emails, and `privacy.html`, `guide.html`,
+  `delete-account.html`.
+- **Not verified:** no screen was rendered in Arabic, on a phone or in a browser. *Hypothesis:*
+  the Android menu names used in the Arabic steps (Developer options, Wireless debugging, Pair
+  device with QR code) match what a Samsung shows in Arabic; they are marked `TODO-REVIEW`.
+
+Started 2026-11-10: P14's pure logic, `PrayerTimes` and `PrayerPauseDecision`
+with 14 unit tests. Compiled with Kotlin 1.9.24 and run outside Gradle with a
+stand-in for JUnit; **not run through `testDirectDebugUnitTest`, not on a
+phone, no enforcer, no policy field yet.**
+
+### 5.0 — Before anything else: the gaps every competitor doesn't have
+
+| ID | Item | Why (who already has it) | How | Done when |
+|---|---|---|---|---|
+| P1 | **Arabic and French**, in the app and the console, with right-to-left layout | Family Link, Screen Time, Samsung and Microsoft are all in Arabic and French. Manara is English only, the biggest gap in the study | Agent: `values-ar`, `values-fr` string resources (no hard-coded text), RTL checked on every screen. Console: a message catalogue and `dir="rtl"`. Parent guide translated | A parent completes guided setup in Arabic on a Samsung; no English left on any screen |
+| P2 | **A locked phone can still call the parent** | Family Link's most painful complaint: a locked child "cannot even text their parent". Manara's bedtime and remote lock use `lockNow()`, so only emergency calls work | Research spike: lock task mode with only the dialer and the parent's contacts allowed (*verify* `setLockTaskPackages` / `setLockTaskFeatures` against developer.android.com, Device Owner only). Pure `LockModeDecision` + thin enforcer | During bedtime, the child calls the parent's number; other apps stay closed. Verified on a Samsung |
+| P3 | **The offline release code never fails** | Family Link: "keeps rejecting the correct Parent Access Code", one phone locked a week | Test, not a feature: airplane mode, after a reboot, after 30 days without a sync, after an app update | All four pass on a phone |
+| P4 | **Fastest filtering server from Tunisia** | AdGuard answered in 96–117 ms vs ~50 ms for Cloudflare on Topnet Wi-Fi (2026-11-10) | The agent measures each candidate DoT host and reports it; the console picks or warns. Also say in the console that the ads filter can slow new pages | Numbers from Topnet, Ooredoo and Orange; the rule cards use the fastest honest host |
+
+### 5.1 — Parity: what parents will expect because Family Link does it
+
+| ID | Item | Who has it | How | Done when |
+|---|---|---|---|---|
+| C5 | Bonus time and pause, from the console | Family Link, Qustodio, OurPact | capability-plan C5 | Command → effect → ack |
+| D2 | Block screen that says why | Every commercial app | capability-plan D2 (`SuspendDialogInfo`) | Seen on a phone |
+| D3 | **"Ask for more time"** from the child | Family Link, Kaspersky, Mobicip | capability-plan D3, after D2 and C5 | Request → console → approve → unblocked |
+| P5 | **Place alerts** (arrived home, left school) | Family Link, Kaspersky Premium, FamiSafe, Find My Kids | Geofence check on the phone from the existing location fixes (pure `GeofenceDecision`); console draws the places. The child sees "Places your parent gets alerts for" (G1) | Arrival and departure alerts, with Location off reported (A3) |
+| P6 | **Approve new apps** | Family Link (its strongest point), Kaspersky | New installs start suspended until the parent allows them (*verify* a package-added receiver plus `setPackagesSuspended` as Device Owner; Play's own install flow can't be intercepted). Console shows the request | A newly installed app stays closed until approved |
+| P7 | Ring the phone, see battery level | Family Link, Kaspersky | New `CommandType` `ring`; battery level in the existing report | Rings at full volume even when silent |
+| C1 | Different limits on school days and weekends | Family Link, Qustodio | capability-plan C1 | Unit tests at midnight and the week edge; a phone |
+| D1 | Child status screen: time left, what's collected | Children rate Family Link 1.4 stars; none of the competitors explain themselves to the child | capability-plan D1 | Matches the console exactly |
+| P8 | **Weekly summary by email** to the parent | Qustodio, Norton, Microsoft | From E3's existing usage aggregates; same Brevo channel as alerts. No URLs, no content (G2) | One email a week, in the parent's language (P1) |
+
+### 5.2 — Widen the lead: where Manara is already ahead
+
+| ID | Item | Why | How |
+|---|---|---|---|
+| B1 | Local DNS filter (VPN) the child can't route around | Already ahead of Family Link (Chrome only) and Microsoft (Edge only); this closes the last holes and lets the filter choose its servers | capability-plan B1 |
+| B3 | SafeSearch in every browser | Today SafeSearch is enforced through Chrome rules only | capability-plan B3 |
+| B5 | Categories: gambling, dating, VPN/proxy, self-harm | "Family values" covers a few sites in Chrome only; Qustodio and Kaspersky filter by category | capability-plan B5 |
+| C3 | School mode: only allowed apps during class hours | Family Link "School time", OurPact | capability-plan C3 |
+| P9 | **Tamper report the parent can understand**: "your child tried to reset the phone / add a profile / change the clock" | Only Manara blocks these; telling the parent shows the value | Events from the restriction checks, written for parents, shown in the console |
+| P10 | **Move from Family Link in one step** | Parents who tried Family Link already have rules | Console reads nothing from Google; instead, a guided "your Family Link rules → Manara cards" checklist, then the setup removes supervision with the parent | A Family Link family switches in one session |
+
+### 5.3 — Business, not code (from the study)
+
+| ID | Item | Why |
+|---|---|---|
+| P0 | **Free for parents, funded by grants or donations**: the model under test (decision 3) | Removes the payment barrier entirely. Needs a list of grant sources for child wellbeing and digital safety in Tunisia, and what they ask for (usage numbers, an organisation behind it) |
+| P11 | **Price in dinars, paid locally** (fallback) | Foreign subscriptions probably need an international card; Mobicip refuses debit and prepaid cards. *Hypothesis: confirm in interviews* |
+| P12 | **In-person setup service** (fallback) | Answers both trust and difficulty, and fits the 80% of phones already in use |
+| P13 | **iPhone families: a guide, not an app** | On iPhone, Apple's free Screen Time is better than every third-party app, and Manara's Device Owner approach doesn't exist there. A console page "your child has an iPhone: set up Screen Time like this", in Arabic and French |
+
+### 5.4 — Regional pack: for Muslim families (optional, off by default)
+
+Each item passes G1–G7: the child sees it on the notice and the status screen,
+nothing new is collected, and none of it reads content.
+
+| ID | Item | How | Done when |
+|---|---|---|---|
+| P14 | **Prayer-time pause**: the apps the parent already limits (social media, games) close for N minutes at each prayer the parent ticks | Pure `PrayerTimes` (sun angles, offline, G5) and `PrayerPauseDecision`: **built and unit-tested 2026-11-10**. Still to build: a `prayerPause` policy field (additive, G6), a `PrayerPauseEnforcer` that suspends and resumes the packages (not `lockNow()`: calls and every other app stay open), the child's notice "Prayer time: your apps are back at 13:05", a console card with the day's times and a per-prayer minute adjustment. Location: the parent picks a city in the console, so the pause needs no GPS and collects nothing | On a Samsung, Instagram closes at the computed minute and reopens N minutes later, offline; the times match the Ministry of Religious Affairs timetable for Tunis within 2 minutes (*Hypothesis:* its angles are 18°/18°; check before release) |
+| P15 | **Ramadan schedule**: one switch that moves bedtime and daily limits for the month | A console preset over the existing `lockSchedule` and `timeLimits`; no agent change. Dates entered by the parent, not computed | The preset applies and reverts on a phone |
+| P16 | **Always-allowed apps**: Quran, school and the phone app never count against a limit or a pause | *Verify first* whether `TimeLimitDecision` already has an exemption list | A listed app stays open during a pause and at zero minutes left |
+| B5 | **Family-values filter on the whole phone** (was 5.2) | Today the "Family values" card works in Chrome only (`RuleCards.tsx` l.31): it is the pack's headline and its weakest part. capability-plan B5 | Gambling, dating and alcohol sites closed in every browser |
+| P18 | **Review, not a claim** (not code) | Ask one imam or a religious-education teacher, and one family association, to read the pack's wording in Arabic before it is advertised. Never print "approved by" without a written yes | A named reviewer, in writing |
+
+### 5.5 — Design fixes (from reading the code, 2026-11-10; no screen was rendered)
+
+What already holds: one palette (teal, amber lamp) shared by the console and
+the app (`styles.css` l.3-24, `Theme.kt`), dark mode, visible focus, reduced
+motion, 52 dp buttons, headings marked for screen readers, plain wording on
+the rule cards.
+
+| ID | Finding | Where | Fix |
+|---|---|---|---|
+| X1 ✅ | Every app string is hard-coded; `strings.xml` holds 3 | `ui/Screens.kt`, about 40 `Text("…")` | Move to string resources. First step of P1 |
+| X2 ✅ | Console copy is hard-coded in components | e.g. `RuleCards.tsx` l.26-50 | A message catalogue, one file per language. First step of P1 |
+| X3 ✅ | Console can't mirror for Arabic | `index.html` `lang="en"`, no `dir`; `styles.css`: 18 `left`/`right` rules, 0 logical ones | `lang`/`dir` from the parent's language; `margin-inline-*`, `inset-inline-*` |
+| X4 ✅ | Small text for a non-technical parent, smaller still in Arabic script | `styles.css`: base 15 px, labels at 0.8 rem (12 px) | Base 16 px; no text under 14 px; check Arabic line height |
+| X5 | Bedtime and lock windows are whole hours only | `Policy.LockSchedule.Window(fromHour, toHour)` | Minutes, additively (G6). Not needed by P14, which has its own decision |
+| X6 | No screen says why an app is closed | no `SuspendDialogInfo` in `agent/` | D2 |
+
+### Won't do (the study's ethics list)
+
+- Listening through the child's microphone (Find My Kids "Sound Around"). Audio is excluded by ADR-0001/ADR-0008.
+- Reading message content and AI-scanning it on a third-party server (Bark). Any message capture follows capability-plan Track H and its ADR, encrypted so the server can't read it, and visible to the child.
+- An iPhone app (for now). It would be weaker than Apple's own tool. Revisit only if interviews show many iPhones.
 
 ## Known hard problems (not blockers, but eyes open)
 

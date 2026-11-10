@@ -1,4 +1,6 @@
 import type { EventItem } from './protection.ts'
+import { t } from './i18n.ts'
+import { categoryLabel } from './ruleCards.ts'
 
 export interface LimitHit {
     id: string
@@ -27,6 +29,6 @@ export function summarizeLimitHits(events: EventItem[]): LimitHit[] {
 
 export function limitHitText(hit: LimitHit): string {
     return hit.dailyMinutes === 0
-        ? `${hit.category}: blocked (limit is 0 minutes a day)`
-        : `${hit.category}: reached the ${hit.dailyMinutes}-minute daily limit`
+        ? t('limits.hitBlocked', { name: categoryLabel(hit.category) })
+        : t('limits.hitReached', { name: categoryLabel(hit.category), n: hit.dailyMinutes })
 }

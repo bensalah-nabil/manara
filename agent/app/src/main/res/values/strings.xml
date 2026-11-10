@@ -1,6 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Every placeholder is %s: numbers are formatted before they reach here (text/Words.kt). -->
 <resources>
-    <string name="app_name">Manara</string>
+    <string name="app_name" translatable="false">Manara</string>
+
+    <!-- The permanent managed notice (ADR-0001) -->
     <string name="notice_title">This device is managed</string>
     <string name="notice_text">Manara is managing this device. This notice cannot be removed.</string>
+    <string name="notice_channel_name">Device management</string>
+    <string name="notice_channel_description">Shows that this device is managed by Manara.</string>
+    <string name="summary_no_policy">No policy received yet</string>
+    <string name="summary_limits">App time limits: %1$s</string>
+    <string name="summary_filter">Site filtering requested</string>
+    <string name="summary_location">Location sharing requested, every %1$s min</string>
+    <string name="summary_usage">Daily app usage is reported to your parent</string>
+    <string name="summary_lock">Scheduled lock windows: %1$s</string>
+    <string name="summary_restrictions">Settings restrictions requested: %1$s</string>
+    <string name="summary_chrome">Chrome rules set by your parent</string>
+    <string name="summary_other_browsers">Browsers other than Chrome are blocked</string>
+    <string name="summary_calls">Call history is sent to your parent</string>
+    <string name="summary_nothing">No limits or collection configured</string>
+    <string name="summary_no_calls">Call logs: not collected</string>
+    <string name="summary_prayer_now">Prayer time: your apps are back at %1$s</string>
+    <string name="summary_prayer_next">Next prayer pause: %1$s at %2$s, for %3$s min</string>
+
+    <!-- Location notice -->
+    <string name="location_channel_name">Location sharing</string>
+    <string name="location_channel_description">Shows that this phone\'s location is shared with your parent.</string>
+    <string name="location_notice_title">Your location is shared</string>
+    <string name="location_notice_text">Your parent sees where this phone is, every %1$s minutes.</string>
+
+    <!-- Guided setup notice -->
+    <string name="setup_channel_name">Guided setup</string>
+    <string name="setup_channel_description">Shows each step of guided setup.</string>
+    <string name="setup_notice_title">Manara setup: this phone is being set up for parental management</string>
+    <string name="setup_open_accounts">Open accounts</string>
+    <string name="setup_add_google">Add Google account</string>
+    <string name="setup_add_account">Add account</string>
+
+    <!-- Shared -->
+    <string name="please_wait">Please wait…</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="list_separator">", "</string>
+    <string name="duration_min">%1$s min</string>
+    <string name="duration_h">%1$s h</string>
+    <string name="duration_h_min">%1$s h %2$s min</string>
+
+    <!-- Connect screen -->
+    <string name="connect_title_new">Welcome to Manara</string>
+    <string name="connect_title_move">Connect to the new account</string>
+    <string name="connect_subtitle_new">Parental controls your child can always see.</string>
+    <string name="connect_subtitle_move">Your parent is moving this phone to another account.</string>
+    <string name="connect_section_new">Connect this phone</string>
+    <string name="connect_section_move">Scan the new account\'s code</string>
+    <string name="connect_help_new">On the parent\'s phone or computer, open the Manara console and choose Add a phone. Then scan the code it shows.</string>
+    <string name="connect_help_move">In the new parent account, choose Add a phone and say Manara is already set up. Then scan the code it shows.</string>
+    <string name="connect_scan">Scan the code</string>
+    <string name="connect_type_code">Or type the code</string>
+    <string name="connect_button">Connect</string>
+    <string name="connect_only_for">Manara is only for a parent managing their own child\'s phone. The phone always shows that it is managed and what is shared.</string>
+    <string name="enroll_rejected">That code didn\'t work. Codes work once: ask for a new one in the console.</string>
+    <string name="enroll_not_allowed">This phone is managed for a parent account. Only that parent can release it.</string>
+    <string name="enroll_failed">Couldn\'t reach Manara. Check the internet connection and try again; the server can take a minute to wake up.</string>
+    <string name="scan_empty">That QR code had nothing to read.</string>
+    <string name="scan_failed">The scanner couldn\'t start. Type the code instead.</string>
+
+    <!-- Guided setup screen -->
+    <string name="setup_title">Almost there</string>
+    <string name="setup_subtitle">This phone is connected to a parent account.</string>
+    <string name="setup_unsupported">Guided setup needs Android 11 or newer. This phone can\'t be set up by itself.</string>
+    <string name="setup_section">Let Manara manage this phone</string>
+    <string name="setup_step_1">Open Settings, then Developer options, and turn on Wireless debugging. The parent\'s console shows how for this phone.</string>
+    <string name="setup_step_2">Tap Start guided setup below, and allow notifications.</string>
+    <string name="setup_step_3">In Wireless debugging, tap Pair device with QR code and scan the code in the parent\'s console. Or tap Pair device with pairing code and type its code in the console.</string>
+    <string name="setup_step_4">Keep the phone on that screen. Everything else is done in the console, which shows each step.</string>
+    <string name="setup_running">Setup is running. Pair from the parent\'s console.</string>
+    <string name="setup_open_developer_options">Open Developer options</string>
+    <string name="setup_start">Start guided setup</string>
+
+    <!-- Managed screen: what the child sees every day -->
+    <string name="managed_title">This phone is managed</string>
+    <string name="managed_subtitle">By your parent, with Manara.</string>
+    <string name="attention_title">Needs attention</string>
+    <string name="fix_usage_access">Open usage access</string>
+    <string name="fix_location">Open location settings</string>
+    <string name="attention_usage">Usage access is off for Manara, so app limits can\'t be counted.</string>
+    <string name="attention_location">Location is turned off on this phone.</string>
+    <string name="seen_title">What your parent can see</string>
+    <string name="seen_location_title">Where this phone is</string>
+    <string name="seen_location_detail">Sent every %1$s minutes. A notice shows while it\'s on.</string>
+    <string name="seen_usage_title">Time spent in each app</string>
+    <string name="seen_usage_detail">Minutes per app today, sent about once an hour.</string>
+    <string name="seen_limit_title">When a time limit is reached</string>
+    <string name="seen_limit_detail">Which limit, not what you were doing.</string>
+    <string name="seen_calls_title">Your calls</string>
+    <string name="seen_calls_detail">The number, direction, time and length of each call. Never what was said.</string>
+    <string name="seen_app_calls_title">Calls in WhatsApp, Messenger, Telegram and Viber</string>
+    <string name="seen_app_calls_detail">Which app, when and how long, if notification access is on. Manara looks at notifications only to spot calls and keeps nothing else, not even who called.</string>
+    <string name="seen_requests_title">When you ask for more time</string>
+    <string name="seen_requests_detail">Which app and how many minutes you asked for.</string>
+    <string name="seen_health_title">Whether Manara is working</string>
+    <string name="seen_health_detail">For example if a setting it needs was turned off.</string>
+    <string name="never_shared">Never your messages, photos, calls or passwords.</string>
+    <string name="never_shared_calls">Never your messages, photos or passwords, or what is said on a call.</string>
+    <string name="rules_title">Rules on this phone</string>
+    <string name="no_rules">No rules yet.</string>
+    <string name="rule_app_limit">App limit</string>
+    <string name="rule_social">Social media</string>
+    <string name="rule_games">Games</string>
+    <string name="rule_blocked">Blocked, %1$s</string>
+    <string name="rule_daily">%1$s a day, %2$s</string>
+    <string name="rule_all_games">all games</string>
+    <plurals name="apps_count">
+        <item quantity="one">%1$s app</item>
+        <item quantity="other">%1$s apps</item>
+    </plurals>
+    <string name="rule_locked">Locked %1$s–%2$s</string>
+    <string name="days_every">Every day</string>
+    <string name="days_weekdays">Weekdays</string>
+    <string name="days_weekends">Weekends</string>
+    <string name="day_sun">Sun</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="rule_filter_title">Website filter</string>
+    <string name="rule_filter_detail">Some websites are blocked.</string>
+    <string name="restrict_title">Settings you can\'t change</string>
+    <string name="restrict_factory_reset">factory reset</string>
+    <string name="restrict_safe_mode">safe mode</string>
+    <string name="restrict_new_users">new users</string>
+    <string name="restrict_developer">developer options</string>
+    <string name="restrict_date_time">date and time</string>
+    <string name="restrict_vpn">VPN settings</string>
+    <string name="restrict_private_dns">Private DNS settings</string>
+    <string name="chrome_title" translatable="false">Chrome</string>
+    <string name="chrome_safesearch">SafeSearch on Google</string>
+    <string name="chrome_youtube">YouTube Restricted Mode</string>
+    <string name="chrome_youtube_strict">YouTube strict Restricted Mode</string>
+    <string name="chrome_secure_dns">Chrome\'s own secure DNS is off, so the website filter applies</string>
+    <plurals name="sites_blocked">
+        <item quantity="one">%1$s website blocked</item>
+        <item quantity="other">%1$s websites blocked</item>
+    </plurals>
+    <string name="chrome_other_browsers">Other browsers are blocked</string>
+    <string name="rule_prayer_title">Prayer-time pause</string>
+    <string name="rule_prayer_detail">Your limited apps close for %1$s min at: %2$s.</string>
+    <string name="rule_prayer_now">Prayer time: your apps are back at %1$s.</string>
+    <string name="rule_prayer_next">Next pause: %1$s at %2$s.</string>
+    <string name="prayer_fajr">Fajr</string>
+    <string name="prayer_dhuhr">Dhuhr</string>
+    <string name="prayer_asr">Asr</string>
+    <string name="prayer_maghrib">Maghrib</string>
+    <string name="prayer_isha">Isha</string>
+    <string name="rule_bonus_title">Extra time from your parent</string>
+    <string name="rule_bonus_detail">%1$s: %2$s more min today.</string>
+    <string name="rule_paused_title">Rules paused by your parent</string>
+    <string name="rule_paused_detail">Limits and pauses are off until %1$s.</string>
+    <string name="contact_never">Not connected yet</string>
+    <string name="contact_now">Connected just now</string>
+    <string name="contact_minutes">Last connected %1$s min ago</string>
+    <string name="contact_hours">Last connected %1$s h ago</string>
+    <string name="contact_days">Last connected %1$s days ago</string>
+    <string name="check_now">Check now</string>
+    <string name="release_this_phone">Release this phone</string>
+
+    <!-- The message Android shows when a closed app is opened (D2) -->
+    <string name="blocked_limit">Closed by your parent\'s Manara rules: today\'s time for %1$s is used up. It opens again tomorrow.</string>
+    <string name="blocked_always">Closed by your parent\'s Manara rules: %1$s is blocked.</string>
+    <string name="blocked_prayer">Prayer time. Closed by your parent\'s Manara rules until %1$s.</string>
+    <string name="blocked_browser">Closed by your parent\'s Manara rules: only Chrome is allowed, so the website filter works.</string>
+    <string name="blocked_generic">Closed by your parent\'s Manara rules.</string>
+    <string name="blocked_why">Why?</string>
+    <string name="blocked_ask">Ask for more time</string>
+    <string name="bedtime_notice_title">Bedtime</string>
+    <string name="bedtime_notice_text">Your parent\'s Manara rules lock this phone until %1$s.</string>
+
+    <!-- Ask for more time (D3) -->
+    <string name="ask_title">Ask for more time</string>
+    <string name="ask_subtitle">Your parent sees the request in their console.</string>
+    <string name="ask_app">For %1$s</string>
+    <string name="ask_how_long">How long?</string>
+    <string name="ask_minutes">%1$s min</string>
+    <string name="ask_send">Send to my parent</string>
+    <string name="ask_sent">Sent. Your parent sees which app and how many minutes. If they agree, the app opens by itself.</string>
+    <string name="ask_too_soon">You already asked a few minutes ago. Your parent has the request.</string>
+    <string name="ask_nothing">No app is closed by a limit right now.</string>
+
+    <!-- Release -->
+    <string name="release_title">Release this phone</string>
+    <string name="release_subtitle">Only your parent can do this.</string>
+    <string name="release_code_section">Your parent\'s release code</string>
+    <string name="release_code_help">Your parent finds it in the Manara console: open this phone, then Phone, then Show release code. It works without a connection.</string>
+    <string name="release_code_label">8-digit code</string>
+    <string name="release_choose_title">What should happen?</string>
+    <string name="release_move">Move to another parent account</string>
+    <string name="release_move_help">Keeps everything set up. For the next 30 minutes the phone accepts the new account\'s code.</string>
+    <string name="release_remove">Remove Manara from this phone</string>
+    <string name="release_remove_help">Lifts every rule and stops managing the phone. Manara can then be uninstalled.</string>
+    <string name="remove_confirm_title">Remove Manara?</string>
+    <string name="remove_confirm_text">Every rule is lifted and Manara stops managing this phone. Setting it up again means the full guided setup.</string>
+    <string name="action_remove">Remove</string>
+    <string name="code_wrong">That code isn\'t right. Check it with your parent.</string>
+    <string name="code_locked">Too many wrong codes. Try again after %1$s.</string>
+    <string name="code_no_secret">This phone hasn\'t received its release key yet. Connect to the internet, wait a few minutes, and try again.</string>
+    <string name="released_title">Manara is off</string>
+    <string name="released_subtitle">This phone is no longer managed.</string>
+    <string name="released_section">All done</string>
+    <string name="released_text">Every rule has been lifted. You can uninstall Manara from Settings, Apps.</string>
+    <string name="released_thanks">Thanks for using Manara.</string>
 </resources>

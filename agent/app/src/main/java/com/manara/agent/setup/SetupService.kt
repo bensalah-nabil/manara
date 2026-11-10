@@ -165,12 +165,12 @@ class SetupService : Service() {
     private fun notification(text: String, button: SetupNotice.Button? = null): Notification {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Guided setup", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Shows each step of guided setup."
+            NotificationChannel(CHANNEL_ID, getString(R.string.setup_channel_name), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = getString(R.string.setup_channel_description)
             }
         )
         return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Manara setup: this phone is being set up for parental management")
+            .setContentTitle(getString(R.string.setup_notice_title))
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.ic_stat_manara)
@@ -179,7 +179,7 @@ class SetupService : Service() {
                 // The notice itself and its button both open the screen the parent needs next.
                 button?.let { screen(it) }?.let { open ->
                     setContentIntent(open)
-                    addAction(Notification.Action.Builder(null, button.label, open).build())
+                    addAction(Notification.Action.Builder(null, getString(button.label), open).build())
                 }
             }
             // Android 14 lets the user swipe this away while Manara isn't device owner yet;

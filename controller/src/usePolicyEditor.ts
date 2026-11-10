@@ -3,6 +3,7 @@ import type { Api, DeviceSummary } from './api.ts'
 import { isSessionError } from './api.ts'
 import { errorText } from './format.ts'
 import type { Policy } from './policy.ts'
+import { t } from './i18n.ts'
 
 export type Validation<V> = { ok: true; value: V } | { ok: false; errors: string[] }
 
@@ -96,6 +97,6 @@ export function usePolicyEditor<D, V>({ api, device, onSessionExpired, section }
 /** What the parent is told after a save: a push means seconds, otherwise the next check-in. */
 export function savedText(version: number, woken: boolean): string {
     return woken
-        ? `Saved as version ${version}. The phone applies it in a few seconds.`
-        : `Saved as version ${version}. The phone applies it at its next check-in, within about 15 minutes.`
+        ? t('editor.savedWoken', { n: version })
+        : t('editor.savedLater', { n: version })
 }

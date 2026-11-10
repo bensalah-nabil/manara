@@ -33,6 +33,12 @@ type accountDTO struct {
 	// console doesn't offer a link that can never arrive.
 	PasswordReset bool `json:"passwordReset"`
 	TwoFactor     bool `json:"twoFactor"`
+	// Language the console and emails use for this parent: en, fr or ar.
+	Language string `json:"language"`
+}
+
+type updateAccountRequest struct {
+	Language string `json:"language"`
 }
 
 // resetsAvailable: a reset needs a way to send mail and a console to link to.
@@ -149,7 +155,31 @@ func (h *Handlers) GetAccount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	writeJSON(w, http.StatusOK, accountDTO{Email: parent.Email, Phones: len(devices), PasswordReset: h.resetsAvailable(), TwoFactor: twoFactor})
+	writeJSON(w, http.StatusOK, accountDTO{Email: parent.Email, Phones: len(devices), PasswordReset: h.resetsAvailable(), TwoFactor: twoFactor, Language: domain.NormalizeLanguage(parent.Language)})
+}
+
+// UpdateAccount stores the language the parent chose in the console, so
+// emails (alerts, the weekly summary) are written in it too.
+func (h *Handlers) UpdateAccount(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	var req updateAccountRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+	if !domain.Languages[req.Language] {
+		writeError(w, http.StatusBadRequest, "unknown_language", domain.ErrUnknownLanguage.Error())
+		return
+	}
+	if err := h.Parents.SetLanguage(r.Context(), parentID, req.Language); err != nil {
+		log.Printf("console: set language: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"language": req.Language})
 }
 
 // DeleteAccount needs the password again: a session left open on a shared
