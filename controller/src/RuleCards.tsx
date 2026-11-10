@@ -8,6 +8,7 @@ import { errorText } from './format.ts'
 import type { Policy } from './policy.ts'
 import { AGES, ageLabel, applyAge, childLines, hourLabel, matchingAge, minutesLabel, readCards, setBedtimeHour, setCard, setMinutes, warningFor } from './ruleCards.ts'
 import type { Age, CardId, CardsState } from './ruleCards.ts'
+import { PrayerChart } from './PrayerChart.tsx'
 import { t } from './i18n.ts'
 
 const ART: Record<CardId, ComponentChildren> = {
@@ -261,6 +262,7 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
                             </div>
                         </section>
                     ))}
+                    <PrayerChart api={api} device={device} />
                     <CustomRules policy={policy} busy={busy} change={change} />
                     <details class="advanced">
                         <summary>{t('rules.advanced')}</summary>
