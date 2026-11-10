@@ -37,14 +37,19 @@ import kotlinx.coroutines.launch
 class ManagedNoticeService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** The policy the notice last showed, so a language change can re-post it. */
+    @Volatile private var shown: com.manara.agent.policy.Policy? = null
+    @Volatile private var received = false
+
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
         scope.launch {
             try {
                 PolicyCache(ManaraDatabase.get(applicationContext)).observe().collect { policy ->
-                    getSystemService(NotificationManager::class.java)
-                        .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(AndroidWords(applicationContext), policy)))
+                    shown = policy
+                    received = true
+                    post(policy)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -53,6 +58,20 @@ class ManagedNoticeService : Service() {
             }
         }
         scope.launch { LiveRules(applicationContext).run() }
+    }
+
+    /**
+     * The phone's or Manara's own language changed (seen on the SM-A528B: the screen switched to
+     * Arabic and the notice stayed English, since it was only rebuilt on a new policy).
+     */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (received) post(shown) else startForeground(NOTIFICATION_ID, buildNotification())
+    }
+
+    private fun post(policy: com.manara.agent.policy.Policy?) {
+        getSystemService(NotificationManager::class.java)
+            .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(AndroidWords(this), policy)))
     }
 
     override fun onDestroy() {
