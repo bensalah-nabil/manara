@@ -56,6 +56,7 @@ export const en = {
     'auth.forgot': 'Forgot your password?',
     'auth.privacy': 'Privacy policy',
     'auth.deleteLink': 'Delete your account',
+    'auth.about': 'About Manara',
     'auth.guide': 'Parent guide',
     'auth.twoStepTitle': 'Two-step sign-in',
     'auth.twoStepHelp': 'Enter the 6-digit code from your authenticator app. Lost the phone with the app? Enter one of your recovery codes instead.',

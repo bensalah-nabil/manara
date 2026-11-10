@@ -59,6 +59,7 @@ export const ar: Record<MessageKey, string> = {
     'auth.forgot': 'نسيت كلمة المرور؟',
     'auth.privacy': 'سياسة الخصوصية',
     'auth.deleteLink': 'حذف حسابك',
+    'auth.about': 'تعرّف على منارة',
     'auth.guide': 'دليل أولياء الأمور',
     // TODO-REVIEW: "two-step sign-in" rendered as "تسجيل الدخول بخطوتين"
     'auth.twoStepTitle': 'تسجيل الدخول بخطوتين',

@@ -54,6 +54,7 @@ export const fr: Record<MessageKey, string> = {
     'auth.forgot': 'Mot de passe oublié ?',
     'auth.privacy': 'Politique de confidentialité',
     'auth.deleteLink': 'Supprimer votre compte',
+    'auth.about': 'Découvrir Manara',
     'auth.guide': 'Guide des parents',
     'auth.twoStepTitle': 'Connexion en deux étapes',
     'auth.twoStepHelp': "Saisissez le code à 6 chiffres de votre application d'authentification. Vous avez perdu le téléphone qui contient l'application ? Saisissez l'un de vos codes de secours.",

@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light" />
+<meta name="description" content="Manara : le contrôle parental que votre enfant voit et comprend. Gratuit pour les parents, open source, fait en Tunisie." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Manara · Le contrôle parental que votre enfant voit et comprend</title>
+<style>
+  :root {
+    --bg: #f4efe5; --card: #ffffff; --line: #e6dfd1; --ink: #0f3b47; --text: #23353b; --muted: #5d6b6f;
+    --amber: #8a5a0b; --lamp: #e3a23a; --brand: #134c58; --brand-ink: #ffffff; --soft: #fbf8f2;
+    color-scheme: light;
+    font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+    color: var(--text); background: var(--bg);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); }
+  [lang="ar"] { font-family: 'Segoe UI', 'Noto Kufi Arabic', 'Noto Sans Arabic', Tahoma, system-ui, sans-serif; line-height: 1.8; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; }
+  a { color: var(--brand); }
+
+  /* Top bar */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 1.25rem; }
+  .brand span[lang="ar"] { color: var(--amber); font-weight: 700; }
+  .logo { width: 40px; height: 40px; flex: none; }
+  .top nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.95rem; }
+  .top nav a { color: var(--ink); text-decoration: none; font-weight: 600; }
+
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; padding-block: 32px 56px; }
+  h1 { color: var(--ink); font-size: clamp(2rem, 4.6vw, 3.1rem); line-height: 1.12; margin: 0 0 12px; letter-spacing: -0.01em; font-weight: 800; }
+  .hero .ar-title { color: var(--amber); font-size: clamp(1.5rem, 3.4vw, 2.2rem); font-weight: 700; margin: 0 0 20px; }
+  .lead { font-size: 1.1rem; margin: 0 0 8px; max-width: 34em; }
+  .lead[lang="ar"] { color: var(--muted); }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; align-items: center; }
+  .button { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 24px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); text-decoration: none; font-weight: 700; }
+  .button:hover { filter: brightness(1.12); }
+  .button.ghost { background: transparent; color: var(--brand); box-shadow: inset 0 0 0 2px var(--brand); }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; color: var(--muted); font-size: 0.9rem; }
+
+  /* Phone mock-up: what the child sees */
+  .phone { justify-self: center; width: min(300px, 100%); aspect-ratio: 9 / 18.5; border-radius: 38px; background: #0f2127; padding: 12px; box-shadow: 0 30px 60px -24px rgba(15, 59, 71, 0.45); }
+  .screen { height: 100%; border-radius: 28px; background: #141d23; color: #e6edf1; padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-size: 0.82rem; }
+  .screen .head { display: flex; align-items: center; gap: 10px; }
+  .screen .head b { font-size: 1.05rem; line-height: 1.2; }
+  .screen .head small { display: block; color: #93a3ad; }
+  .screen .box { border: 1px solid #25323b; border-radius: 14px; padding: 10px 12px; display: grid; gap: 6px; }
+  .screen .box strong { font-size: 0.9rem; }
+  .screen .box span { color: #93a3ad; }
+  .screen .promise { color: #5cb3c4; }
+
+  /* Sections */
+  section { padding-block: 40px; }
+  h2 { color: var(--ink); font-size: clamp(1.5rem, 3vw, 2rem); margin: 0 0 4px; line-height: 1.2; }
+  h2 + .ar { color: var(--amber); font-size: 1.25rem; font-weight: 700; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-content: start; }
+  .card svg { grid-row: span 3; width: 30px; height: 30px; color: var(--ink); margin-top: 2px; }
+  .card h3 { margin: 0; color: var(--ink); font-size: 1.05rem; }
+  .card p { margin: 0; font-size: 0.95rem; }
+  .card p[lang="ar"] { color: var(--amber); font-weight: 600; }
+
+  .promise-band { background: var(--brand); color: var(--brand-ink); border-radius: 28px; padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .promise-band h2 { color: var(--brand-ink); }
+  .promise-band h2 + .ar { color: var(--lamp); }
+  .promise-band ul { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 8px; }
+  .promise-band li span[lang="ar"] { display: block; color: #cfe3e6; font-size: 0.95rem; }
+
+  .steps { counter-reset: step; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
+  .step::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--lamp); color: var(--ink); font-weight: 800; margin-bottom: 10px; }
+  .step h3 { margin: 0 0 6px; color: var(--ink); font-size: 1.05rem; }
+  .step p { margin: 0; font-size: 0.95rem; }
+  .step p[lang="ar"] { color: var(--amber); margin-top: 6px; }
+
+  .honest { background: var(--soft); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; }
+  .honest ul { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 8px; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+  details p { margin: 10px 0 0; }
+
+  .final { text-align: center; padding-block: 48px 64px; }
+  .final .cta { justify-content: center; }
+  footer { border-top: 1px solid var(--line); padding-block: 22px 40px; color: var(--muted); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .hero > *, .promise-band > *, .grid > *, .steps > * { min-width: 0; }
+  .button { white-space: normal; text-align: center; justify-content: center; }
+  @media (max-width: 860px) {
+    .hero, .promise-band { grid-template-columns: minmax(0, 1fr); }
+    .grid, .steps { grid-template-columns: minmax(0, 1fr); }
+    .phone { width: min(260px, 80%); }
+  }
+  @media (max-width: 640px) {
+    .top nav a:not(:last-child) { display: none; }
+    .promise-band { padding: 24px 20px; }
+    .cta .button { width: 100%; }
+    .button .also { display: none; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .button { transition: filter .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/decouvrir.html" aria-label="Manara, accueil">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#134c58"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#e3a23a"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>
+      Manara <span lang="ar">منارة</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#fonctions">Fonctions</a>
+      <a href="#promesse">Notre promesse</a>
+      <a href="#comment">Comment ça marche</a>
+      <a href="/">Se connecter</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Le contrôle parental que votre enfant voit et comprend.</h1>
+        <p class="ar-title" lang="ar" dir="rtl">رقابة أبوية يراها طفلك ويفهمها</p>
+        <p class="lead">Fixez le temps d'écran, l'heure du coucher et les sites à bloquer sur le téléphone Android de votre enfant. Rien n'est caché : le téléphone affiche toujours ce qui est en place.</p>
+        <p class="lead" lang="ar" dir="rtl">حدّد وقت الشاشة ووقت النوم والمواقع المحجوبة على هاتف طفلك. لا شيء مخفي: يعرض الهاتف دائمًا ما هو مفعَّل.</p>
+        <div class="cta">
+          <a class="button" href="/">Créer un compte gratuit <span class="also" lang="ar">· أنشئ حسابًا مجانًا</span></a>
+          <a class="button ghost" href="/guide.html">Lire le guide</a>
+        </div>
+        <div class="tags">
+          <span>Gratuit pour les parents · <span lang="ar">مجانًا للأولياء</span></span>
+          <span>Open source</span>
+          <span>Fait en Tunisie</span>
+          <span>Français · العربية · English</span>
+        </div>
+      </div>
+
+      <div class="phone" role="img" aria-label="Ce que l'enfant voit sur son téléphone : le téléphone est géré, ce que le parent peut voir, et les règles en place.">
+        <div class="screen" lang="ar" dir="rtl">
+          <div class="head">
+            <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#5cb3c4"/><path d="M13 13h6l1.6 14h-9.2z" fill="#062229"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2b65a"/><path d="M16 5l4 4.5h-8z" fill="#062229"/></svg>
+            <div><b>هذا الهاتف خاضع للإشراف</b><small>من قِبل ولي أمرك، عبر منارة.</small></div>
+          </div>
+          <div class="box">
+            <strong>ما الذي يستطيع ولي أمرك رؤيته</strong>
+            <span>الوقت الذي تقضيه في كل تطبيق</span>
+            <span>هل يعمل منارة</span>
+            <span class="promise">لا تُرسَل أبدًا رسائلك ولا صورك ولا مكالماتك ولا كلمات مرورك.</span>
+          </div>
+          <div class="box">
+            <strong>القواعد على هذا الهاتف</strong>
+            <span>وسائل التواصل الاجتماعي: 1 س في اليوم</span>
+            <span>مقفل 21:00–07:00</span>
+            <span>حجب المواقع</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="fonctions" aria-labelledby="fonctions-title">
+      <h2 id="fonctions-title">Ce que Manara fait</h2>
+      <p class="ar" lang="ar" dir="rtl">ما الذي يفعله منارة</p>
+      <div class="grid">
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+          <h3>Temps d'écran limité</h3>
+          <p>Un budget par jour pour TikTok, Facebook, Instagram et les jeux, ou pour l'application de votre choix.</p>
+          <p lang="ar" dir="rtl">وقت محدود للشاشة</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+          <h3>La nuit, le téléphone dort aussi</h3>
+          <p>Le téléphone se verrouille à l'heure du coucher, et se verrouille à nouveau s'il est rouvert.</p>
+          <p lang="ar" dir="rtl">في الليل، الهاتف ينام أيضًا</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+          <h3>Sites nocifs bloqués, sur tout le téléphone</h3>
+          <p>Le filtre s'applique à tous les navigateurs et toutes les applications, pas seulement à Chrome.</p>
+          <p lang="ar" dir="rtl">حجب المواقع الضارة في كامل الهاتف</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <h3>Difficile à contourner</h3>
+          <p>Pas de réinitialisation depuis les Paramètres, de mode sans échec, de VPN, de nouvel utilisateur ni de changement d'heure.</p>
+          <p lang="ar" dir="rtl">يصعب الالتفاف عليه</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          <h3>Sur le téléphone qu'il a déjà</h3>
+          <p>Pas besoin de réinitialiser ni d'ordinateur : l'installation se fait sur le téléphone, sans perdre les applications ni leurs données.</p>
+          <p lang="ar" dir="rtl">على الهاتف الذي يملكه، دون فقدان أي شيء</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/><circle cx="12" cy="12" r="9"/></svg>
+          <h3>En arabe et en français</h3>
+          <p>L'application de l'enfant et la console des parents parlent arabe, français et anglais.</p>
+          <p lang="ar" dir="rtl">بالعربية والفرنسية</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="promesse" aria-labelledby="promesse-title">
+      <div class="promise-band">
+        <div>
+          <h2 id="promesse-title">Visible, toujours.</h2>
+          <p class="ar" lang="ar" dir="rtl">مرئي، دائمًا</p>
+          <p>Manara n'a pas de mode caché, et n'en aura jamais. Votre enfant sait que le téléphone est géré et voit exactement ce que vous voyez. C'est ce qui rend les règles plus faciles à accepter, et c'est aussi ce qui distingue un outil de parent d'un logiciel espion.</p>
+        </div>
+        <ul>
+          <li>Un avis permanent sur le téléphone, impossible à retirer <span lang="ar" dir="rtl">إشعار دائم لا يمكن إزالته</span></li>
+          <li>Jamais les messages, les photos ni les mots de passe <span lang="ar" dir="rtl">لا رسائل ولا صور ولا كلمات مرور أبدًا</span></li>
+          <li>Jamais le micro, jamais d'écoute <span lang="ar" dir="rtl">لا ميكروفون ولا تنصّت أبدًا</span></li>
+          <li>Seul le parent peut retirer Manara, même sans connexion <span lang="ar" dir="rtl">ولي الأمر وحده يستطيع إزالته</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="comment" aria-labelledby="comment-title">
+      <h2 id="comment-title">Comment ça marche</h2>
+      <p class="ar" lang="ar" dir="rtl">كيف يعمل</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Créez votre compte</h3>
+          <p>Une adresse e-mail et un mot de passe, sur votre téléphone ou votre ordinateur.</p>
+          <p lang="ar" dir="rtl">أنشئ حسابك</p>
+        </div>
+        <div class="step">
+          <h3>Connectez le téléphone de votre enfant</h3>
+          <p>La console vous guide étape par étape et suit le téléphone en direct. Le téléphone garde ses applications et ses données.</p>
+          <p lang="ar" dir="rtl">اربط هاتف طفلك</p>
+        </div>
+        <div class="step">
+          <h3>Choisissez les règles</h3>
+          <p>Partez de l'âge de votre enfant, puis ajustez chaque règle d'un geste. Le téléphone les applique en quelques secondes, ou au plus tard en un quart d'heure.</p>
+          <p lang="ar" dir="rtl">اختر القواعد</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="franchement-title">
+      <h2 id="franchement-title">Pour être franc</h2>
+      <p class="ar" lang="ar" dir="rtl">بصراحة</p>
+      <div class="honest">
+        <ul>
+          <li><strong>Android uniquement.</strong> Pour un iPhone, l'outil Temps d'écran d'Apple, gratuit et intégré, est le meilleur choix.</li>
+          <li><strong>Testé sur Samsung.</strong> Les autres marques suivent les mêmes étapes, mais n'ont pas encore été vérifiées.</li>
+          <li><strong>Un projet jeune.</strong> Manara est libre et open source, et s'améliore avec les retours des familles.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="questions-title">
+      <h2 id="questions-title">Questions</h2>
+      <p class="ar" lang="ar" dir="rtl">أسئلة</p>
+      <details>
+        <summary>Est-ce vraiment gratuit ?</summary>
+        <p>Oui, pour les parents. Le code est open source.</p>
+      </details>
+      <details>
+        <summary>Mon enfant saura-t-il que son téléphone est géré ?</summary>
+        <p>Oui, toujours. Le téléphone l'affiche en permanence, avec la liste de ce qui est partagé. Vous le confirmez aussi avant de connecter le téléphone.</p>
+      </details>
+      <details>
+        <summary>Faut-il réinitialiser le téléphone ou avoir un ordinateur ?</summary>
+        <p>Non. L'installation se fait sur le téléphone, connecté au Wi-Fi, sous Android 11 ou plus récent. Un téléphone neuf peut aussi être installé en scannant un code QR.</p>
+      </details>
+      <details>
+        <summary>Et si je veux retirer Manara ?</summary>
+        <p>Depuis la console, en quelques clics. Si le téléphone est hors ligne, un code à 8 chiffres affiché dans la console suffit.</p>
+      </details>
+    </section>
+
+    <div class="final">
+      <h2>Prêt à essayer ?</h2>
+      <p class="ar" lang="ar" dir="rtl">مستعد للتجربة؟</p>
+      <div class="cta">
+        <a class="button" href="/">Créer un compte gratuit</a>
+        <a class="button ghost" href="/guide.html">Lire le guide</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Manara · منارة — open source, fait en Tunisie.</span>
+    <nav aria-label="Liens">
+      <a href="/privacy.html">Confidentialité</a>
+      <a href="/guide.html">Guide des parents</a>
+      <a href="/delete-account.html">Supprimer un compte</a>
+    </nav>
+  </footer>
+</div>
+</body>
+</html>

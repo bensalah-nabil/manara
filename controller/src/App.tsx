@@ -152,7 +152,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
                 {mode === 'login' && <button type="button" class="link" onClick={() => switchTo('forgot')}>{t('auth.forgot')}</button>}
             </form>
             <p class="muted small">
-                <a href="/privacy.html">{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
+                <a href="/privacy.html">{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/decouvrir.html">{t('auth.about')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
             </p>
         </div>
     )
