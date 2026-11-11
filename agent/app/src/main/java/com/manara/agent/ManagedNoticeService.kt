@@ -26,8 +26,8 @@ import kotlinx.coroutines.launch
  * "this device is managed" notification on screen.
  *
  * This is the embodiment of ADR-0001 (monitoring is always visible). It is NOT
- * a policy enforcer and has no "enabled" flag: whenever the agent runs, this
- * runs. There is deliberately no code path that hides or cancels it.
+ * a policy enforcer and has no "enabled" flag: whenever Manara manages the phone,
+ * this runs. There is deliberately no code path that hides it while it does.
  *
  * In Phase 0 it also serves as the keep-alive probe: if the manufacturer kills
  * it, we see the notice vanish — that's a finding, not a bug to hide.
@@ -44,6 +44,15 @@ class ManagedNoticeService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
+        if (!isDeviceOwner()) {
+            // OwnerReceiver.onEnabled starts this on every `set-device-owner` try, refused ones too:
+            // the shell makes Manara an admin before asking for owner. Seen on the SM-A528B: "This
+            // device is managed" on a phone Manara didn't manage. A try that works starts it again
+            // (AdbSetupDevice.setDeviceOwner), and so do boot and opening Manara.
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
         scope.launch {
             try {
                 PolicyCache(ManaraDatabase.get(applicationContext)).observe().collect { policy ->
@@ -72,10 +81,13 @@ class ManagedNoticeService : Service() {
     private fun post(policy: com.manara.agent.policy.Policy?) {
         // A release deletes the rules, and that change arrives here too: posting then would leave
         // "This device is managed" on a phone Manara no longer manages (seen on the SM-A528B).
-        if (!getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(packageName)) return
+        if (!isDeviceOwner()) return
         getSystemService(NotificationManager::class.java)
             .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(AndroidWords(this), policy)))
     }
+
+    private fun isDeviceOwner(): Boolean =
+        getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(packageName)
 
     override fun onDestroy() {
         scope.cancel()

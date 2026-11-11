@@ -303,6 +303,25 @@ the step is saved and resumed at boot or when Manara is opened, and the
 phone re-sends its report every minute so the console can tell it's quiet.
 Ask of any wait: what if the phone is off for a day?
 
+## Revoking Manara's own permission kills Manara
+
+Android kills an app the moment one of its runtime permissions is revoked
+(`PermissionManagerServiceImpl`, `KILL_APP_REASON_PERMISSIONS_REVOKED`).
+A release that turned call history off first revoked Manara's own
+`READ_CALL_LOG` and died halfway on the SM-A528B: still device owner, with
+a token the server had already revoked. Any step that changes Manara's own
+permissions must come last, or be resumable (`ReleaseRecovery`).
+
+## A refused `set-device-owner` leaves an admin removal pending
+
+The shell makes Manara an admin before asking for owner, and removes it on
+a refusal. Android finishes that removal only after Manara has handled
+`DEVICE_ADMIN_DISABLED`. A try before then fails at once with "Trying to set
+an admin which is being removed" (AOSP `checkActiveAdminPrecondition`). It
+was still pending 7 s later on the SM-A528B, and setup gave up. Each try
+also fires `OwnerReceiver.onEnabled`, refused or not, so nothing started
+there may assume Manara is owner.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

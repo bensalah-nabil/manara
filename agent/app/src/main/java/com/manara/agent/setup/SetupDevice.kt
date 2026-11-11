@@ -14,6 +14,8 @@ interface SetupDevice {
     suspend fun pauseApps(packages: List<String>): List<String>
     /** Makes Android recount accounts, then runs `dpm set-device-owner` and returns its raw output. */
     suspend fun setDeviceOwner(): String
+    /** Android's own answer, read after [setDeviceOwner]: the printed text is only the shell's account of it. */
+    fun isDeviceOwner(): Boolean = false
     /** Turns each app back on (safe to repeat). Tries every one, and throws at the end naming those that failed. */
     suspend fun resumeApps(packages: List<String>)
     suspend fun turnOffWirelessDebugging()

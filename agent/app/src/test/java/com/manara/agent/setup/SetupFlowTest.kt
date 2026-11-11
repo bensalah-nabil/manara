@@ -349,6 +349,62 @@ class SetupFlowTest {
         assertEquals(listOf(facebook), t.report.accounts)
     }
 
+    private val beingRemoved =
+        "Exception occurred while executing 'set-device-owner':\n" +
+            "java.lang.IllegalArgumentException: Trying to set an admin which is being removed\n"
+
+    @Test
+    fun `the SM-A528B run, an admin still being removed is waited for and the Samsung path is still reached`() {
+        // 2026-11-11: refused twice with every app paused, then the third try came while Android was
+        // still removing the second's admin, and setup gave up and turned everything back on.
+        val facebook = Account("com.facebook.auth.login", "kid")
+        val all = listOf(google, facebook)
+        val fbOwner = owners + ("com.facebook.auth.login" to "com.facebook.katana")
+        val paused = fbOwner.filterValues { it != gms && it != "com.facebook.katana" }
+        var t = run(Event.Paired, listed(all, fbOwner), listed(all, fbOwner), Event.AppsPaused(listOf(gms, "com.facebook.katana")), listed(all, paused))
+        repeat(SetupFlow.PAUSE_RETRIES) {
+            t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+            t = SetupFlow.next(t.state, listed(all, paused))
+        }
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(beingRemoved))
+        assertEquals("waited for, not failed", Action.WaitThenListAccounts, t.action)
+        assertEquals(Status.IN_PROGRESS, t.report.status)
+        assertEquals(1, t.state.removalWaits)
+        assertEquals("not a refusal: doesn't count toward the Samsung check", SetupFlow.PAUSE_RETRIES, t.state.ownerRetries)
+        assertFalse(t.state.pauseNotEnough)
+
+        t = SetupFlow.next(t.state, listed(all, paused))
+        assertEquals(Action.SetDeviceOwner, t.action)
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(refusedForAccounts))
+        assertEquals("the Samsung path: apps back on, accounts to the parent", Action.ResumeApps(listOf(gms, "com.facebook.katana")), t.action)
+        assertTrue(t.state.pauseNotEnough)
+    }
+
+    @Test
+    fun `an admin removal that never finishes fails after the last check, turning the apps back on`() {
+        var t = run(Event.Paired, listed(listOf(whatsapp)), listed(listOf(whatsapp)), Event.AppsPaused(listOf("com.whatsapp")),
+            listed(listOf(whatsapp), withoutOwners("com.whatsapp")))
+        repeat(SetupFlow.MAX_REMOVAL_WAITS) {
+            t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(beingRemoved))
+            assertEquals(Action.WaitThenListAccounts, t.action)
+            t = SetupFlow.next(t.state, listed(listOf(whatsapp), withoutOwners("com.whatsapp")))
+        }
+        t = SetupFlow.next(t.state, Event.DeviceOwnerOutput(beingRemoved))
+        assertEquals(Action.Recover(listOf("com.whatsapp")), t.action)
+        assertEquals(Status.FAILED, t.report.status)
+        assertTrue(t.report.message.contains("being removed"))
+    }
+
+    @Test
+    fun `Android saying Manara is owner wins over whatever the shell printed`() {
+        val t = run(Event.Paired, listed(emptyList()), listed(emptyList()),
+            Event.DeviceOwnerOutput("java.lang.IllegalStateException: Trying to set the device owner, but device owner is already set.", isOwner = true))
+        assertEquals(Step.RESTORING_APPS, t.state.step)
+        assertEquals(Action.TurnOffWirelessDebugging, t.action)
+        assertFalse(SetupFlow.adminBeingRemoved(refusedForAccounts))
+        assertFalse(SetupFlow.refusedForAccounts(beingRemoved))
+    }
+
     @Test
     fun `a refusal that keeps coming back after the accounts are gone fails after the last check`() {
         var t = run(Event.Paired, listed(listOf(google)), listed(listOf(google), keepRunning = setOf(gms)), listed(emptyList()))

@@ -78,7 +78,8 @@ object SetupFlow {
         ) : Event
         /** [refused]: apps Android would not turn off; their accounts go to the parent instead. */
         data class AppsPaused(val paused: List<String>, val refused: List<String> = emptyList()) : Event
-        data class DeviceOwnerOutput(val output: String) : Event
+        /** [isOwner]: Android itself says Manara is device owner now, whatever the shell printed. */
+        data class DeviceOwnerOutput(val output: String, val isOwner: Boolean = false) : Event
         data object AppsResumed : Event
         data object WirelessDebuggingOff : Event
         /** The parent chose to finish without every account back. */
@@ -100,6 +101,8 @@ object SetupFlow {
         val failure: String? = null,
         /** Times `set-device-owner` was refused for an account Android still counts. */
         val ownerRetries: Int = 0,
+        /** Times `set-device-owner` failed because Android was still removing the admin of the try before. */
+        val removalWaits: Int = 0,
         /** What the phone had before an earlier run that didn't finish (from the server). */
         val earlierAccounts: List<Account> = emptyList(),
         /** Checks spent waiting for the paused apps' accounts to show again. */
@@ -187,7 +190,7 @@ object SetupFlow {
                 else -> unexpected(state, event)
             }
             Step.DEVICE_OWNER -> when (event) {
-                is Event.DeviceOwnerOutput -> if (deviceOwnerSucceeded(event.output)) {
+                is Event.DeviceOwnerOutput -> if (event.isOwner || deviceOwnerSucceeded(event.output)) {
                     val next = state.copy(step = Step.RESTORING_APPS)
                     if (state.pausedApps.isEmpty()) {
                         Transition(next, Action.TurnOffWirelessDebugging,
@@ -196,6 +199,14 @@ object SetupFlow {
                         Transition(next, Action.ResumeApps(state.pausedApps),
                             report(Step.RESTORING_APPS, Status.IN_PROGRESS, "Manara now manages the phone. Turning the paused apps back on."))
                     }
+                } else if (adminBeingRemoved(event.output) && state.removalWaits < MAX_REMOVAL_WAITS) {
+                    // Not a refusal: Android hadn't finished undoing the try before. Not counted as
+                    // one either, so a slow undo can't make setup conclude that pausing isn't enough.
+                    Transition(
+                        state.copy(step = Step.CHECKING_ACCOUNTS, removalWaits = state.removalWaits + 1),
+                        Action.WaitThenListAccounts,
+                        report(Step.DEVICE_OWNER, Status.IN_PROGRESS, "Android is still undoing the last try. Trying again in a moment."),
+                    )
                 } else if (refusedForAccounts(event.output) && !state.pauseNotEnough && state.pausedApps.isNotEmpty() &&
                     state.ownerRetries >= PAUSE_RETRIES
                 ) {
@@ -279,6 +290,18 @@ object SetupFlow {
             // prints this. The only other false is a phone with no device admin feature at all.
             // Seen on the SM-A045F: another app had taken over a paused app's account type.
             (output.contains("Can't set package ") && output.contains(" as device owner."))
+
+    /** Checks (5 s apart) for Android to finish removing the admin a refused try added. */
+    const val MAX_REMOVAL_WAITS = 6
+
+    /**
+     * A refused try removes the admin it added, and Android finishes only once Manara has handled
+     * DEVICE_ADMIN_DISABLED; a try before that fails at once with this (AOSP android14-release,
+     * DevicePolicyManagerService.checkActiveAdminPrecondition). Seen on the SM-A528B, 2026-11-11:
+     * the removal was still pending 7 s after the refusal, and setup gave up on it.
+     */
+    fun adminBeingRemoved(output: String): Boolean =
+        output.contains("Trying to set an admin which is being removed")
 
     fun deviceOwnerSucceeded(output: String): Boolean =
         output.lineSequence().any { it.trim().startsWith(DEVICE_OWNER_SUCCESS) }

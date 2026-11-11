@@ -57,7 +57,7 @@ class SetupRunner(
         Action.ListAccounts -> retrying("list accounts") { device.listAccounts() }
         Action.WaitThenListAccounts -> { delay(pollMillis); retrying("list accounts") { device.listAccounts() } }
         is Action.PauseApps -> Event.AppsPaused(action.packages, retrying("pause apps") { device.pauseApps(action.packages) })
-        Action.SetDeviceOwner -> Event.DeviceOwnerOutput(device.setDeviceOwner())
+        Action.SetDeviceOwner -> Event.DeviceOwnerOutput(device.setDeviceOwner(), device.isDeviceOwner())
         is Action.ResumeApps -> { retrying("turn apps back on") { device.resumeApps(action.packages) }; Event.AppsResumed }
         Action.TurnOffWirelessDebugging -> { retrying("turn wireless debugging off") { device.turnOffWirelessDebugging() }; Event.WirelessDebuggingOff }
         is Action.Recover -> Event.Recovered(recover(action.packages))

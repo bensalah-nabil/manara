@@ -1,10 +1,13 @@
 package com.manara.agent.setup
 
 import android.accounts.AccountManager
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.SystemClock
 import com.flyfishxu.kadb.Kadb
 import com.flyfishxu.kadb.cert.KadbCert
 import com.flyfishxu.kadb.cert.KadbCertPolicy
@@ -165,10 +168,32 @@ class AdbSetupDevice(
     }
 
     override suspend fun setDeviceOwner(): String = withContext(Dispatchers.IO) {
+        awaitEarlierAdminRemoved()
         // Android answers from a count it refreshes in the background: refresh it, give it a moment.
         AccountRecount.trigger(context)
         kotlinx.coroutines.delay(RECOUNT_SETTLE_MILLIS)
-        connection().shell("dpm set-device-owner ${context.packageName}/.OwnerReceiver").allOutput
+        connection().shell("dpm set-device-owner ${context.packageName}/.OwnerReceiver").allOutput.also { output ->
+            // Only component names and Android's exception text; the reason a try failed is otherwise lost.
+            android.util.Log.i(TAG, "set-device-owner: ${output.trim().take(300)}")
+            if (isDeviceOwner()) com.manara.agent.ManagedNoticeService.start(context)
+        }
+    }
+
+    override fun isDeviceOwner(): Boolean =
+        context.getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)
+
+    /**
+     * A refused try leaves Manara an admin until Android has finished removing it, and a try before
+     * then fails at once ([SetupFlow.adminBeingRemoved]). isAdminActive stays true until that removal
+     * completes (AOSP android14-release: the admin leaves mAdminMap in removeAdminArtifacts, last).
+     */
+    private suspend fun awaitEarlierAdminRemoved() {
+        if (isDeviceOwner()) return
+        val dpm = context.getSystemService(DevicePolicyManager::class.java)
+        val admin = ComponentName(context, com.manara.agent.OwnerReceiver::class.java)
+        val deadline = SystemClock.elapsedRealtime() + ADMIN_REMOVAL_WAIT_MILLIS
+        while (dpm.isAdminActive(admin) && SystemClock.elapsedRealtime() < deadline) kotlinx.coroutines.delay(POLL_MILLIS)
+        if (dpm.isAdminActive(admin)) android.util.Log.i(TAG, "still an admin from an earlier try; trying anyway")
     }
 
     override suspend fun resumeApps(packages: List<String>) = withContext(Dispatchers.IO) { resumeNow(packages) }
@@ -316,5 +341,8 @@ class AdbSetupDevice(
         const val RESOLVE_MILLIS = 3_000L
         /** On the emulator the recount finished within 50 ms; set-device-owner retries if it's slower. */
         const val RECOUNT_SETTLE_MILLIS = 1_500L
+        /** The SM-A528B was still removing it 7 s after a refusal; [SetupFlow.MAX_REMOVAL_WAITS] covers longer. */
+        const val ADMIN_REMOVAL_WAIT_MILLIS = 20_000L
+        const val POLL_MILLIS = 500L
     }
 }
