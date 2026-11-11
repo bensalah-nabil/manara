@@ -189,3 +189,33 @@ type SetupRepository interface {
 	// ClearAccountsOlderThan empties the account lists of setups last updated before cutoff.
 	ClearAccountsOlderThan(ctx context.Context, cutoff time.Time) (int, error)
 }
+
+// SetupReadiness is the phone's own checklist on its waiting screen, before
+// guided setup starts: the console shows it ticking. A nil field is one the
+// phone wouldn't report. Nothing here is personal data.
+type SetupReadiness struct {
+	Android           bool      `json:"android"`
+	Wifi              *bool     `json:"wifi"`
+	BatteryPercent    *int      `json:"batteryPercent"`
+	Charging          bool      `json:"charging"`
+	DeveloperOptions  *bool     `json:"developerOptions"`
+	WirelessDebugging *bool     `json:"wirelessDebugging"`
+	Ready             bool      `json:"ready"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
+var ErrInvalidReadiness = errors.New("invalid setup readiness")
+
+func (r SetupReadiness) Validate() error {
+	if r.BatteryPercent != nil && (*r.BatteryPercent < 0 || *r.BatteryPercent > 100) {
+		return ErrInvalidReadiness
+	}
+	return nil
+}
+
+// ReadinessRepository keeps the latest checklist per phone.
+type ReadinessRepository interface {
+	SaveReadiness(ctx context.Context, deviceID string, r SetupReadiness) error
+	// Readiness is nil when the phone never reported one.
+	Readiness(ctx context.Context, deviceID string) (*SetupReadiness, error)
+}

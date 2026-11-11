@@ -72,12 +72,12 @@ func main() {
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
-		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Releases: releases,
+		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
 		Alerts: newAlertService(devices, alertSenders),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
-		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Releases: releases,
+		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
 		Notifier: notifier, PushEnabled: !pushOff, Profiles: devices,
 		Parents: parents, Accounts: accounts, Resets: accounts, ConsoleURL: consoleURL(),
 		LoginLimiter: guard.NewLimiter(10, 15*time.Minute),
@@ -113,6 +113,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
 	mux.HandleFunc("POST /api/v1/agent/setup", agentHandlers.ReportSetup)
 	mux.HandleFunc("GET /api/v1/agent/setup/input", agentHandlers.GetSetupInput)
+	mux.HandleFunc("POST /api/v1/agent/setup/readiness", agentHandlers.ReportReadiness)
 	mux.HandleFunc("POST /api/v1/console/auth/signup", limited(consoleHandlers.SignUp))
 	mux.HandleFunc("POST /api/v1/console/auth/login", limited(consoleHandlers.Login))
 	mux.HandleFunc("POST /api/v1/console/auth/logout", consoleHandlers.Logout)
@@ -132,6 +133,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.CreateCommand)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup", consoleHandlers.GetSetup)
+	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup/readiness", consoleHandlers.GetReadiness)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.ClearSetupAccounts)
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/pairing-code", consoleHandlers.SendPairingCode)
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/finish", consoleHandlers.FinishSetup)

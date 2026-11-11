@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.manara.agent.R
+import com.manara.agent.setup.SetupReadiness
 
 // ---- Building blocks ---------------------------------------------------------
 
@@ -179,18 +180,25 @@ fun ConnectScreen(moving: Boolean, busy: Boolean, message: String?, onScan: () -
 // ---- Guided setup ------------------------------------------------------------
 
 @Composable
-fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onOpenDeveloperOptions: () -> Unit) {
+fun SetupScreen(
+    supported: Boolean,
+    running: Boolean,
+    readiness: SetupReadiness.Result?,
+    onStart: () -> Unit,
+    onAction: (SetupReadiness.Action) -> Unit,
+    onOpenDeveloperOptions: () -> Unit,
+) {
     Page {
         Header(stringResource(R.string.setup_title), stringResource(R.string.setup_subtitle))
         if (!supported) {
             Note(stringResource(R.string.setup_unsupported), warning = true)
             return@Page
         }
+        if (!running && readiness != null) ReadyChecklist(readiness, onAction)
         Section(stringResource(R.string.setup_section)) {
-            Step(1, stringResource(R.string.setup_step_1))
-            Step(2, stringResource(R.string.setup_step_2))
-            Step(3, stringResource(R.string.setup_step_3))
-            Step(4, stringResource(R.string.setup_step_4))
+            Step(1, stringResource(R.string.setup_step_2))
+            Step(2, stringResource(R.string.setup_step_3))
+            Step(3, stringResource(R.string.setup_step_4))
             if (running) {
                 Note(stringResource(R.string.setup_running))
                 OutlinedButton(onClick = onOpenDeveloperOptions, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(R.string.setup_open_developer_options)) }
@@ -199,6 +207,59 @@ fun SetupScreen(supported: Boolean, running: Boolean, onStart: () -> Unit, onOpe
             }
         }
     }
+}
+
+/** The phone checks itself; the parent only opens the screen it points to. */
+@Composable
+private fun ReadyChecklist(readiness: SetupReadiness.Result, onAction: (SetupReadiness.Action) -> Unit) {
+    Section(stringResource(R.string.ready_title)) {
+        readiness.lines.forEach { line -> ReadyRow(line) }
+        when (readiness.next) {
+            SetupReadiness.Action.OPEN_WIFI -> ReadyAction(R.string.ready_hint_wifi, R.string.ready_open_wifi) { onAction(SetupReadiness.Action.OPEN_WIFI) }
+            SetupReadiness.Action.OPEN_ABOUT_PHONE -> ReadyAction(R.string.ready_hint_about, R.string.ready_open_about) { onAction(SetupReadiness.Action.OPEN_ABOUT_PHONE) }
+            SetupReadiness.Action.OPEN_DEVELOPER_OPTIONS -> ReadyAction(R.string.ready_hint_developer, R.string.ready_open_developer) { onAction(SetupReadiness.Action.OPEN_DEVELOPER_OPTIONS) }
+            null -> if (readiness.ready) Note(stringResource(R.string.ready_all))
+        }
+    }
+}
+
+@Composable
+private fun ReadyRow(line: SetupReadiness.Line) {
+    val colors = MaterialTheme.colorScheme
+    val label = when (line.item) {
+        SetupReadiness.Item.ANDROID -> stringResource(R.string.ready_android)
+        SetupReadiness.Item.WIFI -> stringResource(R.string.ready_wifi)
+        SetupReadiness.Item.BATTERY -> stringResource(R.string.ready_battery, SetupReadiness.MIN_BATTERY.toString())
+        SetupReadiness.Item.DEVELOPER_OPTIONS -> stringResource(R.string.ready_developer)
+        SetupReadiness.Item.WIRELESS_DEBUGGING -> stringResource(R.string.ready_wireless)
+    }
+    val (mark, fill, ink) = when (line.state) {
+        SetupReadiness.State.OK -> Triple("✓", colors.primary, colors.onPrimary)
+        SetupReadiness.State.MISSING -> Triple(if (line.required) "!" else "–", if (line.required) colors.secondaryContainer else colors.surfaceVariant, if (line.required) colors.onSecondaryContainer else colors.onSurfaceVariant)
+        SetupReadiness.State.UNKNOWN -> Triple("?", colors.surfaceVariant, colors.onSurfaceVariant)
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
+        Box(Modifier.size(26.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) { drawCircle(fill) }
+            Text(mark, color = ink, style = MaterialTheme.typography.labelLarge)
+        }
+        Spacer(Modifier.size(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(label)
+            when {
+                line.state == SetupReadiness.State.UNKNOWN ->
+                    Text(stringResource(R.string.ready_unknown), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                !line.required ->
+                    Text(stringResource(R.string.ready_recommended), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReadyAction(hint: Int, button: Int, onClick: () -> Unit) {
+    Note(stringResource(hint))
+    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(stringResource(button)) }
 }
 
 @Composable

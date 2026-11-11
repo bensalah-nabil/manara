@@ -75,7 +75,11 @@ function ReadyCheck({ accounts, ready, onReady }: { accounts: SetupAccount[]; re
  * that step needs from the parent (the pairing QR code or code box, the accounts to remove, the
  * accounts to sign back in to and Finish). It follows the phone by itself.
  */
-export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props & { onSetup?: (setup: DeviceSetup | null) => void }) {
+/**
+ * [watch]: the phone is on its waiting screen, so a setup is about to start. Without it, a phone
+ * that has never reported a step isn't polled (phones set up before guided setup existed).
+ */
+export function SetupProgress({ api, device, onSessionExpired, onSetup, watch = false }: Props & { onSetup?: (setup: DeviceSetup | null) => void; watch?: boolean }) {
     const [setup, setSetup] = useState<DeviceSetup | null | undefined>(undefined)
     const [error, setError] = useState('')
     const [tick, setTick] = useState(0)
@@ -97,6 +101,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
                 onSetup?.(value)
                 setError('')
                 if (value && isActive(value)) again(LIVE_MS)
+                else if (value === null && watch) again(FAILED_MS)
                 else if (value?.status === 'failed') again(FAILED_MS)
             })
             .catch((caught: unknown) => {
@@ -111,7 +116,7 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup }: Props 
             current = false
             if (timer) clearTimeout(timer)
         }
-    }, [api, device.deviceId, onSessionExpired, onSetup, tick])
+    }, [api, device.deviceId, onSessionExpired, onSetup, tick, watch])
 
     const active = !!setup && isActive(setup)
     useEffect(() => {

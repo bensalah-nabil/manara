@@ -39,6 +39,18 @@ export interface DeviceSummary {
     agentVersion?: string
 }
 
+/** The phone's own checklist on its waiting screen, before guided setup. Null: this phone wouldn't say. */
+export interface SetupReadiness {
+    android: boolean
+    wifi: boolean | null
+    batteryPercent: number | null
+    charging: boolean
+    developerOptions: boolean | null
+    wirelessDebugging: boolean | null
+    ready: boolean
+    updatedAt: string
+}
+
 export type ReleaseMode = 'transfer' | 'remove'
 
 export interface ReleaseCode {
@@ -290,6 +302,21 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
                 currentAccounts: Array.isArray(setup.currentAccounts) ? setup.currentAccounts : [],
                 pairingQr: typeof setup.pairingQr === 'string' && setup.pairingQr ? setup.pairingQr : undefined,
                 finishRequested: setup.finishRequested === true,
+            }
+        },
+
+        /** Null until the phone has shown its waiting screen. */
+        async getReadiness(deviceId: string): Promise<SetupReadiness | null> {
+            const value = await request('GET', devicePath(deviceId, 'setup/readiness'), undefined, true)
+            if (value === null) return null
+            const r = value as Partial<SetupReadiness>
+            if (typeof r.android !== 'boolean' || typeof r.ready !== 'boolean') throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            const flag = (v: unknown) => (typeof v === 'boolean' ? v : null)
+            return {
+                android: r.android, ready: r.ready, charging: r.charging === true,
+                wifi: flag(r.wifi), developerOptions: flag(r.developerOptions), wirelessDebugging: flag(r.wirelessDebugging),
+                batteryPercent: typeof r.batteryPercent === 'number' ? r.batteryPercent : null,
+                updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : '',
             }
         },
 

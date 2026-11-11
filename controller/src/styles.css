@@ -579,3 +579,12 @@ code, .token, .release-code, textarea, input[type="email"], input[type="password
 @media (max-width: 640px) {
   .prayer-today { grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); }
 }
+
+/* The phone's own checklist before guided setup (PhoneReady). */
+.ready-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ready-list li { display: flex; align-items: center; gap: 12px; }
+.ready-mark { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; flex: none; font-weight: 700; font-size: 0.875rem; background: var(--line); color: var(--muted); }
+.ready-list li.ok .ready-mark { background: var(--brand); color: var(--brand-ink); }
+.ready-list li.missing .ready-mark { background: var(--warn-soft); color: var(--warn); }
+.phone-ready h4 { margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

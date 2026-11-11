@@ -14,6 +14,8 @@ import type { LimitHit } from './usageHistory.ts'
 import { minutesText, summarizeDailyUsage } from './dailyUsage.ts'
 import type { DailyUsage } from './dailyUsage.ts'
 import { SetupProgress } from './SetupProgress.tsx'
+import { PhoneReady } from './PhoneReady.tsx'
+import type { SetupReadiness } from './api.ts'
 import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
 import { InsightsPanel } from './InsightsPanel.tsx'
@@ -278,7 +280,12 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
     const [tab, setTab] = useState<Tab>('activity')
     // Reports from before guided setup finished came from a phone Manara didn't manage yet.
     const [setupDoneAt, setSetupDoneAt] = useState(0)
+    // Undefined until the timeline has loaded once; null when the phone never reported a step.
+    const [setup, setSetup] = useState<DeviceSetup | null | undefined>(undefined)
+    const [readiness, setReadiness] = useState<SetupReadiness | null>(null)
+    const onReadiness = useCallback((value: SetupReadiness | null) => setReadiness(value), [])
     const onSetup = useCallback((setup: DeviceSetup | null) => {
+        setSetup(setup)
         setSetupDoneAt(setup?.status === 'done' ? Date.parse(setup.updatedAt) || 0 : 0)
     }, [])
 
@@ -299,7 +306,9 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                 <LockNow {...props} />
             </header>
 
-            <SetupProgress {...props} onSetup={onSetup} />
+            {/* Before guided setup starts, the steps for this exact phone; then the live timeline. */}
+            {(setup === null || setup?.step === 'linked') && <PhoneReady {...props} onReadiness={onReadiness} />}
+            <SetupProgress {...props} onSetup={onSetup} watch={readiness !== null && setup === null} />
 
             <div class="tabs" role="tablist" aria-label={t('tab.label')}>
                 {TABS.map(({ key, label }) => (

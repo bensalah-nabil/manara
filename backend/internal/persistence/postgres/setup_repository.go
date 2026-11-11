@@ -177,3 +177,36 @@ func (r *SetupRepository) ClearAccountsOlderThan(ctx context.Context, cutoff tim
 	}
 	return int(tag.RowsAffected()), nil
 }
+
+// SaveReadiness implements domain.ReadinessRepository: the latest checklist replaces the last.
+func (r *SetupRepository) SaveReadiness(ctx context.Context, deviceID string, readiness domain.SetupReadiness) error {
+	readiness.UpdatedAt = time.Time{}
+	raw, err := json.Marshal(readiness)
+	if err != nil {
+		return fmt.Errorf("encode readiness: %w", err)
+	}
+	if _, err := r.db.Pool.Exec(ctx, `
+		INSERT INTO setup_readiness (device_id, readiness, updated_at) VALUES ($1, $2, now())
+		ON CONFLICT (device_id) DO UPDATE SET readiness = EXCLUDED.readiness, updated_at = now()`, deviceID, raw); err != nil {
+		return fmt.Errorf("store readiness: %w", err)
+	}
+	return nil
+}
+
+func (r *SetupRepository) Readiness(ctx context.Context, deviceID string) (*domain.SetupReadiness, error) {
+	var raw []byte
+	var at time.Time
+	err := r.db.Pool.QueryRow(ctx, `SELECT readiness, updated_at FROM setup_readiness WHERE device_id = $1`, deviceID).Scan(&raw, &at)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read readiness: %w", err)
+	}
+	var readiness domain.SetupReadiness
+	if err := json.Unmarshal(raw, &readiness); err != nil {
+		return nil, fmt.Errorf("decode readiness: %w", err)
+	}
+	readiness.UpdatedAt = at
+	return &readiness, nil
+}

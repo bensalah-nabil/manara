@@ -602,6 +602,33 @@ the rule cards.
 | X5 | Bedtime and lock windows are whole hours only | `Policy.LockSchedule.Window(fromHour, toHour)` | Minutes, additively (G6). Not needed by P14, which has its own decision |
 | X6 | No screen says why an app is closed | no `SuspendDialogInfo` in `agent/` | D2 |
 
+### 5.6 — Make enrollment easier (2026-11-11)
+
+Before this, a parent made about 15 decisions across two screens before the phone was
+managed. Ranked by what each saves the parent against the effort:
+
+| ID | Item | State |
+|---|---|---|
+| E-1 | **Ask less before the phone is connected.** The console asks only the three statements and *how* the phone joins (the phone in use, a new or reset phone, a phone that already has Manara), then shows the code. The phone's page then shows the guide for the maker the phone reported (`DeviceInfo.manufacturer`), so no brand question | **Built**, not yet seen on a phone |
+| E-2 | **The phone checks the checklist itself**: Android 11+, Wi-Fi, battery (advice only), Developer options, Wireless debugging. It ticks on the phone's waiting screen, and in the console through `POST /agent/setup/readiness` (a separate record that never moves setup's steps, migration 0013) | **Built**, not yet seen on a phone |
+| E-3 | **Take the parent straight to each screen**: a button for the next missing item (Wi-Fi settings, About phone, Developer options) | **Built**, not yet seen on a phone |
+| E-4 | Samsung screenshots, in Arabic and French (only Pixel ones exist) | Open, content work |
+| E-5 | Play listing live, so Manara installs in one tap | Open, closed test not started |
+| E-6 | Make the Google recovery check real before anything is removed on Samsung | Open |
+| E-7 | Device Owner without removing accounts (`user_setup_complete`, capability-plan F3) | Research, **spare phone only** |
+| E-8 | Phone shops set up new phones at purchase with the QR path | Open, partnership |
+| E-9 | Say that a phone hotspot works when there is no home Wi-Fi | Said on the phone's Wi-Fi hint. *Hypothesis:* not yet tried |
+| E-10 | Time 5 parents through setup (usability-test-plan.md), after E-1 to E-3 | Open |
+
+Platform facts behind E-2 and E-3, read in AOSP `android15-release`:
+`Settings.Global.DEVELOPMENT_SETTINGS_ENABLED` is public API, and `adb_wifi_enabled` is `@hide`
+but `@Readable` with no target-SDK cap (`Settings.java`), so
+`SettingsProvider.checkReadableAnnotation` lets any app read it. `ACTION_DEVICE_INFO_SETTINGS`
+is public; its javadoc warns a phone may have no matching screen, so the phone falls back to
+Settings. On the SM-A528B it opens About phone, one level above Build number (under Software
+information): the phone's hint says so. A setting a maker refuses to report shows as unknown and
+does not block.
+
 ### Won't do (the study's ethics list)
 
 - Listening through the child's microphone (Find My Kids "Sound Around"). Audio is excluded by ADR-0001/ADR-0008.

@@ -162,6 +162,18 @@ export const PHONE_GUIDES: PhoneGuide[] = [
     },
 ]
 
+/** The guide for the maker the phone itself reported when it connected (`Build.MANUFACTURER`). */
+export function brandFromManufacturer(manufacturer: string | undefined): string {
+    const maker = (manufacturer ?? '').trim().toLowerCase()
+    if (maker === 'samsung') return 'samsung'
+    if (maker === 'google') return 'google'
+    if (['xiaomi', 'redmi', 'poco'].includes(maker)) return 'xiaomi'
+    if (['oppo', 'realme'].includes(maker)) return 'oppo-realme'
+    if (maker === 'oneplus') return 'oneplus'
+    if (maker === 'motorola') return 'motorola'
+    return 'other'
+}
+
 export function guideFor(brand: string): PhoneGuide | undefined {
     return PHONE_GUIDES.find((guide) => guide.brand === brand)
 }

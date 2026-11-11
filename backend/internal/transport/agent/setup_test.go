@@ -132,3 +132,51 @@ func TestSetupInputGoesOnlyToThePhone(t *testing.T) {
 		t.Fatalf("unknown token: %d %s", w.Code, w.Body.String())
 	}
 }
+
+type fakeReadiness struct{ saved map[string]domain.SetupReadiness }
+
+func (f *fakeReadiness) SaveReadiness(_ context.Context, deviceID string, r domain.SetupReadiness) error {
+	f.saved[deviceID] = r
+	return nil
+}
+func (f *fakeReadiness) Readiness(_ context.Context, deviceID string) (*domain.SetupReadiness, error) {
+	r, ok := f.saved[deviceID]
+	if !ok {
+		return nil, nil
+	}
+	return &r, nil
+}
+
+func postReadiness(h *Handlers, token, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/agent/setup/readiness", bytes.NewBufferString(body))
+	if token != "" {
+		r.Header.Set("Authorization", "Bearer "+token)
+	}
+	w := httptest.NewRecorder()
+	h.ReportReadiness(w, r)
+	return w
+}
+
+func TestThePhoneReportsItsChecklist(t *testing.T) {
+	store := &fakeReadiness{saved: map[string]domain.SetupReadiness{}}
+	h := newHandlers(nil)
+	h.Readiness = store
+	if w := postReadiness(h, "", `{"android":true}`); w.Code != http.StatusUnauthorized {
+		t.Errorf("no token: %d", w.Code)
+	}
+	if w := postReadiness(h, "good", `{"android":true,"batteryPercent":150}`); w.Code != http.StatusBadRequest {
+		t.Errorf("battery out of range: %d", w.Code)
+	}
+	w := postReadiness(h, "good", `{"android":true,"wifi":true,"batteryPercent":40,"charging":false,"developerOptions":true,"wirelessDebugging":null,"ready":true}`)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("store: %d %s", w.Code, w.Body)
+	}
+	if len(store.saved) != 1 {
+		t.Fatalf("saved %v", store.saved)
+	}
+	for _, r := range store.saved {
+		if r.WirelessDebugging != nil || r.Wifi == nil || !*r.Wifi || *r.BatteryPercent != 40 || !r.Ready {
+			t.Errorf("stored %+v", r)
+		}
+	}
+}

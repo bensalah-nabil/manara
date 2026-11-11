@@ -27,6 +27,7 @@ type Handlers struct {
 	Events      domain.EventStore
 	Enrollments domain.EnrollmentTokenRepository
 	Setup       domain.SetupRepository
+	Readiness   domain.ReadinessRepository
 	Releases    domain.ReleaseRepository
 	// Alerts is optional: nil means no parent alerts are configured.
 	Alerts *domain.AlertService
@@ -344,6 +345,37 @@ func (h *Handlers) ReportSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, setup)
+}
+
+// ReportReadiness stores the phone's checklist from its waiting screen, so
+// the console ticks along. Kept apart from ReportSetup: it never moves the
+// setup's steps.
+func (h *Handlers) ReportReadiness(w http.ResponseWriter, r *http.Request) {
+	deviceID, ok, err := h.Tokens.Resolve(r.Context(), bearerToken(r))
+	if err != nil {
+		log.Printf("readiness: resolve token: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "invalid_token", "")
+		return
+	}
+	var req domain.SetupReadiness
+	if err := json.NewDecoder(io.LimitReader(r.Body, 4<<10)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "")
+		return
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_readiness", "")
+		return
+	}
+	if err := h.Readiness.SaveReadiness(r.Context(), deviceID, req); err != nil {
+		log.Printf("readiness: store: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetSetupInput returns what the parent typed in the console for the step the

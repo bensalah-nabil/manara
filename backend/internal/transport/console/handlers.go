@@ -27,6 +27,7 @@ type Handlers struct {
 	Auth        domain.AuthRepository
 	Enrollments domain.EnrollmentTokenRepository
 	Setup       domain.SetupRepository
+	Readiness   domain.ReadinessRepository
 	Releases    domain.ReleaseRepository
 	// Notifier wakes a device immediately for CommandType.IsUrgent()
 	// commands (e.g. lock_now), instead of relying solely on the next
@@ -373,6 +374,25 @@ func (h *Handlers) GetSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, setup)
+}
+
+// GetReadiness returns the phone's checklist from its waiting screen, or null.
+func (h *Handlers) GetReadiness(w http.ResponseWriter, r *http.Request) {
+	parentID, ok := h.requireParent(w, r)
+	if !ok {
+		return
+	}
+	deviceID := r.PathValue("deviceId")
+	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
+		return
+	}
+	readiness, err := h.Readiness.Readiness(r.Context(), deviceID)
+	if err != nil {
+		log.Printf("console: get readiness: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, readiness)
 }
 
 type pairingCodeRequest struct {

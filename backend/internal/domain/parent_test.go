@@ -32,7 +32,7 @@ func TestAttestationRejectsOldWordingAndUnknownBrands(t *testing.T) {
 	if err := a.Validate(); !errors.Is(err, ErrAttestationOutdated) {
 		t.Errorf("old version: got %v", err)
 	}
-	for _, brand := range []string{"", "Samsung", "nokia", "samsung "} {
+	for _, brand := range []string{"Samsung", "nokia", "samsung "} {
 		a := complete()
 		a.PhoneBrand = brand
 		if err := a.Validate(); !errors.Is(err, ErrUnknownPhoneBrand) {
@@ -45,5 +45,14 @@ func TestAttestationRejectsOldWordingAndUnknownBrands(t *testing.T) {
 		if err := a.Validate(); err != nil {
 			t.Errorf("brand %q rejected: %v", brand, err)
 		}
+	}
+}
+
+// The console no longer asks for the brand: the phone reports its maker once connected.
+func TestAttestationAcceptsNoBrand(t *testing.T) {
+	a := complete()
+	a.PhoneBrand = ""
+	if err := a.Validate(); err != nil {
+		t.Errorf("no brand: got %v", err)
 	}
 }

@@ -38,7 +38,7 @@ class StringCataloguesTest {
         (others.values + english).forEach { words ->
             words.stringNames.forEach { name ->
                 val text = words.raw(name)!!
-                assertTrue("$name: only %n\$s placeholders", Regex("%(?![0-9][$]s)").find(text) == null)
+                assertTrue("$name: only %n\$s placeholders", Regex("%(?![0-9][$]s)").find(text.replace("%%", "")) == null)
             }
         }
     }

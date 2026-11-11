@@ -82,6 +82,23 @@
     <string name="setup_open_developer_options">فتح خيارات المطوّر</string>
     <string name="setup_start">بدء الإعداد الموجَّه</string>
 
+    <!-- TODO-REVIEW: menu names must match the phone's own Arabic: "رقم الإصدار" (Build number), "معلومات البرنامج" (Software information), "نقطة الاتصال" (hotspot) -->
+    <string name="ready_title">تجهيز هذا الهاتف</string>
+    <string name="ready_android">Android 11 أو أحدث</string>
+    <string name="ready_wifi">متصل بشبكة Wi-Fi</string>
+    <string name="ready_battery">البطارية فوق %1$s%%، أو الهاتف موصول بالشاحن</string>
+    <string name="ready_developer">خيارات المطوّر مفعّلة</string>
+    <string name="ready_wireless">تصحيح الأخطاء اللاسلكي مفعّل</string>
+    <string name="ready_recommended">موصى به</string>
+    <string name="ready_unknown">لا يذكر هذا الهاتف ذلك. يمكنك البدء على أي حال.</string>
+    <string name="ready_open_wifi">فتح إعدادات Wi-Fi</string>
+    <string name="ready_hint_wifi">صِل هذا الهاتف بشبكة Wi-Fi. لا توجد شبكة في البيت؟ جرّب نقطة الاتصال في هاتفك أنت.</string>
+    <string name="ready_open_about">فتح «حول الهاتف»</string>
+    <string name="ready_hint_about">اضغط «رقم الإصدار» سبع مرات، ثم أدخل رمز PIN الخاص بالهاتف. على هاتف Samsung، يوجد «رقم الإصدار» داخل «معلومات البرنامج». ثم ارجع إلى منارة.</string>
+    <string name="ready_open_developer">فتح خيارات المطوّر</string>
+    <string name="ready_hint_developer">شغّل «تصحيح الأخطاء اللاسلكي»، ثم اضغط «السماح». ثم ارجع إلى منارة.</string>
+    <string name="ready_all">كل شيء جاهز. اضغط «بدء الإعداد الموجَّه» أدناه.</string>
+
     <string name="managed_title">هذا الهاتف خاضع للإشراف</string>
     <string name="managed_subtitle">من قِبل ولي أمرك، عبر منارة.</string>
     <string name="attention_title">يحتاج إلى انتباه</string>

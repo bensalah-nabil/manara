@@ -208,6 +208,35 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /agent/setup/readiness:
+    post:
+      tags: [agent-sync]
+      summary: Report the phone's own checklist before guided setup starts
+      description: >
+        Sent from the phone's waiting screen when the checklist changes, and
+        every 30 s while it is open, so the parent's console ticks along. It
+        never moves the setup's steps (`/agent/setup` does). The latest
+        replaces the last.
+      security: [{ deviceToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetupReadiness' }
+      responses:
+        '204':
+          description: Stored.
+        '400':
+          description: "`invalid_readiness`: a battery level outside 0-100."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: Unknown device token.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /agent/setup/input:
     get:
       tags: [agent-sync]
@@ -601,7 +630,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [attestation, phoneBrand]
+              required: [attestation]
               properties:
                 attestation:
                   type: object
@@ -618,7 +647,11 @@ paths:
                       example: "2026-11-06"
                 phoneBrand:
                   type: string
-                  enum: [samsung, google, xiaomi, oppo-realme, oneplus, motorola, other]
+                  enum: ['', samsung, google, xiaomi, oppo-realme, oneplus, motorola, other]
+                  description: >
+                    Optional. The console no longer asks: the phone reports its
+                    maker when it connects (`DeviceInfo.manufacturer`), and the
+                    console shows that maker's guide.
       responses:
         '200':
           description: A fresh, single-use enrollment token.
@@ -748,6 +781,29 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Event' }
+
+  /console/devices/{deviceId}/setup/readiness:
+    get:
+      tags: [console]
+      summary: Read the phone's checklist before guided setup
+      description: >
+        `null` until the phone has shown its waiting screen (a phone set up
+        before this existed never sends one).
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '200':
+          description: The latest checklist, or null.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/SetupReadiness' }
+                  - { type: 'null' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Unknown device, or not this parent's.
 
   /console/devices/{deviceId}/setup:
     get:
@@ -1279,6 +1335,22 @@ components:
       properties:
         type: { type: string, minLength: 1, maxLength: 200, example: com.google }
         name: { type: string, maxLength: 200 }
+
+    SetupReadiness:
+      type: object
+      description: >
+        What the phone reads on its waiting screen. A null field is one this
+        phone wouldn't report; it doesn't block setup.
+      required: [android, charging, ready]
+      properties:
+        android: { type: boolean, description: Android 11 or newer. }
+        wifi: { type: [boolean, 'null'] }
+        batteryPercent: { type: [integer, 'null'], minimum: 0, maximum: 100 }
+        charging: { type: boolean }
+        developerOptions: { type: [boolean, 'null'] }
+        wirelessDebugging: { type: [boolean, 'null'] }
+        ready: { type: boolean, description: Nothing required is missing. }
+        updatedAt: { type: string, format: date-time, description: Set by the server. }
 
     DeviceSetup:
       type: object

@@ -30,7 +30,26 @@ interface ManaraApi {
 
     @GET("agent/setup/input")
     suspend fun setupInput(@Header("Authorization") bearerToken: String): Response<SetupInputDto>
+
+    /** The waiting screen's checklist, so the parent's console ticks along with the phone. */
+    @POST("agent/setup/readiness")
+    suspend fun reportReadiness(
+        @Header("Authorization") bearerToken: String,
+        @Body request: SetupReadinessRequest
+    ): Response<ResponseBody>
 }
+
+/** Null: this phone wouldn't say. Mirrors `SetupReadiness` in `api-spec/openapi.yaml`. */
+@Serializable
+data class SetupReadinessRequest(
+    val android: Boolean,
+    val wifi: Boolean?,
+    val batteryPercent: Int?,
+    val charging: Boolean,
+    val developerOptions: Boolean?,
+    val wirelessDebugging: Boolean?,
+    val ready: Boolean,
+)
 
 /** `accounts` null leaves the server's stored lists unchanged. */
 @Serializable

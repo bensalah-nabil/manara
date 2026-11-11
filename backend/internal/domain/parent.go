@@ -119,6 +119,8 @@ var ErrAttestationOutdated = errors.New("the statement text has changed; reload 
 var ErrUnknownPhoneBrand = errors.New("unknown phone brand")
 
 // PhoneBrands are the how-to guides the console offers; "other" covers the rest.
+// An empty brand is accepted: the console no longer asks, and the phone reports
+// its maker when it connects (DeviceInfo.Manufacturer).
 var PhoneBrands = map[string]bool{
 	"samsung": true, "google": true, "xiaomi": true, "oppo-realme": true,
 	"oneplus": true, "motorola": true, "other": true,
@@ -131,7 +133,7 @@ func (a GuardianAttestation) Validate() error {
 	if a.Version != AttestationVersion {
 		return ErrAttestationOutdated
 	}
-	if !PhoneBrands[a.PhoneBrand] {
+	if a.PhoneBrand != "" && !PhoneBrands[a.PhoneBrand] {
 		return ErrUnknownPhoneBrand
 	}
 	return nil

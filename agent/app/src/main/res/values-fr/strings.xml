@@ -71,6 +71,22 @@
     <string name="setup_open_developer_options">Ouvrir les options pour les développeurs</string>
     <string name="setup_start">Démarrer l\'installation guidée</string>
 
+    <string name="ready_title">Préparer ce téléphone</string>
+    <string name="ready_android">Android 11 ou plus récent</string>
+    <string name="ready_wifi">Connecté au Wi-Fi</string>
+    <string name="ready_battery">Batterie au-dessus de %1$s %%, ou branché</string>
+    <string name="ready_developer">Options pour les développeurs activées</string>
+    <string name="ready_wireless">Débogage sans fil activé</string>
+    <string name="ready_recommended">Recommandé</string>
+    <string name="ready_unknown">Ce téléphone ne l\'indique pas. Vous pouvez quand même commencer.</string>
+    <string name="ready_open_wifi">Ouvrir les réglages Wi-Fi</string>
+    <string name="ready_hint_wifi">Connectez ce téléphone au Wi-Fi. Pas de Wi-Fi à la maison ? Essayez le point d\'accès de votre propre téléphone.</string>
+    <string name="ready_open_about">Ouvrir À propos du téléphone</string>
+    <string name="ready_hint_about">Appuyez sept fois sur Numéro de build, puis saisissez le code PIN du téléphone. Sur un Samsung, Numéro de build se trouve dans Informations sur le logiciel. Revenez ensuite à Manara.</string>
+    <string name="ready_open_developer">Ouvrir les options pour les développeurs</string>
+    <string name="ready_hint_developer">Activez Débogage sans fil, puis appuyez sur Autoriser. Revenez ensuite à Manara.</string>
+    <string name="ready_all">Tout est prêt. Appuyez sur Démarrer l\'installation guidée ci-dessous.</string>
+
     <string name="managed_title">Ce téléphone est géré</string>
     <string name="managed_subtitle">Par ton parent, avec Manara.</string>
     <string name="attention_title">À vérifier</string>

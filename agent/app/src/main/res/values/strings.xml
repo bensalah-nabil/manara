@@ -80,6 +80,22 @@
     <string name="setup_open_developer_options">Open Developer options</string>
     <string name="setup_start">Start guided setup</string>
 
+    <string name="ready_title">Get this phone ready</string>
+    <string name="ready_android">Android 11 or newer</string>
+    <string name="ready_wifi">Connected to Wi-Fi</string>
+    <string name="ready_battery">Battery above %1$s%%, or plugged in</string>
+    <string name="ready_developer">Developer options on</string>
+    <string name="ready_wireless">Wireless debugging on</string>
+    <string name="ready_recommended">Recommended</string>
+    <string name="ready_unknown">This phone doesn\'t say. You can still start.</string>
+    <string name="ready_open_wifi">Open Wi-Fi settings</string>
+    <string name="ready_hint_wifi">Connect this phone to Wi-Fi. No Wi-Fi at home? Try your own phone\'s hotspot.</string>
+    <string name="ready_open_about">Open About phone</string>
+    <string name="ready_hint_about">Tap Build number seven times, then enter the phone\'s PIN. On a Samsung, Build number is under Software information. Then come back to Manara.</string>
+    <string name="ready_open_developer">Open Developer options</string>
+    <string name="ready_hint_developer">Turn on Wireless debugging, then tap Allow. Then come back to Manara.</string>
+    <string name="ready_all">Everything is ready. Tap Start guided setup below.</string>
+
     <!-- Managed screen: what the child sees every day -->
     <string name="managed_title">This phone is managed</string>
     <string name="managed_subtitle">By your parent, with Manara.</string>

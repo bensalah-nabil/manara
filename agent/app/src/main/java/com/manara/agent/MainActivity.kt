@@ -178,6 +178,11 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun Setup(onManaged: () -> Unit) {
         var running by remember { mutableStateOf(SetupService.isRunning) }
+        val reader = remember { com.manara.agent.setup.SetupReadinessReader(this) }
+        var readiness by remember { mutableStateOf<com.manara.agent.setup.SetupReadiness.Result?>(null) }
+        val scope = rememberCoroutineScope()
+        var sent by remember { mutableStateOf<com.manara.agent.sync.SetupReadinessRequest?>(null) }
+        var sentAt by remember { mutableStateOf(0L) }
         val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
             // The pairing code is typed into a notification, so setup only starts once it can show one.
             if (it) SetupService.start(this)
@@ -185,6 +190,21 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             while (true) {
                 running = SetupService.isRunning
+                val snapshot = reader.read()
+                val result = com.manara.agent.setup.SetupReadiness.evaluate(snapshot)
+                readiness = result
+                // Sent on a change, and every 30 s so the console knows the phone is still there.
+                val request = com.manara.agent.sync.SetupReadinessRequest(
+                    android = snapshot.sdkInt >= com.manara.agent.setup.SetupReadiness.MIN_SDK,
+                    wifi = snapshot.wifi, batteryPercent = snapshot.batteryPercent, charging = snapshot.charging,
+                    developerOptions = snapshot.developerOptions, wirelessDebugging = snapshot.wirelessDebugging, ready = result.ready,
+                )
+                val now = System.currentTimeMillis()
+                if (!running && (request != sent || now - sentAt > 30_000)) {
+                    sent = request
+                    sentAt = now
+                    scope.launch(Dispatchers.IO) { sendReadiness(request) }
+                }
                 if (isDeviceOwner && !running) {
                     keepManagementRunning()
                     onManaged()
@@ -196,6 +216,20 @@ class MainActivity : ComponentActivity() {
         SetupScreen(
             supported = HomeModel.setupSupported(Build.VERSION.SDK_INT),
             running = running,
+            readiness = readiness,
+            onAction = { action ->
+                val intent = Intent(
+                    when (action) {
+                        com.manara.agent.setup.SetupReadiness.Action.OPEN_WIFI -> Settings.ACTION_WIFI_SETTINGS
+                        com.manara.agent.setup.SetupReadiness.Action.OPEN_ABOUT_PHONE -> Settings.ACTION_DEVICE_INFO_SETTINGS
+                        com.manara.agent.setup.SetupReadiness.Action.OPEN_DEVELOPER_OPTIONS -> Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
+                    }
+                )
+                // ACTION_DEVICE_INFO_SETTINGS "may not exist" on some phones (its javadoc): fall back to Settings.
+                runCatching { startActivity(intent) }
+                    .recoverCatching { startActivity(Intent(Settings.ACTION_SETTINGS)) }
+                    .onFailure { Log.w("ManaraSetup", "cannot open $action", it) }
+            },
             onStart = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                 else SetupService.start(this)
@@ -205,6 +239,19 @@ class MainActivity : ComponentActivity() {
                     .onFailure { Log.w("ManaraSetup", "cannot open Developer options", it) }
             },
         )
+    }
+
+    /** Best effort: the phone's own screen is what the parent follows; the console only mirrors it. */
+    private suspend fun sendReadiness(request: com.manara.agent.sync.SetupReadinessRequest) {
+        val token = DeviceTokenStore(this).deviceToken() ?: return
+        try {
+            val response = ManaraApiFactory.create().reportReadiness("Bearer $token", request)
+            if (!response.isSuccessful) Log.w("ManaraSetup", "readiness not stored: HTTP ${response.code()}")
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Log.w("ManaraSetup", "readiness not sent", error)
+        }
     }
 
     @Composable
