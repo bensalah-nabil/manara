@@ -151,8 +151,9 @@ function AuthForm({ onSubmit, onForgot, notice }: {
                 </button>
                 {mode === 'login' && <button type="button" class="link" onClick={() => switchTo('forgot')}>{t('auth.forgot')}</button>}
             </form>
+            <a href="/decouvrir.html" class="ghost button-link">{t('auth.about')}</a>
             <p class="muted small">
-                <a href="/privacy.html">{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/decouvrir.html">{t('auth.about')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
+                <a href="/privacy.html">{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
             </p>
         </div>
     )
@@ -361,6 +362,7 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
                 <a href="#" class="brand"><Logo /><span>Manara</span></a>
                 <span class="topbar-actions">
                     <LanguageSwitch onChoose={(lang) => api.setLanguage(lang)} />
+                    <a href="/decouvrir.html" class="ghost small button-link">{t('auth.about')}</a>
                     <a href="#account" class="ghost small button-link">{t('nav.account')}</a>
                     <button type="button" class="ghost small" onClick={onSignOut}>{t('nav.signOut')}</button>
                 </span>

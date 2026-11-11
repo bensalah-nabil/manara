@@ -74,7 +74,7 @@ ul.error { padding-inline-start: 1.2em; }
 
 /* Controls */
 
-button {
+button, a.button-link {
   font: inherit;
   font-weight: 550;
   padding: 8px 14px;
@@ -85,12 +85,12 @@ button {
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
-button:hover:not(:disabled) { border-color: var(--brand); }
+button:hover:not(:disabled), a.button-link:hover { border-color: var(--brand); }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 button.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 button.primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
-button.ghost { background: transparent; }
-button.small { padding: 4px 10px; font-size: 0.875rem; }
+button.ghost, a.button-link.ghost { background: transparent; }
+button.small, a.button-link.small { padding: 4px 10px; font-size: 0.875rem; }
 button.wide { width: 100%; }
 button.link {
   border: 0; background: none; padding: 2px 0;
@@ -194,7 +194,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 600; font-size: 0.9rem; col
 .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
 .topbar {
   position: sticky; top: 0; z-index: 2;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 20px;
   background: var(--surface); border-bottom: 1px solid var(--line);
 }
@@ -355,7 +355,7 @@ details.day summary { display: flex; justify-content: space-between; gap: 12px; 
 .swatch:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 /* The parent's account page. */
-.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .button-link { text-decoration: none; display: inline-flex; align-items: center; }
 .danger-zone { border-color: var(--danger); }
 
