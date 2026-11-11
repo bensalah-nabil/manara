@@ -37,9 +37,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val registry = defaultEnforcerRegistry(applicationContext)
         val policyCache = PolicyCache(db)
         val eventQueue = EventQueue(db)
+        val releaser = com.manara.agent.release.Releaser(
+            applicationContext, db, registry, com.manara.agent.sync.DeviceTokenStore(applicationContext),
+            com.manara.agent.release.ReleaseStore(applicationContext),
+        )
+        // A release cut off earlier (the app was killed, the phone restarted) is finished first.
+        if (releaser.finishIfInterrupted(serverRefused = false)) return WorkResult.success()
         val result = SyncManager.create(applicationContext, registry).sync()
         Log.i(TAG, "sync result: $result")
         if (result is SyncManager.Result.Released) return WorkResult.success()
+        if (result is SyncManager.Result.Unauthorized && releaser.finishIfInterrupted(serverRefused = true)) return WorkResult.success()
 
         // Re-apply the cached policy regardless of whether THIS sync
         // changed it, or even succeeded at all. Found directly from

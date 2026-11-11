@@ -70,6 +70,9 @@ class ManagedNoticeService : Service() {
     }
 
     private fun post(policy: com.manara.agent.policy.Policy?) {
+        // A release deletes the rules, and that change arrives here too: posting then would leave
+        // "This device is managed" on a phone Manara no longer manages (seen on the SM-A528B).
+        if (!getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(packageName)) return
         getSystemService(NotificationManager::class.java)
             .notify(NOTIFICATION_ID, buildNotification(NoticeSummary.lines(AndroidWords(this), policy)))
     }
@@ -126,6 +129,12 @@ class ManagedNoticeService : Service() {
 
         fun stop(context: Context) {
             context.stopService(Intent(context, ManagedNoticeService::class.java))
+        }
+
+        /** Removes the notice itself, for a phone Manara no longer manages. */
+        fun dismiss(context: Context) {
+            stop(context)
+            context.getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
         }
 
         /** Start the notice service in a way that works from any context. */

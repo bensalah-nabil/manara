@@ -24,6 +24,12 @@ class EnforcerRegistry(
         enforcers.forEach { it.apply(policy) }
     }
 
+    /** [applyAll] without the enforcers in [skip]. */
+    fun applyAllExcept(policy: Policy, skip: Set<String>) {
+        if (!isManaged()) return
+        enforcers.filter { it.id !in skip }.forEach { it.apply(policy) }
+    }
+
     fun collectAllEvents(): List<Event> =
         enforcers.flatMap { it.collectEvents() }
 

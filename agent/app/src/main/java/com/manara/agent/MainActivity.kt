@@ -282,7 +282,12 @@ class MainActivity : ComponentActivity() {
                 scope.launch {
                     val registry = defaultEnforcerRegistry(this@MainActivity)
                     val result = withContext(Dispatchers.IO) {
-                        val result = SyncManager.create(this@MainActivity, registry).sync()
+                        var result = SyncManager.create(this@MainActivity, registry).sync()
+                        if (result is SyncManager.Result.Unauthorized) {
+                            val db = ManaraDatabase.get(this@MainActivity)
+                            val releaser = Releaser(this@MainActivity, db, registry, DeviceTokenStore(this@MainActivity), ReleaseStore(this@MainActivity))
+                            if (releaser.finishIfInterrupted(serverRefused = true)) result = SyncManager.Result.Released
+                        }
                         if (result !is SyncManager.Result.Released) {
                             val db = ManaraDatabase.get(this@MainActivity)
                             PolicyCache(db).current()?.let { registry.applyAll(it) }

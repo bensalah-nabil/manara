@@ -21,7 +21,11 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action in RESTART_ACTIONS) {
             // A released phone is an ordinary app: no managed notice, no syncing.
             val dpm = context.getSystemService(android.app.admin.DevicePolicyManager::class.java)
-            if (!dpm.isDeviceOwnerApp(context.packageName)) return
+            if (!dpm.isDeviceOwnerApp(context.packageName)) {
+                // A notice left behind by an earlier release is cleared on the next update or restart.
+                ManagedNoticeService.dismiss(context)
+                return
+            }
             ManagedNoticeService.start(context)
             PushManager.ensureRegistered(context)
             // Belt-and-suspenders: WorkManager persists periodic work across
@@ -29,6 +33,9 @@ class BootReceiver : BroadcastReceiver() {
             // policy) and costs nothing, consistent with architecture.md's
             // "resilient" design goal over trusting a single code path.
             SyncWorker.schedule(context)
+            // One sync now, not in 15 minutes: it also finishes a release that was cut off,
+            // which is what an update or a restart may have interrupted.
+            SyncWorker.enqueueOneTime(context)
             // Restarted during guided setup's reconnect step: keep watching for the accounts.
             com.manara.agent.setup.SetupService.resume(context)
         }
