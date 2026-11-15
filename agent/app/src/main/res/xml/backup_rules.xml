@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older read this one (data_extraction_rules.xml is for 12 and newer): nothing of
+     Manara's is backed up or transferred, as allowBackup="false" already says. -->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="device_root" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

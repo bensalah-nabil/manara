@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nothing of Manara's leaves the phone through a backup or a phone-to-phone transfer: its data holds
+  this phone's own token and release secret, which must not reach another phone.
+  allowBackup="false" stops cloud backup, but "on devices from some device manufacturers" not a
+  device-to-device transfer, and a missing device-transfer section means "fully enabled for all
+  content" (developer.android.com, Android 12 behavior changes and the Auto Backup guide).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>
