@@ -28,7 +28,3 @@ export function applyRestrictions(policy: Policy, draft: Draft): Policy {
     const existing = policy.restrictions
     return withSection(policy, 'restrictions', { ...(typeof existing === 'object' && existing !== null ? existing : {}), ...draft })
 }
-
-export function activeCount(draft: Draft): number {
-    return RESTRICTIONS.filter(({ key }) => draft[key]).length
-}

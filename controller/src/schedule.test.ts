@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DAYS, applySchedule, describeWindow, emptyWindow, hourText, toDraft, validateDraft } from './schedule.ts'
+import { DAYS, applySchedule, emptyWindow, hourText, toDraft, validateDraft } from './schedule.ts'
 import type { Policy } from './policy.ts'
 
 test('days use the agent numbering: Sunday is 1 and Saturday is 7', () => {
@@ -56,9 +56,7 @@ test('applySchedule changes only lockSchedule and keeps unknown sections', () =>
     assert.deepEqual(applySchedule(policy, { enabled: false, windows: [] }), { ...policy, lockSchedule: { enabled: false, windows: [] } })
 })
 
-test('descriptions and defaults', () => {
+test('hours and defaults', () => {
     assert.equal(hourText(7), '07:00')
-    assert.equal(describeWindow({ days: [7, 1], fromHour: 22, toHour: 7 }), 'Sun, Sat 22:00 to 07:00 (ends the next morning)')
-    assert.equal(describeWindow({ days: [3], fromHour: 13, toHour: 15 }), 'Tue 13:00 to 15:00')
     assert.deepEqual(emptyWindow(), { days: [], fromHour: 22, toHour: 7 })
 })

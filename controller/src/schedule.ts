@@ -1,6 +1,6 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
-import { joinList, t } from './i18n.ts'
+import { t } from './i18n.ts'
 
 export interface LockWindow {
     days: number[]
@@ -45,12 +45,6 @@ export function emptyWindow(): LockWindow {
 
 export function hourText(hour: number): string {
     return `${String(hour).padStart(2, '0')}:00`
-}
-
-export function describeWindow(window: LockWindow): string {
-    const names = DAYS.filter((day) => window.days.includes(day.value)).map((day) => day.label)
-    const overnight = window.fromHour > window.toHour
-    return t('scheduleEditor.describe', { days: joinList(names), from: hourText(window.fromHour), to: hourText(window.toHour) }) + (overnight ? t('scheduleEditor.nextMorning') : '')
 }
 
 const isHour = (value: number) => Number.isInteger(value) && value >= 0 && value <= 23

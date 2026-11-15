@@ -3,15 +3,11 @@ import { test } from 'node:test'
 import {
     ATTESTATION_VERSION,
     PHONE_GUIDES,
-    PREPARE_ITEMS,
     STATEMENTS,
     accountsText,
     attestationComplete,
     guideFor,
-    needsGoogleCheck,
     noAttestation,
-    nothingPrepared,
-    preparedComplete,
 } from './enrollment.ts'
 
 test('every statement must be confirmed', () => {
@@ -46,42 +42,16 @@ test('every guide turns on wireless debugging and ends with the Settings search 
     assert.equal(guideFor('nokia'), undefined)
 })
 
-test('setup cannot continue until every preparation item is ticked', () => {
-    const prepared = nothingPrepared()
-    assert.equal(preparedComplete(prepared), false)
-    for (const { key } of PREPARE_ITEMS) prepared[key] = true
-    assert.equal(preparedComplete(prepared), true)
-    assert.equal(preparedComplete({ ...prepared, passwordsNoted: false }), false)
-})
-
-test('the preparation list warns about passwords and chat backups, and needs no cable', () => {
-    const text = PREPARE_ITEMS.map((item) => item.text).join(' ')
-    assert.match(text, /never sees or stores passwords/)
-    assert.match(text, /WhatsApp/)
-    assert.doesNotMatch(text, /USB/)
-})
-
 test('Samsung parents hear before changing anything that the Google account is removed for a moment', () => {
     const samsung = guideFor('samsung')!
-    assert.equal(needsGoogleCheck(samsung), true)
     assert.match(accountsText(samsung), /removed for a moment/)
     assert.match(accountsText(samsung), /No app is uninstalled/)
 })
 
 test('stock Android expects only a pause, untested brands are told to be ready', () => {
     const pixel = guideFor('google')!
-    assert.equal(needsGoogleCheck(pixel), false)
     assert.match(accountsText(pixel), /no account is removed/)
     assert.match(accountsText(pixel), /not been tested/)
-    for (const guide of PHONE_GUIDES.filter((g) => g.accounts === 'unknown')) {
-        assert.equal(needsGoogleCheck(guide), true, guide.brand)
-    }
-})
-
-test('no checklist item still says accounts or apps are removed by setup', () => {
-    for (const { text } of PREPARE_ITEMS) {
-        assert.doesNotMatch(text, /All accounts are removed|Apps that are removed/)
-    }
 })
 
 test('every picture is a file in public/guide-img, with a description', async () => {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { RESTRICTIONS, activeCount, applyRestrictions, toDraft } from './restrictions.ts'
+import { RESTRICTIONS, applyRestrictions, toDraft } from './restrictions.ts'
 import type { Policy } from './policy.ts'
 
 test('the five restrictions match the keys the agent and server define', () => {
@@ -23,6 +23,4 @@ test('applyRestrictions writes all five flags and keeps other sections and extra
 test('turning every restriction off sends five false flags; the server then omits them, which the agent reads as off', () => {
     const off = { blockVpnConfig: false, blockPrivateDnsConfig: false, blockFactoryReset: false, blockSafeBoot: false, blockAddUser: false, blockDebugging: false, blockDateTime: false }
     assert.deepEqual(applyRestrictions({ version: 1, restrictions: { blockVpnConfig: true } }, off), { version: 1, restrictions: off })
-    assert.equal(activeCount(off), 0)
-    assert.equal(activeCount({ ...off, blockSafeBoot: true, blockAddUser: true }), 2)
 })

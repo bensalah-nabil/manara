@@ -24,10 +24,14 @@ const ENFORCERS: Record<string, string> = {
     lock: t('protection.enforcer.lock'),
     'usage-report': t('protection.enforcer.usageReport'),
     browser: t('protection.enforcer.browser'),
+    'call-log': t('protection.enforcer.callLog'),
 }
 
 const DETAILS: Record<string, string> = {
     usage_access: t('protection.detail.usageAccess'),
+    // CallLogEnforcer's checks.
+    read_call_log: t('protection.detail.callLogPermission'),
+    app_call_notifications: t('protection.detail.appCalls'),
     device_location_on: t('protection.detail.locationOff'),
     location_permission: t('protection.detail.locationPermission'),
     private_dns_host: t('protection.detail.privateDns'),

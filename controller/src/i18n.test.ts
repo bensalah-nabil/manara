@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { dateLocale, direction, fromTag, joinList, language, languageSync, setLanguage, t, tIn, tn } from './i18n.ts'
+import { dateLocale, direction, fromTag, joinList, language, languageSync, setLanguage, t, tn } from './i18n.ts'
 import { ar } from './messages/ar.ts'
 import { en } from './messages/en.ts'
 import type { MessageKey } from './messages/en.ts'
@@ -43,7 +43,6 @@ test('Arabic messages are written in Arabic', () => {
 test('names are filled in, and an unknown name is left visible', () => {
     assert.equal(t('time.minAgo', { n: 5 }), '5 min ago')
     assert.equal(t('time.minAgo'), '{n} min ago')
-    assert.equal(tIn('fr', 'time.minAgo', { n: 5 }), 'il y a 5 min')
 })
 
 test('one and many', () => {

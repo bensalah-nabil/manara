@@ -113,11 +113,6 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
     return fill(CATALOGUES[current][key] || en[key], params)
 }
 
-/** The message in a given language, whatever the current one. */
-export function tIn(lang: Language, key: MessageKey, params?: Record<string, string | number>): string {
-    return fill(CATALOGUES[lang][key] || en[key], params)
-}
-
 type PluralBase = { [K in MessageKey]: K extends `${infer Base}.one` ? Base : never }[MessageKey]
 
 /** `base.one` for exactly one, `base.other` otherwise, with `{n}` filled in. */
