@@ -74,6 +74,15 @@ jobs:
           cache: gradle
       - name: Unit tests, the setup chaos test included
         run: ./gradlew testPlayDebugUnitTest testDirectDebugUnitTest --no-daemon
+      # Fails on any lint error; warnings are listed in the report below.
+      - name: Android Lint, both flavors
+        run: ./gradlew lintPlayDebug lintDirectDebug --no-daemon
+      - name: Keep the lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: agent/app/build/reports/lint-results-*.html
       - name: Known vulnerabilities in the release build's libraries (OSV.dev)
         run: |
           ./gradlew -q :app:dependencies --configuration playReleaseRuntimeClasspath --no-daemon > deps.txt

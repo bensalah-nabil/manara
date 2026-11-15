@@ -22,7 +22,7 @@ explicit go-ahead at that moment (CLAUDE.md, "Don't do silently").
 Run from the repo root; each must pass, and quote the summary lines.
 
 ```
-cd agent && ./gradlew.bat testDirectDebugUnitTest testPlayDebugUnitTest compileDirectDebugAndroidTestKotlin
+cd agent && ./gradlew.bat testDirectDebugUnitTest testPlayDebugUnitTest compileDirectDebugAndroidTestKotlin lintDirectDebug lintPlayDebug
 cd backend && go vet ./... && go test ./...
 cd controller && npm test && npm run lint && npm run build
 ```

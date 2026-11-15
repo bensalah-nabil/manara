@@ -160,6 +160,12 @@ android {
             pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/versions/9/OSGI-INF/MANIFEST.MF")
         }
     }
+
+    // CI runs lint and fails on any error. PropertyEscape only ever fires on local.properties, this PC's
+    // own SDK and keystore paths, which is never in the repository or CI.
+    lint {
+        disable += "PropertyEscape"
+    }
 }
 
 // One JSON file per Room schema version, committed, so a later change can be checked against what shipped.
