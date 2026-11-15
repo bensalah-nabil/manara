@@ -4,10 +4,9 @@ import com.manara.agent.events.Event
 import com.manara.agent.policy.Policy
 
 /**
- * Holds the active enforcers. The sync manager (Phase 1, not yet built) and
- * the policy cache go through this registry and never name a concrete
- * enforcer — that's what makes adding call logging "one class + one line
- * here," nothing else (architecture.md §2.2).
+ * Holds the active enforcers. SyncManager, enrollment and release go through this registry and
+ * never name a concrete enforcer: a new capability is one class plus one line in
+ * DefaultEnforcers, nothing else (architecture.md §2.2).
  */
 class EnforcerRegistry(
     private val enforcers: List<PolicyEnforcer>,
@@ -24,10 +23,10 @@ class EnforcerRegistry(
         enforcers.forEach { it.apply(policy) }
     }
 
-    /** [applyAll] without the enforcers in [skip]. */
-    fun applyAllExcept(policy: Policy, skip: Set<String>) {
+    /** Lifts every rule for a release ([PolicyEnforcer.release]). */
+    fun releaseAll() {
         if (!isManaged()) return
-        enforcers.filter { it.id !in skip }.forEach { it.apply(policy) }
+        enforcers.forEach { it.release() }
     }
 
     fun collectAllEvents(): List<Event> =

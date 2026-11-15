@@ -14,7 +14,8 @@ import android.util.Log
 class SetupReadinessReader(private val context: Context) {
 
     fun read(): SetupReadiness.Snapshot {
-        val battery = runCatching { context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) }.getOrNull()
+        val battery = runCatching { context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) }
+            .onFailure { Log.w(TAG, "cannot read the battery", it) }.getOrNull()
         val level = battery?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
         val scale = battery?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
         val status = battery?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1

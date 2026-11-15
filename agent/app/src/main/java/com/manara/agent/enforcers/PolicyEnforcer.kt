@@ -19,4 +19,10 @@ interface PolicyEnforcer {
 
     /** What to report back since the last call. May return an empty list. */
     fun collectEvents(): List<Event>
+
+    /**
+     * Lift this rule for a release, while Manara is still device owner, and forget anything a later
+     * enrollment must not inherit. By default the same as applying an empty policy.
+     */
+    fun release() = apply(Policy(version = 0))
 }

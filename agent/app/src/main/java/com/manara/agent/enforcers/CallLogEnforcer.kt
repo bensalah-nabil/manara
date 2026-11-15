@@ -71,6 +71,21 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
         return events
     }
 
+    /**
+     * Not [turnOff]: revoking READ_CALL_LOG makes Android kill Manara (PermissionManagerServiceImpl
+     * killUid, KILL_APP_REASON_PERMISSIONS_REVOKED, AOSP android14-release), which stopped a real
+     * release halfway. Clearing the owner unlocks the permission instead (clearUserPoliciesLocked).
+     * The cursor still goes: left behind, a later enrollment would read every call made since this
+     * release, while Manara didn't manage the phone, instead of starting from its own "now".
+     */
+    override fun release() {
+        health.forget(CHECK_PERMISSION)
+        health.forget(CHECK_APP_CALLS)
+        pendingEvents.clear()
+        pendingCursor = null
+        prefs.edit().remove(KEY_CURSOR).commit()
+    }
+
     private fun turnOff() {
         health.forget(CHECK_PERMISSION)
         health.forget(CHECK_APP_CALLS)

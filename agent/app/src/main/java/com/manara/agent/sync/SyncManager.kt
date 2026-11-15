@@ -58,6 +58,9 @@ class SyncManager(
     }
 
     suspend fun sync(): Result {
+        // A release cut off earlier (the app was killed, the phone restarted) is finished first,
+        // for every caller: the worker, a restart, and Check now.
+        if (releaser.finishIfInterrupted(serverRefused = false)) return Result.Released
         val token = tokenStore.deviceToken() ?: return Result.NotEnrolled
 
         collectEnforcerEvents()
@@ -81,7 +84,8 @@ class SyncManager(
             )
 
             when {
-                response.code() == 401 -> Result.Unauthorized
+                response.code() == 401 ->
+                    if (releaser.finishIfInterrupted(serverRefused = true)) Result.Released else Result.Unauthorized
                 !response.isSuccessful -> Result.Failed(IllegalStateException("sync failed: HTTP ${response.code()}"))
                 else -> {
                     val body = response.body()

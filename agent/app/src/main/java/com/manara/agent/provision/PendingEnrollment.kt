@@ -50,6 +50,7 @@ class PendingEnrollmentWorker(context: Context, params: WorkerParameters) : Coro
             enforcerRegistry = defaultEnforcerRegistry(applicationContext),
             previousAccountData = PreviousAccountData(db),
             releaseStore = ReleaseStore(applicationContext),
+            releaseProgress = com.manara.agent.release.ReleaseProgress(applicationContext),
         ).enroll(token)
         return when (result) {
             is EnrollmentRepository.Result.Success -> {

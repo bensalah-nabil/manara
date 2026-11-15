@@ -32,6 +32,7 @@ class EnrollmentRepository(
     private val enforcerRegistry: EnforcerRegistry,
     private val previousAccountData: PreviousAccountData,
     private val releaseStore: ReleaseStore,
+    private val releaseProgress: com.manara.agent.release.ReleaseProgress,
     private val now: () -> Long = System::currentTimeMillis
 ) {
     sealed class Result {
@@ -77,6 +78,11 @@ class EnrollmentRepository(
             }
             tokenStore.clear()
             tokenStore.save(body.deviceId, body.deviceToken)
+            // A parent holds this phone now, so any earlier release is over. A marker left by one
+            // cut off after letting go would otherwise release this enrollment at its first sync.
+            // Not cleared in OwnerReceiver.onEnabled: Android 14 sends that again for an admin that
+            // already exists (DevicePolicyManagerService.setActiveAdmin, refreshing), even mid-release.
+            releaseProgress.finish()
             body.releaseSecret?.let { tokenStore.saveReleaseSecret(it) }
             releaseStore.closeTransfer()
             policyCache.replace(body.policy)

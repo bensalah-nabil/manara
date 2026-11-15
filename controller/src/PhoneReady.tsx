@@ -10,6 +10,11 @@ import { readinessLines, readinessQuiet } from './readiness.ts'
 
 /** The phone sends its checklist every 30 s while its waiting screen is open; the page follows it. */
 const POLL_MS = 3000
+/**
+ * Until the phone has sent one. Most phones never will (set up by QR code or before this existed),
+ * and their page stays open: no need to ask every 3 s. The phone's first send is at most this late.
+ */
+const IDLE_POLL_MS = 30_000
 
 const LABEL: Record<string, MessageKey> = {
     android: 'ready.android',
@@ -32,10 +37,12 @@ export function PhoneReady({ api, device, onSessionExpired, onReadiness }: Props
     useEffect(() => {
         let current = true
         let timer: ReturnType<typeof setTimeout> | undefined
+        let delay = IDLE_POLL_MS
         const load = () => {
             api.getReadiness(device.deviceId)
                 .then((value) => {
                     if (!current) return
+                    delay = value ? POLL_MS : IDLE_POLL_MS
                     setReadiness(value)
                     onReadiness?.(value)
                     setNow(Date.now())
@@ -46,7 +53,7 @@ export function PhoneReady({ api, device, onSessionExpired, onReadiness }: Props
                     if (isSessionError(caught)) onSessionExpired()
                     else setError(errorText(caught))
                 })
-                .finally(() => { if (current) timer = setTimeout(load, POLL_MS) })
+                .finally(() => { if (current) timer = setTimeout(load, delay) })
         }
         load()
         return () => {

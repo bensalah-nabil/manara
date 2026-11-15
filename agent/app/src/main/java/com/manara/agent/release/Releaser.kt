@@ -7,7 +7,6 @@ import com.manara.agent.ManagedNoticeService
 import com.manara.agent.enforcers.EnforcerRegistry
 import com.manara.agent.enroll.PreviousAccountData
 import com.manara.agent.location.LocationSharing
-import com.manara.agent.policy.Policy
 import com.manara.agent.storage.ManaraDatabase
 import com.manara.agent.sync.DeviceTokenStore
 import com.manara.agent.sync.SyncWorker
@@ -125,11 +124,9 @@ class Releaser(
      */
     suspend fun removeManara() {
         progress.start()
-        // Not "call-log": turning it off revokes Manara's own READ_CALL_LOG, and Android kills an app
-        // whose permission is revoked, which stopped a real release halfway (ReleaseRecovery).
-        // Clearing the owner below unlocks the permission instead (AOSP clearUserPoliciesLocked:
-        // updatePermissionFlagsForAllApps(FLAG_PERMISSION_POLICY_FIXED, 0)).
-        registry.applyAllExcept(Policy(version = 0), KEPT_UNTIL_OWNER_CLEARED)
+        // Call history doesn't revoke its permission here (CallLogEnforcer.release): Android kills an
+        // app whose permission is revoked, which stopped a real release halfway (ReleaseRecovery).
+        registry.releaseAll()
         SyncWorker.cancel(context)
         LocationSharing.stop(context)
         PreviousAccountData(db).discard()
@@ -171,7 +168,5 @@ class Releaser(
 
     companion object {
         private const val TAG = "ManaraRelease"
-        /** Enforcers not run during release, see [removeManara]. */
-        private val KEPT_UNTIL_OWNER_CLEARED = setOf("call-log")
     }
 }

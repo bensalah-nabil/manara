@@ -143,6 +143,7 @@ class MainActivity : ComponentActivity() {
                     enforcerRegistry = defaultEnforcerRegistry(this@MainActivity),
                     previousAccountData = PreviousAccountData(db),
                     releaseStore = ReleaseStore(this@MainActivity),
+                    releaseProgress = com.manara.agent.release.ReleaseProgress(this@MainActivity),
                 )
                 val result = withContext(Dispatchers.IO) { repository.enroll(code) }
                 busy = false
@@ -183,6 +184,8 @@ class MainActivity : ComponentActivity() {
         val scope = rememberCoroutineScope()
         var sent by remember { mutableStateOf<com.manara.agent.sync.SetupReadinessRequest?>(null) }
         var sentAt by remember { mutableStateOf(0L) }
+        // One client for the screen's life, not a new connection pool every send.
+        val readinessApi = remember { ManaraApiFactory.create() }
         val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
             // The pairing code is typed into a notification, so setup only starts once it can show one.
             if (it) SetupService.start(this)
@@ -203,7 +206,10 @@ class MainActivity : ComponentActivity() {
                 if (!running && (request != sent || now - sentAt > 30_000)) {
                     sent = request
                     sentAt = now
-                    scope.launch(Dispatchers.IO) { sendReadiness(request) }
+                    scope.launch(Dispatchers.IO) {
+                        // Not sent (often the moment Wi-Fi comes on): try again on the next check, not in 30 s.
+                        if (!sendReadiness(readinessApi, request) && sent == request) sent = null
+                    }
                 }
                 if (isDeviceOwner && !running) {
                     keepManagementRunning()
@@ -242,15 +248,21 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Best effort: the phone's own screen is what the parent follows; the console only mirrors it. */
-    private suspend fun sendReadiness(request: com.manara.agent.sync.SetupReadinessRequest) {
-        val token = DeviceTokenStore(this).deviceToken() ?: return
-        try {
-            val response = ManaraApiFactory.create().reportReadiness("Bearer $token", request)
+    /**
+     * False only when the server couldn't be reached. An answer, even a refusal, is not retried
+     * sooner: sending the same again every 2 s would get the same answer.
+     */
+    private suspend fun sendReadiness(api: com.manara.agent.sync.ManaraApi, request: com.manara.agent.sync.SetupReadinessRequest): Boolean {
+        val token = DeviceTokenStore(this).deviceToken() ?: return true
+        return try {
+            val response = api.reportReadiness("Bearer $token", request)
             if (!response.isSuccessful) Log.w("ManaraSetup", "readiness not stored: HTTP ${response.code()}")
+            true
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             Log.w("ManaraSetup", "readiness not sent", error)
+            false
         }
     }
 
@@ -282,12 +294,8 @@ class MainActivity : ComponentActivity() {
                 scope.launch {
                     val registry = defaultEnforcerRegistry(this@MainActivity)
                     val result = withContext(Dispatchers.IO) {
-                        var result = SyncManager.create(this@MainActivity, registry).sync()
-                        if (result is SyncManager.Result.Unauthorized) {
-                            val db = ManaraDatabase.get(this@MainActivity)
-                            val releaser = Releaser(this@MainActivity, db, registry, DeviceTokenStore(this@MainActivity), ReleaseStore(this@MainActivity))
-                            if (releaser.finishIfInterrupted(serverRefused = true)) result = SyncManager.Result.Released
-                        }
+                        // Released also covers finishing a release that was cut off (SyncManager).
+                        val result = SyncManager.create(this@MainActivity, registry).sync()
                         if (result !is SyncManager.Result.Released) {
                             val db = ManaraDatabase.get(this@MainActivity)
                             PolicyCache(db).current()?.let { registry.applyAll(it) }
