@@ -1,13 +1,10 @@
 package com.manara.agent.enforcers
 
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
-import com.manara.agent.OwnerReceiver
 import com.manara.agent.events.Event
 import com.manara.agent.events.enforcementEvent
 import com.manara.agent.policy.Policy
@@ -20,9 +17,8 @@ import com.manara.agent.policy.Policy
 class BrowserBlockEnforcer(context: Context) : PolicyEnforcer {
     override val id = "browser-block"
 
-    private val devicePolicyManager = context.getSystemService(DevicePolicyManager::class.java)
     private val packageManager = context.packageManager
-    private val admin = ComponentName(context, OwnerReceiver::class.java)
+    private val pauses = AppPauses(context)
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val pendingEvents = mutableListOf<Event>()
 
@@ -31,25 +27,22 @@ class BrowserBlockEnforcer(context: Context) : PolicyEnforcer {
         val previous = prefs.getStringSet(KEY_BLOCKED, emptySet()).orEmpty().filter(::isInstalled).toSet()
         val decision = BrowserBlockDecision.decide(enabled, if (enabled) installedBrowsers() else emptySet(), previous)
         prefs.edit().putStringSet(KEY_BLOCKED, decision.toBlock).apply()
+        // The shared record resumes what this rule lets go of, unless another still holds it (ADR-0009).
+        val outcome = pauses.hold(id, decision.toBlock)
 
         report(KEY_LAST_PROBLEM, listOfNotNull(
             "Chrome is not installed, so no browser can open".takeIf { enabled && !isInstalled(BrowserPolicyDecision.CHROME) },
-            suspend(decision.toBlock, true),
-            suspend(decision.toResume, false),
+            problem("block", outcome.paused, outcome.refusedPause, outcome.pauseError),
+            problem("resume", outcome.resumed, outcome.refusedResume, outcome.resumeError),
         ).joinToString("; "))
     }
 
-    /** Returns what went wrong, or null. Android refuses to suspend some essential apps. */
-    private fun suspend(packages: Set<String>, suspended: Boolean): String? {
-        if (packages.isEmpty()) return null
-        return runCatching { devicePolicyManager.setPackagesSuspended(admin, packages.toTypedArray(), suspended) }
-            .fold(
-                onSuccess = { refused -> refused.takeIf { it.isNotEmpty() }?.let { "${if (suspended) "block" else "resume"} refused: ${it.sorted().joinToString()}" } },
-                onFailure = {
-                    Log.w(TAG, "setPackagesSuspended threw", it)
-                    "${if (suspended) "block" else "resume"}: ${it.javaClass.simpleName}"
-                },
-            )
+    /** What went wrong with one change, or null. Android refuses to suspend some essential apps. */
+    private fun problem(action: String, acted: Set<String>, refused: List<String>, error: Throwable?): String? = when {
+        acted.isEmpty() -> null
+        error != null -> "$action: ${error.javaClass.simpleName}"
+        refused.isNotEmpty() -> "$action refused: ${refused.joinToString()}"
+        else -> null
     }
 
     /** This runs every minute while the screen is on, so one problem is reported once, not each time. */

@@ -499,7 +499,8 @@ P1 is built**. The rest is not started, apart from P14's pure logic and the plat
 **Design problem found for item 2, to settle before coding.** Three enforcers would suspend the
 same apps (`TimeLimitEnforcer`, `BrowserBlockEnforcer`, and the new pause), each remembering only
 its own list. When a pause ends, resuming "its" apps would also reopen an app that is over its daily
-limit, and `TimeLimitEnforcer` would not close it again, because it believes it still is. The fix
+limit, open until `TimeLimitEnforcer`'s next run closes it again, about a minute later (corrected
+2026-11-15 from the code; see ADR-0009). The fix
 is one shared record of *who holds which app closed* (an app reopens only when nobody holds it),
 which means touching the two existing enforcers, not only adding a class.
 

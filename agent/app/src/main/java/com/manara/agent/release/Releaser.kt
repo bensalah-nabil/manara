@@ -127,6 +127,9 @@ class Releaser(
         // Call history doesn't revoke its permission here (CallLogEnforcer.release): Android kills an
         // app whose permission is revoked, which stopped a real release halfway (ReleaseRecovery).
         registry.releaseAll()
+        // Each rule let go of its own apps above; this reopens anything still held (a rule a later
+        // version dropped, say) and empties the record, while Manara can still do it (ADR-0009).
+        com.manara.agent.enforcers.AppPauses(context).releaseAll()
         SyncWorker.cancel(context)
         LocationSharing.stop(context)
         PreviousAccountData(db).discard()

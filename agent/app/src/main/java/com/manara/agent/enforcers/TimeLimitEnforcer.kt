@@ -1,11 +1,8 @@
 package com.manara.agent.enforcers
 
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.util.Log
-import com.manara.agent.OwnerReceiver
 import com.manara.agent.events.Event
 import com.manara.agent.events.EventKind
 import com.manara.agent.events.enforcementEvent
@@ -36,9 +33,7 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
     override val id = "time-limit"
 
     private val dailyUsage = DailyUsageReader(context)
-    private val devicePolicyManager =
-        context.getSystemService(DevicePolicyManager::class.java)
-    private val admin = ComponentName(context, OwnerReceiver::class.java)
+    private val pauses = AppPauses(context)
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -97,35 +92,25 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         suspendedPackages = decision.newSuspendedPackages
 
         // A rule may list apps this phone doesn't have (TikTok Lite, say): Android would refuse those.
-        val toSuspend = decision.toSuspend.filter(::isInstalled)
-        val toResume = decision.toResume.filter(::isInstalled)
-        if (toSuspend.isNotEmpty()) {
-            runCatching {
-                devicePolicyManager.setPackagesSuspended(admin, toSuspend.toTypedArray(), true)
-            }.onSuccess { refused ->
-                reportRefused("suspend", refused)
-            }.onFailure {
-                Log.w(TAG, "setPackagesSuspended(true) threw", it)
-                pendingEvents.add(enforcementEvent(id, "failed", "suspend: ${it.javaClass.simpleName}"))
-            }
-        }
-        if (toResume.isNotEmpty()) {
-            runCatching {
-                devicePolicyManager.setPackagesSuspended(admin, toResume.toTypedArray(), false)
-            }.onSuccess { refused ->
-                reportRefused("resume", refused)
-            }.onFailure {
-                Log.w(TAG, "setPackagesSuspended(false) threw", it)
-                pendingEvents.add(enforcementEvent(id, "failed", "resume: ${it.javaClass.simpleName}"))
-            }
-        }
+        // The shared record resumes what this rule lets go of, unless another rule still holds it (ADR-0009).
+        val outcome = pauses.hold(id, decision.toSuspend.filter(::isInstalled).toSet())
+        if (outcome.paused.isNotEmpty()) report("suspend", outcome.refusedPause, outcome.pauseError)
+        if (outcome.resumed.isNotEmpty()) report("resume", outcome.refusedResume, outcome.resumeError)
         decision.justCrossedRules.forEach { pendingEvents.add(limitHitEvent(it)) }
+    }
+
+    private fun report(action: String, refused: List<String>, error: Throwable?) {
+        if (error != null) {
+            pendingEvents.add(enforcementEvent(id, "failed", "$action: ${error.javaClass.simpleName}"))
+            return
+        }
+        reportRefused(action, refused)
     }
 
     // setPackagesSuspended returns the packages it could NOT change (e.g. system/critical apps).
     // This runs every minute while the screen is on, so the same refusal is reported only once.
-    private fun reportRefused(action: String, refused: Array<String>?) {
-        val detail = refused?.takeIf { it.isNotEmpty() }?.sorted()?.joinToString().orEmpty()
+    private fun reportRefused(action: String, refused: List<String>) {
+        val detail = refused.sorted().joinToString()
         val key = "$KEY_LAST_REFUSED$action"
         if (prefs.getString(key, "") == detail) return
         prefs.edit().putString(key, detail).apply()
