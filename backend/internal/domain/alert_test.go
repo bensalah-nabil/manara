@@ -57,6 +57,19 @@ func TestAlertForUsageReportingWithoutUsageAccess(t *testing.T) {
 	}
 }
 
+// Call history's problems used to arrive as raw codes ("call-log", "read_call_log"): every
+// protection the phone reports has a name and a sentence here, as in the console.
+func TestAlertForCallHistory(t *testing.T) {
+	a, ok := AlertFor(&Device{ID: "d", Label: "Sam"}, enforcement("d", "call-log", "missing", "read_call_log", t0))
+	if !ok || a.Title != "Sam: Call history needs attention" || !strings.HasPrefix(a.Message, "Manara is not allowed to read the phone's call history.") {
+		t.Errorf("got %v: %q / %q", ok, a.Title, a.Message)
+	}
+	a, _ = AlertFor(&Device{ID: "d", Label: "Sam"}, enforcement("d", "call-log", "missing", "app_call_notifications", t0))
+	if !strings.HasPrefix(a.Message, "Notification access is off") {
+		t.Errorf("message = %q", a.Message)
+	}
+}
+
 func TestAlertForFallbacks(t *testing.T) {
 	a, _ := AlertFor(&Device{ID: "d"}, enforcement("d", "mystery", "failed", "suspend: SecurityException", t0))
 	if a.Title != "A device: mystery needs attention" || !strings.HasPrefix(a.Message, "suspend: SecurityException ") {
