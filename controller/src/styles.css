@@ -90,8 +90,8 @@ button, a.button-link {
 }
 button:hover:not(:disabled), a.button-link:hover { border-color: var(--brand); }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
-button.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
-button.primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
+button.primary, a.button-link.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+button.primary:hover:not(:disabled), a.button-link.primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
 button.ghost, a.button-link.ghost { background: transparent; }
 button.small, a.button-link.small { padding: 4px 10px; font-size: 0.875rem; }
 button.wide { width: 100%; }
@@ -195,6 +195,7 @@ fieldset.group legend { padding: 0 6px; font-weight: 600; font-size: 0.9rem; col
 /* Shell */
 
 .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+.shell.with-banner { grid-template-rows: auto auto 1fr; }
 .topbar {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -591,3 +592,7 @@ code, .token, .release-code, textarea, input[type="email"], input[type="password
 .ready-list li.missing .ready-mark { background: var(--warn-soft); color: var(--warn); }
 .phone-ready h4 { margin: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Two-step sign-in missing on an account with phones: under the top bar, on every screen. */
+.shell-banner { margin: 12px 20px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+@media (max-width: 760px) { .shell-banner { margin: 10px 16px 0; } }

@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import { ApiError, isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import { ATTESTATION_VERSION, STATEMENTS, attestationComplete, noAttestation } from './enrollment.ts'
@@ -47,6 +47,17 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
     const [copyNote, setCopyNote] = useState('')
+    // A phone is only added to an account with two-step sign-in (the server refuses otherwise).
+    // null while unknown: the steps show, and the server's answer still holds.
+    const [twoStep, setTwoStep] = useState<boolean | null>(null)
+
+    useEffect(() => {
+        let current = true
+        api.getAccount()
+            .then((account) => { if (current) setTwoStep(account.twoFactor) })
+            .catch((caught) => { if (isSessionError(caught)) onSessionExpired() })
+        return () => { current = false }
+    }, [api, onSessionExpired])
 
     async function createCode() {
         setBusy(true)
@@ -57,6 +68,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
             setStep('code')
         } catch (caught) {
             if (isSessionError(caught)) onSessionExpired()
+            else if (caught instanceof ApiError && caught.code === 'two_factor_required') setTwoStep(false)
             else setError(authErrorText(caught instanceof ApiError ? caught.code : 'unknown'))
         } finally {
             setBusy(false)
@@ -81,6 +93,13 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 <h1>{t('add.title')}</h1>
                 <button type="button" class="ghost" onClick={onDone}>{t('common.cancel')}</button>
             </div>
+            {twoStep === false ? (
+                <div class="card stack">
+                    <h3>{t('add.twoStepFirstTitle')}</h3>
+                    <p>{t('add.twoStepFirstText')}</p>
+                    <a href="#account" class="primary button-link">{t('twoStep.turnOn')}</a>
+                </div>
+            ) : (<>
             <Steps current={step} />
             <div class="card stack">
 
@@ -182,6 +201,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 </>
             )}
             </div>
+            </>)}
         </div>
     )
 }

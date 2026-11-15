@@ -229,6 +229,22 @@ func (h *Handlers) CreateEnrollmentToken(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	// A phone is only added to an account with two-step sign-in, so its child's location, calls
+	// and rules don't start out behind a password alone (docs/security.md, "What's left", item 3).
+	// Phones added before this keep working, and a parent may still turn it off later (password
+	// and code); the console asks every parent with phones and without it to turn it on.
+	if h.TwoFactor != nil {
+		on, err := h.TwoFactor.Enabled(r.Context(), parentID)
+		if err != nil {
+			log.Printf("two-step check: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+		if !on {
+			writeError(w, http.StatusForbidden, "two_factor_required", "turn on two-step sign-in before adding a phone")
+			return
+		}
+	}
 	var req enrollmentTokenRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "attestation_required", "confirm the statements about your child's phone first")

@@ -112,7 +112,13 @@ Each item says why it matters and how to know it's done.
    connect, but the key should not survive). Done when the setup flow clears
    the paired-device list and a phone shows none afterwards.
 3. **Make two-step sign-in required for new accounts**, or strongly prompted
-   at first sign-in. It is opt-in today.
+   at first sign-in. **Mostly done (2026-11-15):** the server refuses an
+   enrollment code (`two_factor_required`) to a parent without it, so no new
+   phone joins an account protected by a password alone, and the console asks
+   for it before the first step of adding a phone. A parent with phones and
+   without it (phones added earlier, or turned off since) sees a banner on
+   every screen. Still open: it can be turned off later with the password and
+   a code, which leaves those phones behind a password alone until it's back on.
 4. **Encrypt the authenticator secrets and location rows at rest** with a
    server key (today: Neon's disk encryption only; the secrets are useless
    without the password, location is the most sensitive data Manara holds).

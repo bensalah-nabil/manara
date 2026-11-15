@@ -46,6 +46,8 @@ export function authErrorText(code: string): string {
             return t('err.attestationOutdated')
         case 'unknown_phone_brand':
             return t('err.unknownBrand')
+        case 'two_factor_required':
+            return t('err.twoFactorRequired')
         case 'invalid_browser_rules':
             return t('err.browserRules')
         case 'bad_code':

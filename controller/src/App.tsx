@@ -301,6 +301,17 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
     const [devices, setDevices] = useState<DeviceSummary[] | null>(null)
     const [error, setError] = useState('')
     const [reloads, setReloads] = useState(0)
+    // Parents with phones but no two-step sign-in (added before it was required, or turned off
+    // since): asked on every screen until it's on. Read again on every move, so turning it on
+    // in Account clears the banner.
+    const [twoStepMissing, setTwoStepMissing] = useState(false)
+    useEffect(() => {
+        let current = true
+        api.getAccount()
+            .then((account) => { if (current) setTwoStepMissing(!account.twoFactor && account.phones > 0) })
+            .catch(() => undefined) // the list of phones reports a lost session
+        return () => { current = false }
+    }, [api, route.view, reloads])
 
     useEffect(() => {
         let current = true
@@ -336,6 +347,7 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
         setError('')
         setReloads((count) => count + 1)
     }
+    const showTwoStepBanner = twoStepMissing && route.view !== 'account'
     const selectedId = route.view === 'phone' ? route.deviceId : null
     const selected = selectedId === null ? undefined : devices?.find((device) => device.deviceId === selectedId)
 
@@ -357,7 +369,7 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
     }
 
     return (
-        <div class="shell">
+        <div class={showTwoStepBanner ? 'shell with-banner' : 'shell'}>
             <header class="topbar">
                 <a href="#" class="brand"><Logo /><span>Manara</span></a>
                 <span class="topbar-actions">
@@ -367,6 +379,12 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
                     <button type="button" class="ghost small" onClick={onSignOut}>{t('nav.signOut')}</button>
                 </span>
             </header>
+            {showTwoStepBanner && (
+                <div class="banner shell-banner" role="status">
+                    <span>{t('nav.twoStepBanner')}</span>
+                    <a href="#account" class="primary small button-link">{t('twoStep.turnOn')}</a>
+                </div>
+            )}
             <div class={route.view === 'home' ? 'layout' : 'layout has-detail'}>
                 <PhoneList devices={devices} selected={selectedId} onRefresh={refresh} error={error} />
                 <main class="detail">
