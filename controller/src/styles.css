@@ -7,6 +7,8 @@
   --ink: #12202a;
   --muted: #5a6a76;
   --line: #e1e6ea;
+  /* Form fields only: their edge must reach 3:1 against every background (WCAG 1.4.11); --line is 1.26:1. */
+  --field-line: #7f8d98;
   --brand: #0f4c5c;
   --brand-hover: #0b3b48;
   --brand-ink: #ffffff;
@@ -39,6 +41,7 @@
     --ink: #e6edf1;
     --muted: #93a3ad;
     --line: #25323b;
+    --field-line: #5f707b;
     --brand: #5cb3c4;
     --brand-hover: #79c4d3;
     --brand-ink: #062229;
@@ -111,7 +114,7 @@ input:not([type='checkbox'], [type='radio']), select, textarea {
   font-weight: 400;
   width: 100%;
   padding: 9px 11px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--field-line);
   border-radius: 9px;
   background: var(--surface);
   color: var(--ink);
