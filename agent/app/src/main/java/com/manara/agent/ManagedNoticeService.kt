@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import com.manara.agent.enforcers.LiveRules
@@ -29,7 +28,7 @@ import kotlinx.coroutines.launch
  * a policy enforcer and has no "enabled" flag: whenever Manara manages the phone,
  * this runs. There is deliberately no code path that hides it while it does.
  *
- * In Phase 0 it also serves as the keep-alive probe: if the manufacturer kills
+ * It also serves as a keep-alive probe: if the manufacturer kills
  * it, we see the notice vanish — that's a finding, not a bug to hide.
  *
  * Its process stays alive, so it also hosts [LiveRules]; that loop can't stop the notice.
@@ -102,25 +101,18 @@ class ManagedNoticeService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun buildNotification(summary: List<String> = emptyList()): Notification {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                getString(R.string.notice_channel_name),
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = getString(R.string.notice_channel_description)
-                setShowBadge(false)
-            }
-            getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            getString(R.string.notice_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(R.string.notice_channel_description)
+            setShowBadge(false)
         }
+        getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(channel)
 
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
+        val builder = Notification.Builder(this, CHANNEL_ID)
 
         if (summary.isNotEmpty()) {
             builder.setStyle(
@@ -152,11 +144,7 @@ class ManagedNoticeService : Service() {
         /** Start the notice service in a way that works from any context. */
         fun start(context: Context) {
             val intent = Intent(context, ManagedNoticeService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
     }
 }

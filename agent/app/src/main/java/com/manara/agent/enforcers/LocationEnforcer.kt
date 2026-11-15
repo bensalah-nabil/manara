@@ -2,7 +2,6 @@ package com.manara.agent.enforcers
 
 import android.content.Context
 import android.location.LocationManager
-import android.os.Build
 import com.manara.agent.events.Event
 import com.manara.agent.location.LocationSharing
 import com.manara.agent.policy.Policy
@@ -40,12 +39,7 @@ class LocationEnforcer(private val context: Context) : PolicyEnforcer {
     companion object {
         internal fun isLocationOn(context: Context): Boolean? {
             val manager = context.getSystemService(LocationManager::class.java) ?: return null
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                manager.isLocationEnabled
-            } else {
-                manager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                    manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            }
+            return manager.isLocationEnabled
         }
 
         private const val PREFS_NAME = "location_enforcer"

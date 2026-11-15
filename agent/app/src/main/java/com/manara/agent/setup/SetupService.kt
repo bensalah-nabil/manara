@@ -10,7 +10,6 @@ import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
@@ -231,16 +230,15 @@ class SetupService : Service() {
          * from the background", exemptions), as BootReceiver already does.
          */
         fun resume(context: Context) {
-            if (running || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+            if (running) return
             if (!context.getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)) return
             if (DeviceTokenStore(context).deviceToken() == null || ReconnectMarker.Store(context).load() == null) return
             context.startForegroundService(Intent(context, SetupService::class.java).putExtra(EXTRA_RESUME, true))
         }
 
-        /** False on a phone Manara already manages, before enrollment, or below Android 11. */
+        /** False on a phone Manara already manages, or before enrollment. */
         fun canStart(context: Context): Boolean =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                !context.getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName) &&
+            !context.getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName) &&
                 DeviceTokenStore(context).deviceToken() != null
 
         fun start(context: Context) {

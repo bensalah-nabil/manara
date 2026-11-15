@@ -15,9 +15,11 @@ import com.manara.agent.sync.SyncWorker
  * ADB targets this class by name:
  *   dpm set-device-owner com.manara.agent/.OwnerReceiver
  *
- * In Phase 0 it does almost nothing — becoming device owner at all is the whole
- * test. When enabled, it just starts the always-visible managed notice so the
- * device is honestly marked as managed from the moment it's under control.
+ * [onEnabled] grants Manara's own permissions and starts push, the managed notice and the
+ * periodic sync. Android calls it on every `set-device-owner` try, refused ones too: the shell
+ * makes Manara an admin before asking for owner (and again for an admin that already exists,
+ * DevicePolicyManagerService.setActiveAdmin). Nothing here may assume Manara is owner;
+ * ManagedNoticeService checks for itself.
  */
 class OwnerReceiver : DeviceAdminReceiver() {
 

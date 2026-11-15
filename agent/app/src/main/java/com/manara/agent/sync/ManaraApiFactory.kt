@@ -11,25 +11,11 @@ import java.util.concurrent.TimeUnit
 
 object ManaraApiFactory {
     /**
-     * Dev-only default: `localhost` on the *device*, tunneled back to the
-     * machine running `backend/` (`cd backend && docker compose up`) via
-     * `adb reverse tcp:8080 tcp:8080` — not the PC's LAN IP directly, which
-     * the Wi-Fi AP turned out to block client-to-client (`ping` from the
-     * phone to the PC returned "Destination Host Unreachable" — AP
-     * isolation, not a firewall or app bug, found testing on a real
-     * network). The reverse tunnel rides the same ADB connection already
-     * in use for everything else, so it isn't subject to that. Needs
-     * `adb reverse` re-run after every reconnect (new wireless-debugging
-     * session, phone reboot, etc.) — it doesn't persist on its own.
-     * This used to point at the throwaway `stub-backend/` (same port, same
-     * endpoints) — Phase 2's real backend replaced it with no agent-side
-     * change needed, which is itself a confirmation the contract held.
-     * Replace with a real deployed URL once there's one; see the
-     * manifest's `usesCleartextTraffic` comment for the matching TLS note.
+     * Set at build time (app/build.gradle.kts: -PMANARA_API_URL or local.properties); a release
+     * build refuses to build without an HTTPS one. A debug build without it uses `localhost:8080`
+     * on the phone, which reaches the PC's backend only through `adb reverse tcp:8080 tcp:8080`,
+     * re-run after every reconnect (the PC's LAN address is often blocked by Wi-Fi client isolation).
      */
-    const val DEV_BASE_URL = "http://localhost:8080/api/v1/"
-
-    /** MANARA_API_URL from local.properties at build time, or [DEV_BASE_URL]. */
     val BASE_URL: String = BuildConfig.API_BASE_URL
 
     fun create(baseUrl: String = BASE_URL): ManaraApi {

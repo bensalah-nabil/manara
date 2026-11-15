@@ -25,23 +25,12 @@ class SetupInputTest {
     }
 
     @Test
-    fun `only plain package names and apk paths can reach a shell command`() {
+    fun `only plain package names can reach a shell command`() {
         assertTrue(SetupInput.isSafePackageName("com.whatsapp"))
         assertTrue(SetupInput.isSafePackageName("com.google.android.apps.tachyon"))
         for (bad in listOf("whatsapp", "com.whatsapp; reboot", "com.whatsapp\nreboot", "com..x", "-k com.x", "\$(id).x")) {
             assertFalse(bad, SetupInput.isSafePackageName(bad))
         }
-        assertTrue(SetupInput.isSafeApkPath("/data/app/~~x==/com.whatsapp-y==/base.apk"))
-        for (bad in listOf("/data/app/a b.apk", "/data/app/x.apk; reboot", "/data/../x.apk", "relative/base.apk", "/data/app/base.so")) {
-            assertFalse(bad, SetupInput.isSafeApkPath(bad))
-        }
-    }
-
-    @Test
-    fun `pm success is its own Success line, not a Failure message mentioning it`() {
-        assertTrue(SetupInput.pmSucceeded("Success\n"))
-        assertFalse(SetupInput.pmSucceeded("Failure [DELETE_FAILED_INTERNAL_ERROR]"))
-        assertFalse(SetupInput.pmSucceeded("Failure [not Success]"))
     }
 
     @Test

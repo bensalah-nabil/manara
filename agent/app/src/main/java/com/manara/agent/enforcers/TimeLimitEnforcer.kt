@@ -152,11 +152,6 @@ class TimeLimitEnforcer(private val context: Context) : PolicyEnforcer {
         return events
     }
 
-    /** Internal (not private) so the Phase 1 test harness can show the exact
-     *  number this class is actually working with, rather than inferring it
-     *  from `adb shell dumpsys usagestats`'s not-entirely-legible format. */
-    internal fun todaysUsageMinutesByPackage(): Map<String, Long> = dailyUsage.readMinutes().orEmpty()
-
     private fun limitHitEvent(rule: Policy.TimeLimits.Rule): Event =
         Event(
             id = UUID.randomUUID().toString(),

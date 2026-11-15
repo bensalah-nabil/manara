@@ -44,7 +44,7 @@ class BrowserBlockEnforcer(context: Context) : PolicyEnforcer {
         if (packages.isEmpty()) return null
         return runCatching { devicePolicyManager.setPackagesSuspended(admin, packages.toTypedArray(), suspended) }
             .fold(
-                onSuccess = { refused -> refused?.takeIf { it.isNotEmpty() }?.let { "${if (suspended) "block" else "resume"} refused: ${it.sorted().joinToString()}" } },
+                onSuccess = { refused -> refused.takeIf { it.isNotEmpty() }?.let { "${if (suspended) "block" else "resume"} refused: ${it.sorted().joinToString()}" } },
                 onFailure = {
                     Log.w(TAG, "setPackagesSuspended threw", it)
                     "${if (suspended) "block" else "resume"}: ${it.javaClass.simpleName}"
