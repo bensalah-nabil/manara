@@ -322,6 +322,19 @@ was still pending 7 s later on the SM-A528B, and setup gave up. Each try
 also fires `OwnerReceiver.onEnabled`, refused or not, so nothing started
 there may assume Manara is owner.
 
+## `am force-stop` does nothing to Manara while it's device owner
+
+Android answers "Ignoring request to force stop protected package" and the
+process keeps running (emulator, Android 14). A test that writes Manara's
+shared preferences and then force-stops it is reading the old in-memory
+values afterwards. To kill it the way Android would mid-release, run
+`run-as com.manara.agent kill -9 <pid>` on a debug build.
+
+Pausing an app and rebooting within a second also lost the pause once on
+the emulator (it came back enabled, and `set-device-owner` was refused).
+Waiting 15 s before the reboot kept it. Check `dumpsys package <pkg>` shows
+`enabled=3` before relying on it.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to
