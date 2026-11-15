@@ -34,7 +34,7 @@
   </header>
 
   <h1>Privacy policy</h1>
-  <p class="muted">Last updated 9 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
+  <p class="muted">Last updated 15 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
 
   <p class="note">
     Manara lets a parent set rules on their own child's phone. The phone always shows that it is managed and what is
@@ -64,6 +64,7 @@
       <tr><td>Parent's email address and a hashed password</td><td>To create the parent account</td><td>Until the account is deleted</td></tr>
       <tr><td>The parent's three confirmations, the date, and the phone's brand</td><td>When adding a phone</td><td>As long as the phone is in the account</td></tr>
       <tr><td>Phone model, maker and Android version</td><td>When the phone is connected</td><td>As long as the phone is in the account</td></tr>
+      <tr><td>Whether the phone is ready for guided setup: Android version, Wi-Fi on or off, battery level and charging, and whether Developer options and Wireless debugging are on</td><td>While the phone shows its "Get this phone ready" screen, so the console can follow it</td><td>As long as the phone is in the account</td></tr>
       <tr><td>The phone's location (coordinates and accuracy)</td><td>Only if the parent turns location sharing on; the phone shows a notice while it is on</td><td>30 days</td></tr>
       <tr><td>Minutes spent in each app today (by app package name, top 30)</td><td>Only if the parent turns the daily usage report on</td><td>30 days</td></tr>
       <tr><td>Which daily app limit was reached, and when</td><td>Only if the parent sets app limits</td><td>90 days</td></tr>
@@ -97,11 +98,12 @@
     <h2>Who processes it</h2>
     <ul>
       <li>Render (server hosting, Frankfurt, Germany) and Neon (database, Frankfurt, Germany).</li>
-      <li>Netlify (hosts this website and the parent console).</li>
+      <li>Vercel (hosts this website and the parent console), and Netlify (an earlier copy of both, still online).</li>
       <li>Google Firebase Cloud Messaging, to wake the phone when the parent sends a command or changes a rule. The message
         carries no data, only "check in now".</li>
       <li>Brevo (email), to send the parent a password-reset link and alerts, such as a phone that stopped checking in.
-        It receives the parent's email address and the email's text, never the child's data.</li>
+        It receives the parent's email address and the email's text: the phone's name, which protection needs attention
+        and when. Never the child's location, calls or app use.</li>
       <li>Google Play services on the phone, for location and for scanning the connection QR code.</li>
     </ul>
     <p>
