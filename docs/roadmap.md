@@ -463,6 +463,72 @@ decision 1's order; decisions 2 and 3 stand.
    codebase; nothing is renamed. Manara makes no religious claim of its own
    and names no authority that hasn't reviewed it (P18).
 
+**Re-decided 2026-11-17.** The developer approved the order proposed in
+[`competitive-brief.md`](competitive-brief.md) §8 ("ok update roadmap"). It
+replaces decision 4's order; decisions 2, 3 and 5 stand.
+
+The change comes from new information, not a change of mind:
+
+- **The INT's decision n° 11 (10 June 2026).** Every internet provider must
+  offer an "advanced" parental-control app or platform, and may bill it on
+  the internet bill. It must cover profiles, filtering by category, time
+  monitoring, alerts and reports. Of that list, Manara lacks filtering by
+  category and reports.
+- **Two competitors already sell in dinars:** Kidcare (50k+ downloads,
+  99 TND/yr) and Kaspersky Safe Kids (59 TND/yr, in shops). One Kidcare
+  review calls it reassuring that "les enfants peuvent toujours appeler".
+- **Phone brands.** Samsung is about 29% of Android web traffic in Tunisia.
+  Xiaomi, Oppo and Infinix together are more (Statcounter, August 2026).
+  Manara is verified on Samsung only.
+- **The law.** Law 2004-63 attaches prison terms to undeclared processing of
+  children's data and to transfers abroad without authorization
+  ([`privacy/pia-call-history.md`](privacy/pia-call-history.md)).
+
+6. **Before any family outside the developer's own: P19, the legal gate.**
+   It isn't code, and it runs alongside everything below.
+7. **New build order:** P3 → P1 seen on a phone → P20 → D2 → P2 → P8 → B5
+   (design first) → P14 → C5 + D3 → P4 → P5 → P6.
+   - **P20 is new, and third.** It verifies Manara on Xiaomi, Oppo and
+     Infinix. Without it, "can't get around it", Manara's only clear win in
+     the brief, is shown for under a third of Android phones. It needs
+     borrowed phones and runs alongside the code items.
+   - **D2 and P2 move ahead of P14.** ADR-0009 has unblocked D2, and it is
+     small. P2 is a safety gap, and a competitor's parents name it as what
+     reassures them. D2 goes first of the two because it is smaller.
+   - **P8 and B5 move up.** Both are on the INT's "advanced" list, which is
+     now what an operator will buy against, and Kidcare and Kaspersky have
+     both. B5 starts with a design note, not code: how to offer categories
+     without sending the child's lookups to a new third party.
+   - **P14 moves from third to eighth.** It is still the advert's lead, and
+     no competitor has it, but it is a *Hypothesis*. The items above it are
+     parity or safety, with evidence behind them. Its logic and console chart
+     are already built, so waiting costs little.
+   - C5 + D3, P4, P5 and P6 keep their relative order.
+8. **New work outside the build order:** P21, a one-page offer to operators
+   under chapter 3 of the INT decision. Reading the child's social media or
+   browsing history goes on "Won't do".
+
+**State on 2026-11-17**, from the code and `git log`. The 2026-11-10 table
+below stays as history.
+
+| Order | Item | State | Next step |
+|---|---|---|---|
+| — | P19 Legal gate | Not started | Find a lawyer who knows the INPDP; the three questions are in `privacy/pia-call-history.md` |
+| 1 | P3 Offline code | Not run | The four phone tests (validation §9(d)), on the lab phone, with your go-ahead |
+| 2 | P1 Arabic and French | Built 2026-11-10, not seen on a phone | Guided setup in Arabic on a Samsung; a native reader's pass on the `TODO-REVIEW` strings |
+| 3 | P20 Xiaomi, Oppo, Infinix | Not started | Borrow one phone of each brand |
+| 4 | D2 Block screen | Not built. Unblocked by ADR-0009 (`AppPauses`) | `BlockNoticeDecision` and the short support message |
+| 5 | P2 Call the parent | Not started | Research spike on lock task mode, against developer.android.com |
+| 6 | P8 Weekly email | Not started | The parent's language is already stored |
+| 7 | B5 Categories | Not started | A design note first |
+| 8 | P14 Prayer-time pause | Logic and console chart built. No policy field, no enforcer | The `prayerPause` field, and `PrayerPauseEnforcer` through `AppPauses` |
+| 9–12 | C5 + D3, P4, P5, P6 | Not started | |
+
+**Capacity.** One developer. The order is a sequence, not a schedule: no
+dates are committed. P19, P20 and P3 wait on things only you can provide (a
+lawyer, borrowed phones, the lab phone), so code items go ahead while they
+wait.
+
 **P1 built 2026-11-10** (branch `regional-pack`), not yet seen on a phone:
 
 - **App:** every string of `ui/Screens.kt`, the three notices and the status screen moved to
@@ -536,23 +602,25 @@ phone, no enforcer, no policy field yet.**
 | ID | Item | Why (who already has it) | How | Done when |
 |---|---|---|---|---|
 | P1 | **Arabic and French**, in the app and the console, with right-to-left layout | Family Link, Screen Time, Samsung and Microsoft are all in Arabic and French. Manara is English only, the biggest gap in the study | Agent: `values-ar`, `values-fr` string resources (no hard-coded text), RTL checked on every screen. Console: a message catalogue and `dir="rtl"`. Parent guide translated | A parent completes guided setup in Arabic on a Samsung; no English left on any screen |
-| P2 | **A locked phone can still call the parent** | Family Link's most painful complaint: a locked child "cannot even text their parent". Manara's bedtime and remote lock use `lockNow()`, so only emergency calls work | Research spike: lock task mode with only the dialer and the parent's contacts allowed (*verify* `setLockTaskPackages` / `setLockTaskFeatures` against developer.android.com, Device Owner only). Pure `LockModeDecision` + thin enforcer | During bedtime, the child calls the parent's number; other apps stay closed. Verified on a Samsung |
+| P2 | **A locked phone can still call the parent** | Family Link's most painful complaint: a locked child "cannot even text their parent". Kidcare's reviewers name the opposite as reassuring: "les enfants peuvent toujours appeler" (competitive-brief §3). Manara's bedtime and remote lock use `lockNow()`, so only emergency calls work | Research spike: lock task mode with only the dialer and the parent's contacts allowed (*verify* `setLockTaskPackages` / `setLockTaskFeatures` against developer.android.com, Device Owner only). Pure `LockModeDecision` + thin enforcer | During bedtime, the child calls the parent's number; other apps stay closed. Verified on a Samsung |
 | P3 | **The offline release code never fails** | Family Link: "keeps rejecting the correct Parent Access Code", one phone locked a week | Test, not a feature: airplane mode, after a reboot, after 30 days without a sync, after an app update | All four pass on a phone |
 | P4 | **Fastest filtering server from Tunisia** | AdGuard answered in 96–117 ms vs ~50 ms for Cloudflare on Topnet Wi-Fi (2026-11-10) | The agent measures each candidate DoT host and reports it; the console picks or warns. Also say in the console that the ads filter can slow new pages | Numbers from Topnet, Ooredoo and Orange; the rule cards use the fastest honest host |
+| P19 | **Legal gate** before any family outside the developer's own (not code) | Law 2004-63 requires a declaration (art. 7), a family judge's authorization for a child's data (art. 28) and authorization for transfers abroad (art. 52), with prison terms (arts. 87, 90). Kidcare claims INPDP recognition | A lawyer's written opinion on the three questions in [`privacy/pia-call-history.md`](privacy/pia-call-history.md). Then the INPDP filings it calls for, or hosting in Tunisia | The opinion is filed in `docs/`, and every filing it requires has a receipt |
+| P20 | **Verified on Xiaomi, Oppo and Infinix** | Samsung is about 29% of Android web traffic in Tunisia (Statcounter, August 2026). Kidcare's reviews report failures on Infinix and Redmi | The `device-verify` checks on each brand: guided setup, tamper blocks, limits, pauses, release | Passes on one phone of each brand, or each gap is written down |
 
 ### 5.1 — Parity: what parents will expect because Family Link does it
 
 | ID | Item | Who has it | How | Done when |
 |---|---|---|---|---|
 | C5 | Bonus time and pause, from the console | Family Link, Qustodio, OurPact | capability-plan C5 | Command → effect → ack |
-| D2 | Block screen that says why | Every commercial app | capability-plan D2 (`SuspendDialogInfo`) | Seen on a phone |
+| D2 | Block screen that says why | Every commercial app | The phone-wide short support message, rewritten by `AppPauses` as the reasons change (ADR-0009). `SuspendDialogInfo` is `@SystemApi`, so it can't be used (platform facts for item 3, above) | Seen on a phone |
 | D3 | **"Ask for more time"** from the child | Family Link, Kaspersky, Mobicip | capability-plan D3, after D2 and C5 | Request → console → approve → unblocked |
 | P5 | **Place alerts** (arrived home, left school) | Family Link, Kaspersky Premium, FamiSafe, Find My Kids | Geofence check on the phone from the existing location fixes (pure `GeofenceDecision`); console draws the places. The child sees "Places your parent gets alerts for" (G1) | Arrival and departure alerts, with Location off reported (A3) |
 | P6 | **Approve new apps** | Family Link (its strongest point), Kaspersky | New installs start suspended until the parent allows them (*verify* a package-added receiver plus `setPackagesSuspended` as Device Owner; Play's own install flow can't be intercepted). Console shows the request | A newly installed app stays closed until approved |
 | P7 | Ring the phone, see battery level | Family Link, Kaspersky | New `CommandType` `ring`; battery level in the existing report | Rings at full volume even when silent |
 | C1 | Different limits on school days and weekends | Family Link, Qustodio | capability-plan C1 | Unit tests at midnight and the week edge; a phone |
 | D1 | Child status screen: time left, what's collected | Children rate Family Link 1.4 stars; none of the competitors explain themselves to the child | capability-plan D1 | Matches the console exactly |
-| P8 | **Weekly summary by email** to the parent | Qustodio, Norton, Microsoft | From E3's existing usage aggregates; same Brevo channel as alerts. No URLs, no content (G2) | One email a week, in the parent's language (P1) |
+| P8 | **Weekly summary by email** to the parent | Qustodio, Norton, Microsoft, Kidcare; "reports" are on INT decision n° 11's chapter 3 list | From E3's existing usage aggregates. No URLs, no content (G2). Brevo may train on email content (§6.7, [`privacy/dpa-brevo.md`](privacy/dpa-brevo.md)), so through Brevo the email can only say the week's report is ready, with the figures in the console. Figures in the email itself need another provider, reviewed first | One email a week, in the parent's language (P1) |
 
 ### 5.2 — Widen the lead: where Manara is already ahead
 
@@ -560,7 +628,7 @@ phone, no enforcer, no policy field yet.**
 |---|---|---|---|
 | B1 | Local DNS filter (VPN) the child can't route around | Already ahead of Family Link (Chrome only) and Microsoft (Edge only); this closes the last holes and lets the filter choose its servers | capability-plan B1 |
 | B3 | SafeSearch in every browser | Today SafeSearch is enforced through Chrome rules only | capability-plan B3 |
-| B5 | Categories: gambling, dating, VPN/proxy, self-harm | "Family values" covers a few sites in Chrome only; Qustodio and Kaspersky filter by category | capability-plan B5 |
+| B5 | Categories: gambling, dating, VPN/proxy, self-harm | "Family values" covers a few sites in Chrome only. Qustodio, Kaspersky and Kidcare filter by category, and INT decision n° 11's chapter 3 names it. Moved up the build order (decision 7): a design note first, so categories don't send the child's lookups to a new third party | capability-plan B5 |
 | C3 | School mode: only allowed apps during class hours | Family Link "School time", OurPact | capability-plan C3 |
 | P9 | **Tamper report the parent can understand**: "your child tried to reset the phone / add a profile / change the clock" | Only Manara blocks these; telling the parent shows the value | Events from the restriction checks, written for parents, shown in the console |
 | P10 | **Move from Family Link in one step** | Parents who tried Family Link already have rules | Console reads nothing from Google; instead, a guided "your Family Link rules → Manara cards" checklist, then the setup removes supervision with the parent | A Family Link family switches in one session |
@@ -570,7 +638,8 @@ phone, no enforcer, no policy field yet.**
 | ID | Item | Why |
 |---|---|---|
 | P0 | **Free for parents, funded by grants or donations**: the model under test (decision 3) | Removes the payment barrier entirely. Needs a list of grant sources for child wellbeing and digital safety in Tunisia, and what they ask for (usage numbers, an organisation behind it) |
-| P11 | **Price in dinars, paid locally** (fallback) | Foreign subscriptions probably need an international card; Mobicip refuses debit and prepaid cards. *Hypothesis: confirm in interviews* |
+| P11 | **Price in dinars, paid locally** (fallback) | No longer distinctive: Kidcare (99 TND/yr) and Kaspersky Safe Kids (59 TND/yr, in shops) already sell in dinars. What local sellers show is how Tunisians expect to pay: Kidcare takes card, **Konnect and cash on delivery** (competitive-brief §3) |
+| P21 | **An offer to operators under INT decision n° 11, chapter 3** | Every provider must provide or propose an "advanced" app or platform, and may bill it on the internet bill. One page for Ooredoo, Orange and Tunisie Telecom: what Manara covers of chapter 3's list, that it works on mobile data (the home box can't), and Arabic. Ask whether chapter 3 covers their mobile plans. Risk: they bundle Kidcare or Kaspersky first (competitive-brief §7) |
 | P12 | **In-person setup service** (fallback) | Answers both trust and difficulty, and fits the 80% of phones already in use |
 | P13 | **iPhone families: a guide, not an app** | On iPhone, Apple's free Screen Time is better than every third-party app, and Manara's Device Owner approach doesn't exist there. A console page "your child has an iPhone: set up Screen Time like this", in Arabic and French |
 
@@ -634,7 +703,8 @@ does not block.
 
 - Listening through the child's microphone (Find My Kids "Sound Around"). Audio is excluded by ADR-0001/ADR-0008.
 - Reading message content and AI-scanning it on a third-party server (Bark). Any message capture follows capability-plan Track H and its ADR, encrypted so the server can't read it, and visible to the child.
-- An iPhone app (for now). It would be weaker than Apple's own tool. Revisit only if interviews show many iPhones.
+- An iPhone app (for now). It would be weaker than Apple's own tool. Revisit only if interviews show many iPhones (Apple is 17% of mobile web traffic in Tunisia, August 2026).
+- Reading the child's social media or browsing history (Kidcare's YouTube, TikTok and Instagram history). It breaks ADR-0001's spirit and Play policy, and transparency is the position Manara can own (competitive-brief §8). Added 2026-11-17.
 
 ## Known hard problems (not blockers, but eyes open)
 
