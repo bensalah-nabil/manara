@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"manara/backend/internal/domain"
 )
@@ -94,7 +95,61 @@ func TestParentEmailAlertsGoToThatParentOnly(t *testing.T) {
 	if err := alerts.Send(context.Background(), domain.Alert{ParentID: "gone", Title: "t"}); err != nil {
 		t.Fatal(err)
 	}
-	if len(m.to) != 1 || m.to[0] != "sara.mum@example.com" || m.subject[0] != "Manara: Sara has stopped checking in" {
+	if len(m.to) != 1 || m.to[0] != "sara.mum@example.com" || m.subject[0] != "Manara: a phone needs your attention" {
 		t.Fatalf("sent to %v, subjects %v", m.to, m.subject)
+	}
+}
+
+// The phone's name is often the child's, and Brevo may train on email content
+// (docs/privacy/dpa-brevo.md): nothing of the alert's title or message may
+// reach the email, in any language.
+func TestParentEmailAlertsNeverCarryThePhoneOrTheProblem(t *testing.T) {
+	when := time.Date(2026, 11, 17, 14, 3, 0, 0, time.UTC)
+	alert := domain.Alert{
+		ParentID:   "p1",
+		Title:      "Sara: Call history needs attention",
+		Message:    "Notification access is off, so calls in apps such as WhatsApp are not seen.",
+		OccurredAt: when,
+	}
+	for _, lang := range []string{"en", "fr", "ar", "", "de"} {
+		m := &recordingMailer{}
+		alerts := ParentEmailAlerts{
+			Parents: fakeParents{byID: map[string]*domain.Parent{"p1": {ID: "p1", Email: "sara.mum@example.com", Language: lang}}},
+			Mailer:  m,
+		}
+		if err := alerts.Send(context.Background(), alert); err != nil {
+			t.Fatal(err)
+		}
+		sent := m.subject[0] + "\n" + m.text[0]
+		for _, leak := range []string{"Sara", "Call history", "call", "WhatsApp", "Notification", "needs attention:"} {
+			if strings.Contains(sent, leak) {
+				t.Errorf("language %q: email carries %q:\n%s", lang, leak, sent)
+			}
+		}
+		if !strings.Contains(m.text[0], "2026-11-17 14:03 UTC") {
+			t.Errorf("language %q: email lost the time:\n%s", lang, m.text[0])
+		}
+	}
+}
+
+func TestParentEmailAlertsUseTheParentsLanguage(t *testing.T) {
+	want := map[string]string{
+		"en": "Manara: a phone needs your attention",
+		"fr": "Manara : un téléphone demande votre attention",
+		"ar": "منارة: هاتف يحتاج إلى انتباهك",
+		"":   "Manara: a phone needs your attention", // no choice yet: the default language
+	}
+	for lang, subject := range want {
+		m := &recordingMailer{}
+		alerts := ParentEmailAlerts{
+			Parents: fakeParents{byID: map[string]*domain.Parent{"p1": {ID: "p1", Email: "a@example.com", Language: lang}}},
+			Mailer:  m,
+		}
+		if err := alerts.Send(context.Background(), domain.Alert{ParentID: "p1"}); err != nil {
+			t.Fatal(err)
+		}
+		if m.subject[0] != subject {
+			t.Errorf("language %q: subject %q, want %q", lang, m.subject[0], subject)
+		}
 	}
 }

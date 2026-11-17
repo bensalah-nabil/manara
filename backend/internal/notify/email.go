@@ -100,9 +100,34 @@ func textToHTML(text string) string {
 // ParentEmailAlerts sends each alert to the parent it is about, at the
 // address they signed up with. Unlike ntfy and the webhook, which go to one
 // operator destination, this is how a parent on a shared server hears.
+//
+// The email says only that something needs attention, and when. It never
+// carries the alert's title or message: those name the phone, and a phone's
+// name is often the child's ("Sara has stopped checking in"). Brevo's terms
+// let it train its AI on email content (docs/privacy/dpa-brevo.md, §6.7), so
+// the console, not the email, says which phone and what happened.
 type ParentEmailAlerts struct {
 	Parents domain.ParentRepository
 	Mailer  domain.Mailer
+}
+
+type alertEmailText struct{ subject, body string }
+
+// alertEmails holds one generic alert email per console language. Nothing in
+// it may come from the alert. TODO-REVIEW: a native reader for fr and ar.
+var alertEmails = map[string]alertEmailText{
+	"en": {
+		subject: "Manara: a phone needs your attention",
+		body:    "Something on one of the phones in your Manara account needs your attention (reported %s).\n\nOpen the console to see which phone and what to do.\n",
+	},
+	"fr": {
+		subject: "Manara : un téléphone demande votre attention",
+		body:    "Un des téléphones de votre compte Manara demande votre attention (signalé le %s).\n\nOuvrez la console pour voir lequel et quoi faire.\n",
+	},
+	"ar": {
+		subject: "منارة: هاتف يحتاج إلى انتباهك",
+		body:    "أحد الهواتف في حسابك على منارة يحتاج إلى انتباهك (أُبلغ عنه في %s).\n\nافتح لوحة التحكم لترى أي هاتف وما الذي عليك فعله.\n",
+	},
 }
 
 func (p ParentEmailAlerts) Send(ctx context.Context, a domain.Alert) error {
@@ -113,6 +138,7 @@ func (p ParentEmailAlerts) Send(ctx context.Context, a domain.Alert) error {
 	if parent == nil || parent.Email == "" {
 		return nil // nobody to tell; not a delivery failure worth retrying
 	}
-	return p.Mailer.Send(ctx, parent.Email, "Manara: "+a.Title,
-		a.Message+"\n\nOpen the console to see the phone.\n")
+	text := alertEmails[domain.NormalizeLanguage(parent.Language)]
+	when := a.OccurredAt.UTC().Format("2006-01-02 15:04") + " UTC"
+	return p.Mailer.Send(ctx, parent.Email, text.subject, fmt.Sprintf(text.body, when))
 }
