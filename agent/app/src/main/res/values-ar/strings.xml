@@ -243,4 +243,11 @@
     <string name="released_section">تمّ كل شيء</string>
     <string name="released_text">رُفعت كل القواعد. يمكنك إلغاء تثبيت منارة من «الإعدادات»، «التطبيقات».</string>
     <string name="released_thanks">شكرًا لاستخدامك منارة.</string>
+
+    <!-- TODO-REVIEW: the block dialog wording (BlockNoticeDecision), under 200 characters together -->
+    <string name="block_notice_managed">يدير ولي أمرك هذا الهاتف بواسطة منارة.</string>
+    <string name="block_notice_time_limit">التطبيقات التي انتهى وقتها لهذا اليوم متوقفة مؤقتًا.</string>
+    <string name="block_notice_browser">لا يمكن تصفح الويب إلا عبر Chrome.</string>
+    <string name="block_notice_other">بعض التطبيقات متوقفة مؤقتًا.</string>
+    <string name="block_notice_open">افتح منارة لترى القواعد.</string>
 </resources>

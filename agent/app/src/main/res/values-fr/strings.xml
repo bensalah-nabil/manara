@@ -217,4 +217,11 @@
     <string name="released_section">C\'est terminé</string>
     <string name="released_text">Toutes les règles ont été levées. Vous pouvez désinstaller Manara depuis Paramètres, Applications.</string>
     <string name="released_thanks">Merci d\'avoir utilisé Manara.</string>
+
+    <!-- TODO-REVIEW: the block dialog wording (BlockNoticeDecision), under 200 characters together -->
+    <string name="block_notice_managed">Ton parent gère ce téléphone avec Manara.</string>
+    <string name="block_notice_time_limit">Les applications dont le temps du jour est écoulé sont en pause.</string>
+    <string name="block_notice_browser">Seul Chrome permet de naviguer sur le web.</string>
+    <string name="block_notice_other">Certaines applications sont en pause.</string>
+    <string name="block_notice_open">Ouvre Manara pour voir les règles.</string>
 </resources>

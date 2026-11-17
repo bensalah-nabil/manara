@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.util.Log
 import com.manara.agent.OwnerReceiver
+import com.manara.agent.text.AndroidWords
 
 /**
  * The only code that pauses or reopens apps (ADR-0009). Each rule declares the apps it holds closed;
@@ -17,6 +18,7 @@ class AppPauses(private val context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val devicePolicyManager = context.getSystemService(DevicePolicyManager::class.java)
     private val admin = ComponentName(context, OwnerReceiver::class.java)
+    private val words = AndroidWords(context)
 
     /**
      * What one change did. [paused] and [resumed] are the apps it acted on; the refused lists are
@@ -42,13 +44,42 @@ class AppPauses(private val context: Context) {
     /** The rules holding [app] right now, for the block screen and the child's notice. */
     fun reasons(app: String): Set<String> = synchronized(LOCK) { PauseDecision.reasons(load(), app) }
 
+    /** Rewrites the block screen's wording from the current holds, e.g. after a language change. */
+    fun showReasons() = synchronized(LOCK) { showReasons(load()) }
+
     private fun applyChange(change: PauseDecision.Change): Outcome {
         // The record first: a process killed mid-call still knows what it meant to hold.
         save(change.holds)
         val (refusedPause, pauseError) = suspend(change.toPause, true)
         val (refusedResume, resumeError) = suspend(change.toResume, false)
+        showReasons(change.holds)
         return Outcome(change.toPause, change.toResume, refusedPause, refusedResume, pauseError, resumeError)
     }
+
+    /**
+     * The dialog a paused app opens says why (D2): Android's short support message, one for the
+     * whole phone, and the long one listing each app ([BlockNoticeDecision]). Written only when the
+     * wording changed, since rules re-apply their holds every minute while the screen is on. The
+     * wording is in Manara's language: the phone's, or Manara's own if one is set in Settings.
+     */
+    private fun showReasons(holds: Map<String, Set<String>>) {
+        if (!devicePolicyManager.isAdminActive(admin)) return
+        val notice = BlockNoticeDecision.notice(holds, words, ::label)
+        runCatching {
+            if (devicePolicyManager.getShortSupportMessage(admin)?.toString() != notice.short) {
+                devicePolicyManager.setShortSupportMessage(admin, notice.short)
+            }
+            if (devicePolicyManager.getLongSupportMessage(admin)?.toString() != notice.long) {
+                devicePolicyManager.setLongSupportMessage(admin, notice.long)
+            }
+        }.onFailure { Log.w(TAG, "support messages not set", it) }
+    }
+
+    /** An app's name as the child sees it; the package name if Android won't say. */
+    private fun label(app: String): String = runCatching {
+        val pm = context.packageManager
+        pm.getApplicationLabel(pm.getApplicationInfo(app, 0)).toString()
+    }.getOrDefault(app)
 
     private fun suspend(apps: Set<String>, paused: Boolean): Pair<List<String>, Throwable?> {
         if (apps.isEmpty()) return emptyList<String>() to null

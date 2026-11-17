@@ -517,7 +517,7 @@ below stays as history.
 | 1 | P3 Offline code | Not run | The four phone tests (validation §9(d)), on the lab phone, with your go-ahead |
 | 2 | P1 Arabic and French | Built 2026-11-10, not seen on a phone | Guided setup in Arabic on a Samsung; a native reader's pass on the `TODO-REVIEW` strings |
 | 3 | P20 Xiaomi, Oppo, Infinix | Not started | Borrow one phone of each brand |
-| 4 | D2 Block screen | Not built. Unblocked by ADR-0009 (`AppPauses`) | `BlockNoticeDecision` and the short support message |
+| 4 | D2 Block screen | **Built 2026-11-17**, seen on the A52 (release 1.0.29): "Action not allowed" shows why apps are paused | The A045F, and a change of language on a phone |
 | 5 | P2 Call the parent | Not started | Research spike on lock task mode, against developer.android.com |
 | 6 | P8 Weekly email | Not started | The parent's language is already stored |
 | 7 | B5 Categories | Not started | A design note first |
@@ -589,8 +589,11 @@ which means touching the two existing enforcers, not only adding a class.
 - Both messages must be set again on `ACTION_LOCALE_CHANGED` (stated in each method's javadoc).
 - Consequence for D3: the system dialog can't carry an "Ask for more time" button. The request has
   to start from Manara's own status screen, and the dialog can only tell the child to open Manara.
-- *Hypothesis, not checked on a phone:* Samsung's One UI shows the short support message in this
-  dialog as stock Android does.
+- Samsung's One UI shows the short support message in this dialog as stock Android does: seen on
+  the A52, Android 14, 2026-11-17 (ADR-0009). Not yet on the A045F.
+- The same message shows for **every** action Manara blocks, a factory reset or a VPN setting
+  too: Settings `ActionDisabledByAdminDialogHelper.setAdminSupportDetails` fills the body from
+  `getShortSupportMessageForUser` whatever the restriction (android14 and android15-release).
 
 Started 2026-11-10: P14's pure logic, `PrayerTimes` and `PrayerPauseDecision`
 with 14 unit tests. Compiled with Kotlin 1.9.24 and run outside Gradle with a
@@ -670,7 +673,7 @@ the rule cards.
 | X3 ✅ | Console can't mirror for Arabic | `index.html` `lang="en"`, no `dir`; `styles.css`: 18 `left`/`right` rules, 0 logical ones | `lang`/`dir` from the parent's language; `margin-inline-*`, `inset-inline-*` |
 | X4 ✅ | Small text for a non-technical parent, smaller still in Arabic script | `styles.css`: base 15 px, labels at 0.8 rem (12 px) | Base 16 px; no text under 14 px; check Arabic line height |
 | X5 | Bedtime and lock windows are whole hours only | `Policy.LockSchedule.Window(fromHour, toHour)` | Minutes, additively (G6). Not needed by P14, which has its own decision |
-| X6 | No screen says why an app is closed | no `SuspendDialogInfo` in `agent/` | D2 |
+| X6 | No screen says why an app is closed | no `SuspendDialogInfo` in `agent/` | D2: closed 2026-11-17 by the short support message |
 
 ### 5.6 — Make enrollment easier (2026-11-11)
 

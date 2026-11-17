@@ -122,6 +122,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- The block screen's wording follows the phone's language (LocaleChangedReceiver).
+             Not exported: the system still delivers its own broadcasts to it. -->
+        <receiver
+            android:name=".LocaleChangedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".ManagedNoticeService"
             android:exported="false"

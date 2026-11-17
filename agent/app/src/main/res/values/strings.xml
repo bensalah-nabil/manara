@@ -229,4 +229,12 @@
     <string name="released_section">All done</string>
     <string name="released_text">Every rule has been lifted. You can uninstall Manara from Settings, Apps.</string>
     <string name="released_thanks">Thanks for using Manara.</string>
+
+    <!-- Android's "blocked by your admin" dialog (BlockNoticeDecision): one message for the whole
+         phone, shown for a paused app and for every other blocked action, under 200 characters. -->
+    <string name="block_notice_managed">Your parent manages this phone with Manara.</string>
+    <string name="block_notice_time_limit">Apps whose time is used up for today are paused.</string>
+    <string name="block_notice_browser">Only Chrome can be used to browse the web.</string>
+    <string name="block_notice_other">Some apps are paused.</string>
+    <string name="block_notice_open">Open Manara to see the rules.</string>
 </resources>
