@@ -130,6 +130,14 @@ CONSOLE_URL=https://your-console.example   # optional; defaults to the first COR
 SILENT_PHONE_HOURS=12              # optional; when a quiet phone is alerted
 ```
 
+An alert email says only that a phone needs attention, and when, so a parent
+gets at most one every 10 minutes: alerts that come together share it. One
+that fails stays owed (`alert_emails`, times only) and is tried again after
+1, 2, 4 ... 32 minutes, then hourly, for about a day. Brevo refuses API calls
+from IP addresses it hasn't authorised: add Render's outbound ranges in
+Brevo, Security, Authorised IPs, or every email fails with `401` and only the
+server log says so.
+
 A reset link is `CONSOLE_URL/#reset=<token>`: one hour, single use, stored
 hashed. Using it ends every session of that account. A reset request answers
 the same way for any address, so it can't be used to find out who has an

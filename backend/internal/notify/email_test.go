@@ -3,8 +3,10 @@ package notify
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -76,27 +78,75 @@ func (f fakeParents) FindByID(_ context.Context, id string) (*domain.Parent, err
 }
 func (f fakeParents) SetLanguage(context.Context, string, string) error { return nil }
 
-type recordingMailer struct{ to, subject, text []string }
+// recordingMailer records each email sent. With err set, every send fails
+// the way Brevo did for an unknown IP address.
+type recordingMailer struct {
+	to, subject, text []string
+	tries             int
+	err               error
+}
 
 func (m *recordingMailer) Send(_ context.Context, to, subject, text string) error {
+	m.tries++
+	if m.err != nil {
+		return m.err
+	}
 	m.to, m.subject, m.text = append(m.to, to), append(m.subject, subject), append(m.text, text)
 	return nil
 }
 
-func TestParentEmailAlertsGoToThatParentOnly(t *testing.T) {
-	m := &recordingMailer{}
-	alerts := ParentEmailAlerts{
-		Parents: fakeParents{byID: map[string]*domain.Parent{"p1": {ID: "p1", Email: "sara.mum@example.com"}}},
-		Mailer:  m,
+// memEmails stores each parent's AlertEmail in memory. The rules are
+// domain.AlertEmail's; this is only storage.
+type memEmails struct{ byParent map[string]domain.AlertEmail }
+
+func (m *memEmails) Update(_ context.Context, id string, change func(*domain.AlertEmail)) error {
+	e := m.byParent[id]
+	change(&e)
+	m.byParent[id] = e
+	return nil
+}
+
+func (m *memEmails) Due(_ context.Context, now time.Time) ([]string, error) {
+	var ids []string
+	for id, e := range m.byParent {
+		if e.Owed() && !now.Before(e.NextTry) {
+			ids = append(ids, id)
+		}
 	}
-	if err := alerts.Send(context.Background(), domain.Alert{ParentID: "p1", Title: "Sara has stopped checking in", Message: "m"}); err != nil {
+	sort.Strings(ids)
+	return ids, nil
+}
+
+var reportedAt = time.Date(2026, 11, 17, 14, 3, 0, 0, time.UTC)
+
+// testEmailAlerts sends to parent p1 (sara.mum@example.com, reading lang),
+// on a clock the test moves.
+func testEmailAlerts(lang string) (ParentEmailAlerts, *recordingMailer, *time.Time) {
+	m := &recordingMailer{}
+	clock := reportedAt.Add(time.Minute)
+	return ParentEmailAlerts{
+		Parents: fakeParents{byID: map[string]*domain.Parent{"p1": {ID: "p1", Email: "sara.mum@example.com", Language: lang}}},
+		Mailer:  m,
+		Emails:  &memEmails{byParent: map[string]domain.AlertEmail{}},
+		Now:     func() time.Time { return clock },
+	}, m, &clock
+}
+
+func TestParentEmailAlertsGoToThatParentOnly(t *testing.T) {
+	alerts, m, clock := testEmailAlerts("en")
+	if err := alerts.Send(context.Background(), domain.Alert{ParentID: "p1", Title: "Sara has stopped checking in", Message: "m", OccurredAt: reportedAt}); err != nil {
 		t.Fatal(err)
 	}
-	if err := alerts.Send(context.Background(), domain.Alert{ParentID: "gone", Title: "t"}); err != nil {
+	if err := alerts.Send(context.Background(), domain.Alert{ParentID: "gone", Title: "t", OccurredAt: reportedAt}); err != nil {
 		t.Fatal(err)
 	}
 	if len(m.to) != 1 || m.to[0] != "sara.mum@example.com" || m.subject[0] != "Manara: a phone needs your attention" {
 		t.Fatalf("sent to %v, subjects %v", m.to, m.subject)
+	}
+	// A parent with no address is not a failure: nothing is left to retry.
+	*clock = clock.Add(time.Hour)
+	if n, err := alerts.DeliverDue(context.Background()); n != 0 || err != nil || m.tries != 1 {
+		t.Fatalf("DeliverDue = %d, %v after %d tries; want nothing left", n, err, m.tries)
 	}
 }
 
@@ -104,19 +154,14 @@ func TestParentEmailAlertsGoToThatParentOnly(t *testing.T) {
 // (docs/privacy/dpa-brevo.md): nothing of the alert's title or message may
 // reach the email, in any language.
 func TestParentEmailAlertsNeverCarryThePhoneOrTheProblem(t *testing.T) {
-	when := time.Date(2026, 11, 17, 14, 3, 0, 0, time.UTC)
 	alert := domain.Alert{
 		ParentID:   "p1",
 		Title:      "Sara: Call history needs attention",
 		Message:    "Notification access is off, so calls in apps such as WhatsApp are not seen.",
-		OccurredAt: when,
+		OccurredAt: reportedAt,
 	}
 	for _, lang := range []string{"en", "fr", "ar", "", "de"} {
-		m := &recordingMailer{}
-		alerts := ParentEmailAlerts{
-			Parents: fakeParents{byID: map[string]*domain.Parent{"p1": {ID: "p1", Email: "sara.mum@example.com", Language: lang}}},
-			Mailer:  m,
-		}
+		alerts, m, _ := testEmailAlerts(lang)
 		if err := alerts.Send(context.Background(), alert); err != nil {
 			t.Fatal(err)
 		}
@@ -140,16 +185,65 @@ func TestParentEmailAlertsUseTheParentsLanguage(t *testing.T) {
 		"":   "Manara: a phone needs your attention", // no choice yet: the default language
 	}
 	for lang, subject := range want {
-		m := &recordingMailer{}
-		alerts := ParentEmailAlerts{
-			Parents: fakeParents{byID: map[string]*domain.Parent{"p1": {ID: "p1", Email: "a@example.com", Language: lang}}},
-			Mailer:  m,
-		}
+		alerts, m, _ := testEmailAlerts(lang)
 		if err := alerts.Send(context.Background(), domain.Alert{ParentID: "p1"}); err != nil {
 			t.Fatal(err)
 		}
-		if m.subject[0] != subject {
-			t.Errorf("language %q: subject %q, want %q", lang, m.subject[0], subject)
+		if len(m.subject) != 1 || m.subject[0] != subject {
+			t.Errorf("language %q: subjects %q, want %q", lang, m.subject, subject)
 		}
+	}
+}
+
+// Usage Access off broke two protections in one sync on the A52 (2026-11-17),
+// and the parent got two identical emails.
+func TestAlertsThatComeTogetherSendOneEmail(t *testing.T) {
+	alerts, m, clock := testEmailAlerts("en")
+	send := func(device string) {
+		t.Helper()
+		if err := alerts.Send(context.Background(), domain.Alert{ParentID: "p1", DeviceID: device, OccurredAt: *clock}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	send("a52") // time limits
+	send("a52") // daily usage report
+	*clock = clock.Add(5 * time.Minute)
+	send("a045f")
+	if len(m.text) != 1 {
+		t.Fatalf("%d emails within %s, want 1", len(m.text), domain.AlertEmailQuiet)
+	}
+	*clock = clock.Add(domain.AlertEmailQuiet)
+	send("a52")
+	if len(m.text) != 2 {
+		t.Fatalf("%d emails, want a second one after %s", len(m.text), domain.AlertEmailQuiet)
+	}
+}
+
+// Brevo refused every send from an unknown IP address on 2026-11-17, and the
+// alert was simply lost.
+func TestAFailedAlertEmailIsSentLater(t *testing.T) {
+	alerts, m, clock := testEmailAlerts("en")
+	m.err = errors.New(`brevo answered 401: {"code":"unauthorized"}`)
+	err := alerts.Send(context.Background(), domain.Alert{ParentID: "p1", OccurredAt: reportedAt})
+	if err == nil || !strings.Contains(err.Error(), "401") || !strings.Contains(err.Error(), "next at") {
+		t.Fatalf("Send = %v; want the refusal and when it is tried again", err)
+	}
+
+	*clock = clock.Add(30 * time.Second)
+	if n, err := alerts.DeliverDue(context.Background()); n != 0 || err != nil || m.tries != 1 {
+		t.Fatalf("DeliverDue too early = %d, %v after %d tries", n, err, m.tries)
+	}
+
+	m.err = nil // the IP address was authorised
+	*clock = clock.Add(30 * time.Second)
+	if n, err := alerts.DeliverDue(context.Background()); n != 1 || err != nil {
+		t.Fatalf("DeliverDue = %d, %v; want the owed email sent", n, err)
+	}
+	if !strings.Contains(m.text[0], "2026-11-17 14:03 UTC") {
+		t.Fatalf("the late email lost the original time:\n%s", m.text[0])
+	}
+	*clock = clock.Add(time.Hour)
+	if n, _ := alerts.DeliverDue(context.Background()); n != 0 || len(m.text) != 1 {
+		t.Fatalf("sent again: %d more, %d in all", n, len(m.text))
 	}
 }

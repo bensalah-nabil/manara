@@ -68,7 +68,14 @@ func main() {
 	parents := postgres.NewParentRepository(db)
 	accounts := postgres.NewAccountRepository(db)
 	mailer := newMailer()
-	alertSenders := newAlertSenders(parents, mailer)
+	var emailAlerts *notify.ParentEmailAlerts
+	if mailer != nil {
+		emailAlerts = &notify.ParentEmailAlerts{
+			Parents: parents, Mailer: mailer, Emails: postgres.NewAlertEmailRepository(db), Now: time.Now,
+		}
+		go retryAlertEmails(ctx, emailAlerts)
+	}
+	alertSenders := newAlertSenders(emailAlerts)
 
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
@@ -279,14 +286,39 @@ func watchSilentPhones(ctx context.Context, w *domain.SilenceWatcher) {
 	}
 }
 
+// retryAlertEmails tries, every minute, each alert email that is owed and due:
+// one whose send failed, or whose sender died mid-send (domain.AlertEmail).
+// It sleeps with a free Render service like the silent-phone watcher; the
+// owed emails wait in the database.
+func retryAlertEmails(ctx context.Context, a *notify.ParentEmailAlerts) {
+	tick := time.NewTicker(time.Minute)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+		tryCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
+		n, err := a.DeliverDue(tryCtx)
+		cancel()
+		if err != nil {
+			log.Printf("alerts: %v", err)
+		}
+		if n > 0 {
+			log.Printf("alerts: %d owed email(s) sent", n)
+		}
+	}
+}
+
 // newAlertSenders gathers every alert destination: each parent by email when
 // the server has email, and the operator's ntfy topic or webhook. Those two
 // come from the operator's environment, never from a parent's request, so the
 // server cannot be pointed at an arbitrary address.
-func newAlertSenders(parents domain.ParentRepository, mailer *notify.Brevo) notify.Fanout {
+func newAlertSenders(email *notify.ParentEmailAlerts) notify.Fanout {
 	var senders notify.Fanout
-	if mailer != nil {
-		senders = append(senders, notify.ParentEmailAlerts{Parents: parents, Mailer: mailer})
+	if email != nil {
+		senders = append(senders, email)
 	}
 	if raw := os.Getenv("ALERT_NTFY_URL"); raw != "" {
 		n, err := notify.NewNtfy(raw, os.Getenv("ALERT_NTFY_TOKEN"))
