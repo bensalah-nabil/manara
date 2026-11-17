@@ -48,7 +48,7 @@ Brevo's DPA is sound on security, EU hosting and deletion. But **§6.7 lets Brev
 
 **🟡 Liability.** Capped at the fees paid in the six months before the claim: €0 on the free plan.
 
-**Not a DPA term, but operational:** an account with no login for six months is deleted (§3.4), which would silently stop password-reset and alert emails. Log in at least every few months.
+**Not a DPA term, but operational:** an account with no login for six months is deleted (§3.4), which would silently stop password-reset and alert emails. Log in at least every few months. Brevo also refuses API calls from an IP address it hasn't authorised; Render's outbound ranges are on that list since 2026-11-17 (CLAUDE.md).
 
 ## Privacy policy consistency
 
@@ -62,7 +62,7 @@ Brevo's DPA is sound on security, EU hosting and deletion. But **§6.7 lets Brev
 
 These are the asks if Brevo ever negotiates (a paid plan). For now, the fix is R0.
 
-- **R0, Manara's side, not Brevo's: ✅ done 2026-11-17.** Alert emails name no phone and no child: "Manara: a phone needs your attention", plus the time, in the parent's language (en/fr/ar). `notify.ParentEmailAlerts` never reads the alert's title or message. `TestParentEmailAlertsNeverCarryThePhoneOrTheProblem` fails the build if anything from them reaches an email. ntfy and the webhook, the operator's own destinations, keep the detail. The password-reset email is unchanged. The privacy page says so (updated 17 November 2026). The fr and ar wording await a native reader (`TODO-REVIEW`).
+- **R0, Manara's side, not Brevo's: ✅ done 2026-11-17.** Alert emails name no phone and no child: "Manara: a phone needs your attention", plus the time, in the parent's language (en/fr/ar). `notify.ParentEmailAlerts` never reads the alert's title or message. `TestParentEmailAlertsNeverCarryThePhoneOrTheProblem` fails the build if anything from them reaches an email. ntfy and the webhook, the operator's own destinations, keep the detail. The password-reset email is unchanged. The privacy page says so (updated 17 November 2026). The fr and ar wording await a native reader (`TODO-REVIEW`). **Verified 2026-11-17** on a real alert (Usage access turned off on the A52, release 1.0.28, server `1038cbc`): the email read "Manara: a phone needs your attention" with only the time.
 - **§6.7:** strike "Brevo may use Content and Usage Data to enrich and train its AI Features …" or add ", excluding Customer Content, and only where Customer has enabled AI Features".
 - **§5.6:** strike ", and develop".
 - **§5.7:** after "without undue delay", insert "and in any event within 72 hours".

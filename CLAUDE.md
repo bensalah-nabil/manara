@@ -335,6 +335,18 @@ the emulator (it came back enabled, and `set-device-owner` was refused).
 Waiting 15 s before the reboot kept it. Check `dumpsys package <pkg>` shows
 `enabled=3` before relying on it.
 
+## Brevo refuses mail from an IP it hasn't seen, and only Render's logs say so
+
+Brevo's "Blocking unauthorized IP addresses" is on for API keys. It answered
+every send from the Render server with `401 ... unrecognised IP address`:
+alert emails and password-reset links alike. The server logs the failure and
+moves on, so nothing else showed it; a real alert test on 2026-11-17 found
+it. Fixed by allowing Render's outbound ranges in Brevo (Security, Authorised
+IPs: `74.220.51.0/24` and `74.220.59.0/24`), with the block left on. Check
+the list again after moving Render region or plan. A failed send still
+counts against the alert's 6-hour throttle, so a re-test needs the problem
+restored and reported first, then broken again.
+
 ## Don't do silently
 
 Clearing/uninstalling app data, accepting a license agreement, pushing to

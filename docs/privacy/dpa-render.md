@@ -70,7 +70,7 @@ These are the asks if Render ever negotiates (a paid or enterprise plan).
   - No error wraps an email, coordinate, number or token.
   - Client IPs are used in memory for rate limits (`transport/guard`) and never logged.
   - API query parameters carry no personal data (`kind`, `since`).
-  - Brevo's error body is logged on a failed send. It names the problem, and is assumed not to echo the recipient [review].
+  - Brevo's error body is logged on a failed send. It names the problem. A real one (401, 2026-11-17) carried Render's outbound IP address and no recipient; other error bodies are assumed the same [review].
   - **Rule:** run `manara-server -seed` only locally, never as a Render job. It prints the parent's email, password and tokens to stdout, which Render would keep.
   - What remains is Render's *own* edge logs (path, status, client IP). Code can't change those; the privacy page has to state them.
 - **Exhibit A:** strike "(ii) for Company's legitimate business needs;".
