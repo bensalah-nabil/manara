@@ -72,6 +72,13 @@ phone that isn't enrolled yet (the A52).
 - [ ] **Upload the AAB as version 2 or later**: any build made before
   2026-11-07 can't be woken by a push (R8 removed WorkManager's input merger).
 
+## Before 2027: apps outside Play
+
+- [ ] **Developer verification:** in Play Console, register `com.manara.agent`
+  and the upload key that signs the direct APK, so families who download it
+  from the site can still install it once Android checks developers worldwide
+  (see [`play-store.md`](play-store.md#publish-the-direct-apk)).
+
 ## After 14 days
 
 - [ ] **Apply for production** from the Dashboard, once 12 testers have stayed

@@ -8,7 +8,7 @@ import { QrCode } from './QrCode.tsx'
 import { MANARA_APK_URL, QR_SETUP_STEPS, provisioningQr, qrSetupAvailable } from './provisioning.ts'
 import { t } from './i18n.ts'
 
-type Step = 'consent' | 'how' | 'code'
+type Step = 'consent' | 'how' | 'install' | 'code'
 
 /**
  * How the phone joins: the phone the child already uses (guided setup, nothing reset), a new or
@@ -16,17 +16,24 @@ type Step = 'consent' | 'how' | 'code'
  */
 type Way = 'inUse' | 'fresh' | 'move'
 
-const STEP_TITLES: Record<Step, string> = {
-    consent: t('add.step1'),
-    how: t('add.stepHow'),
-    code: t('add.stepConnect'),
+/** The public page the child's phone downloads Manara from (`public/download.html`). */
+const DOWNLOAD_PATH = '/download.html'
+
+/**
+ * Only the phone in use has to install Manara first: QR setup installs it by itself, and a phone
+ * being moved already has it.
+ */
+function stepsFor(way: Way): [Step, string][] {
+    return way === 'inUse'
+        ? [['consent', t('add.step1')], ['how', t('add.stepHow')], ['install', t('add.stepInstall')], ['code', t('add.stepConnectAfterInstall')]]
+        : [['consent', t('add.step1')], ['how', t('add.stepHow')], ['code', t('add.stepConnect')]]
 }
 
-function Steps({ current }: { current: Step }) {
+function Steps({ current, way }: { current: Step; way: Way }) {
     return (
         <ol class="steps" aria-label={t('add.stepsLabel')}>
-            {(Object.keys(STEP_TITLES) as Step[]).map((step) => (
-                <li key={step} aria-current={step === current ? 'step' : undefined}>{STEP_TITLES[step]}</li>
+            {stepsFor(way).map(([step, title]) => (
+                <li key={step} aria-current={step === current ? 'step' : undefined}>{title}</li>
             ))}
         </ol>
     )
@@ -86,6 +93,9 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     }
 
     const byQr = way === 'fresh' && qrOffered
+    const downloadUrl = `${window.location.origin}${DOWNLOAD_PATH}`
+    // What a parent types on the phone when the camera can't scan: no "https://".
+    const downloadText = `${window.location.host}${DOWNLOAD_PATH}`
 
     return (
         <div class="wizard">
@@ -100,7 +110,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     <a href="#account" class="primary button-link">{t('twoStep.turnOn')}</a>
                 </div>
             ) : (<>
-            <Steps current={step} />
+            <Steps current={step} way={way} />
             <div class="card stack">
 
             {step === 'consent' && (
@@ -166,8 +176,25 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     <p role="alert" class="error">{error}</p>
                     <div class="actions">
                         <button type="button" class="ghost" onClick={() => setStep('consent')}>{t('common.back')}</button>
-                        <button type="button" class="primary" disabled={busy} onClick={createCode}>
+                        <button type="button" class="primary" disabled={busy} onClick={way === 'inUse' ? () => setStep('install') : createCode}>
                             {busy ? t('common.pleaseWait') : t('common.continue')}
+                        </button>
+                    </div>
+                </>
+            )}
+
+            {step === 'install' && (
+                <>
+                    <strong>{t('add.installTitle')}</strong>
+                    <p>{t('add.installText')}</p>
+                    <QrCode value={downloadUrl} label={t('add.installQrLabel')} />
+                    <code class="token">{downloadText}</code>
+                    <p class="hint">{t('add.installHint')}</p>
+                    <p role="alert" class="error">{error}</p>
+                    <div class="actions">
+                        <button type="button" class="ghost" onClick={() => setStep('how')}>{t('common.back')}</button>
+                        <button type="button" class="primary" disabled={busy} onClick={createCode}>
+                            {busy ? t('common.pleaseWait') : t('add.installDone')}
                         </button>
                     </div>
                 </>

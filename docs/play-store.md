@@ -45,6 +45,37 @@ permission (ADR-0008). Output: `app/build/outputs/bundle/playRelease/app-play-re
 - Without the keystore settings, the release build is left **unsigned**,
   never signed with a debug key.
 
+## Publish the direct APK
+
+Families outside Play install from [download.html](../controller/public/download.html),
+and QR setup downloads the same file. Both use
+`https://github.com/bensalah-nabil/manara/releases/latest/download/manara.apk`,
+so the **latest GitHub release** is what every new phone gets. A stale one
+hands new families an old build: on 2026-11-18 it was still 1.0.13, while the
+phones ran 1.0.31.
+
+1. Build `assembleDirectRelease` with the HTTPS server URL and a new version
+   (the `release-check` skill), and run it on a phone first.
+2. Create a GitHub release tagged `v<versionName>` and attach the APK renamed
+   to exactly **`manara.apk`**, because the link names the file. Mark it as the
+   latest release.
+3. Check that the link now redirects to the new tag:
+   `curl -sI https://github.com/bensalah-nabil/manara/releases/latest/download/manara.apk | grep -i location`.
+
+The certificate fingerprint on download.html and `MANARA_SIGNATURE` in
+`controller/src/provisioning.ts` are the upload key's
+(`apksigner verify --print-certs`). Change both if the key ever changes.
+
+**Developer verification (2027).** Android will require apps on certified
+phones to come from a registered developer: from 2026-09-30 in Brazil,
+Indonesia, Singapore and Thailand, and worldwide in 2027
+([Android developer verification](https://developer.android.com/developer-verification/guides),
+read 2026-11-18). After that, an unregistered APK installs only through
+Android's "advanced flow", which is too hard for most parents. Register
+`com.manara.agent` **and the upload key that signs the direct APK** in Play
+Console before the worldwide date. Play App Signing's own key isn't the one on
+the direct APK.
+
 ## Play Console: by hand
 
 1. **Developer account.** A personal account created after 2023-11-13 must

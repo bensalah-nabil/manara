@@ -61,6 +61,10 @@ cd controller && npm test && npm run lint && npm run build
    - the managed notice is up: `dumpsys activity services com.manara.agent | grep isForeground`;
    - an in-place upgrade from the build the phones run now, not only a fresh install.
    Ask before installing on a phone a family uses; prefer the test phone or the emulator first.
+7. **Publish the direct APK** once it passed on a phone, as a GitHub release whose asset is named
+   exactly `manara.apk` (`docs/play-store.md`, "Publish the direct APK"). The site's download page
+   and QR setup both take the *latest* release, which still pointed to 1.0.13 while the phones ran
+   1.0.31. It's a push to the public: ask first.
 
 ## 4. The server
 

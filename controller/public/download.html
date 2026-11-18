@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Manara · Download for Android</title>
+<style>
+  :root { --bg:#f4f6f8; --surface:#fff; --ink:#12202a; --muted:#5a6a76; --line:#e1e6ea; --brand:#0f4c5c; --soft:#e3f0f2; --on-brand:#fff;
+    color-scheme: light; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1418; --surface:#141d23; --ink:#e6edf1; --muted:#93a3ad; --line:#25323b; --brand:#5cb3c4; --soft:#16323a; --on-brand:#0d1418; color-scheme: dark; } }
+  body { margin: 0; background: var(--bg); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  header a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; }
+  h1 { font-size: 1.8rem; margin: 24px 0 4px; }
+  h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+  .muted { color: var(--muted); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 16px; }
+  .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  .download { display: inline-block; margin: 8px 0 4px; padding: 14px 22px; border-radius: 10px; background: var(--brand); color: var(--on-brand);
+    font-weight: 700; font-size: 1.1rem; text-decoration: none; }
+  .download:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  code { font-size: 0.85rem; overflow-wrap: anywhere; }
+  li { margin: 6px 0; }
+  a { color: var(--brand); }
+  strong { font-weight: 650; }
+</style>
+</head>
+<body>
+<main>
+  <header><a href="/">Manara</a></header>
+  <h1>Download Manara for Android</h1>
+  <p class="muted">Open this page <strong>on your child's phone</strong>, then tap the button. Android 11 or newer.</p>
+
+  <section>
+    <p><a class="download" href="https://github.com/bensalah-nabil/manara/releases/latest/download/manara.apk">Download Manara</a></p>
+    <p class="muted">About 5 MB. This link always gives the latest version.</p>
+    <p class="note">
+      Manara is not on Google Play yet, so Android asks for a few confirmations that a Play Store app wouldn't need.
+      The steps below say what to expect. Manara is visible on the phone at all times: it shows a notice that the phone is
+      managed and exactly what you can see.
+    </p>
+  </section>
+
+  <section>
+    <h2>Install it</h2>
+    <ol>
+      <li>Tap <strong>Download Manara</strong>. If Chrome warns that this type of file can harm the device, choose to
+        download it anyway.</li>
+      <li>Open the downloaded file (from Chrome's notification or its Downloads list).</li>
+      <li>If Android says the browser isn't allowed to install apps, tap <strong>Settings</strong>, turn on
+        <strong>Allow from this source</strong>, and go back.</li>
+      <li>Tap <strong>Install</strong>. If Google Play Protect offers to scan the app, let it. If it warns about the app,
+        open its details to install anyway.</li>
+      <li>Open Manara. Then, in the console on your own phone or computer, choose <strong>+ Add a phone</strong> and follow
+        the steps (see the <a href="/guide.html">parent guide</a>).</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Updating</h2>
+    <p>
+      To update, download Manara from this page again and install it over the current copy. Setup, rules and data are
+      kept: nothing has to be set up again.
+    </p>
+  </section>
+
+  <section>
+    <h2>Check that it is the real Manara</h2>
+    <p>
+      Every version is published, with its notes, on the
+      <a href="https://github.com/bensalah-nabil/manara/releases">releases page</a>. Each copy is signed with the same
+      key. Its certificate's SHA-256 fingerprint is:
+    </p>
+    <p><code>14:99:E4:33:FB:89:F9:3D:9D:0F:C7:13:9D:F1:FD:3E:1B:76:53:6C:00:A3:CD:24:B2:9F:FB:81:C2:83:CA:61</code></p>
+    <p class="muted">
+      Android refuses to install an update signed with a different key over Manara, so a fake copy can't replace it.
+    </p>
+  </section>
+
+  <p class="muted"><a href="/guide.html">Parent guide</a> · <a href="/privacy.html">Privacy policy</a> · <a href="/delete-account.html">Delete your account</a></p>
+</main>
+</body>
+</html>

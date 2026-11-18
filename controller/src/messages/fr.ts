@@ -186,6 +186,13 @@ export const fr: Record<MessageKey, string> = {
 
     'add.stepHow': '2. Méthode',
     'add.stepConnect': '3. Connecter',
+    'add.stepInstall': '3. Installer',
+    'add.stepConnectAfterInstall': '4. Connecter',
+    'add.installTitle': 'Installez Manara sur le téléphone de votre enfant',
+    'add.installText': "Sur le téléphone de votre enfant, scannez ce code QR avec l'appareil photo, ou tapez l'adresse ci-dessous dans Chrome. La page propose un bouton Télécharger et explique ce qu'Android va demander.",
+    'add.installQrLabel': 'Code QR qui ouvre la page de téléchargement de Manara',
+    'add.installHint': 'Déjà installé sur ce téléphone ? Continuez simplement.',
+    'add.installDone': 'Manara est installé, continuer',
     'add.howInUse': 'Le téléphone que votre enfant utilise déjà',
     'add.howInUseHelp': 'Rien n\'est réinitialisé ni désinstallé. Une fois le code scanné, la page de ce téléphone affiche les étapes pour ce téléphone précis.',
     'add.codeHintGuided': 'Le code fonctionne une fois et n\'est affiché que maintenant. Sur le téléphone, ouvrez Manara et appuyez sur « Scanner le code ». Ouvrez ensuite ce téléphone dans votre liste : il indique quoi activer pour ce téléphone précis, et coche chaque étape à mesure que le téléphone la fait.',

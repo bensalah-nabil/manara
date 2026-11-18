@@ -188,6 +188,13 @@ export const en = {
 
     'add.stepHow': '2. How',
     'add.stepConnect': '3. Connect',
+    'add.stepInstall': '3. Install',
+    'add.stepConnectAfterInstall': '4. Connect',
+    'add.installTitle': "Install Manara on your child's phone",
+    'add.installText': "On your child's phone, scan this QR code with the camera, or type the address below in Chrome. The page has a Download button and says what Android will ask.",
+    'add.installQrLabel': 'QR code that opens the Manara download page',
+    'add.installHint': 'Already installed on that phone? Just continue.',
+    'add.installDone': 'Manara is installed, continue',
     'add.howInUse': 'The phone your child already uses',
     'add.howInUseHelp': 'Nothing is reset or uninstalled. Once the phone has scanned the code, this phone\'s page shows the steps for that exact phone.',
     'add.codeHintGuided': 'The code works once and is shown only now. On the phone, open Manara and tap "Scan the code". Then open this phone in your list: it shows what to turn on for that exact phone, and ticks each step as the phone does it.',
