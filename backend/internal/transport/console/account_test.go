@@ -58,16 +58,25 @@ func (f *fakeAccounts) Delete(_ context.Context, id string) error {
 	return nil
 }
 
-// languages is shared by copies of the fake, so a handler's write is seen by the test.
-type fakeParentRepo struct{ languages map[string]string }
+// The maps are shared by copies of the fake, so a handler's write is seen by the test.
+type fakeParentRepo struct {
+	languages map[string]string
+	weeklyOff map[string]bool
+}
 
 func (fakeParentRepo) Create(context.Context, *domain.Parent) error { return nil }
 func (f fakeParentRepo) FindByID(_ context.Context, id string) (*domain.Parent, error) {
-	return &domain.Parent{ID: id, Email: "sara.mum@example.com", Language: f.languages[id]}, nil
+	return &domain.Parent{ID: id, Email: "sara.mum@example.com", Language: f.languages[id], WeeklyEmail: !f.weeklyOff[id]}, nil
 }
 func (f fakeParentRepo) SetLanguage(_ context.Context, id, language string) error {
 	if f.languages != nil {
 		f.languages[id] = language
+	}
+	return nil
+}
+func (f fakeParentRepo) SetWeeklyEmail(_ context.Context, id string, on bool) error {
+	if f.weeklyOff != nil {
+		f.weeklyOff[id] = !on
 	}
 	return nil
 }
@@ -198,5 +207,29 @@ func TestTheParentChoosesTheirLanguage(t *testing.T) {
 	}
 	if w := call(h.GetAccount, http.MethodGet, "", "mine"); !strings.Contains(w.Body.String(), `"language":"ar"`) {
 		t.Errorf("after set: %s", w.Body)
+	}
+}
+
+func TestTheParentTurnsTheWeeklyEmailOffAndOn(t *testing.T) {
+	h, _, _, _ := accountHandlers()
+	h.Parents = fakeParentRepo{languages: map[string]string{}, weeklyOff: map[string]bool{}}
+	if w := call(h.GetAccount, http.MethodGet, "", "mine"); !strings.Contains(w.Body.String(), `"weeklyEmail":true`) {
+		t.Errorf("a new account has it off: %s", w.Body)
+	}
+	if w := call(h.UpdateAccount, http.MethodPatch, `{}`, "mine"); w.Code != http.StatusBadRequest {
+		t.Errorf("nothing to change: %d %s", w.Code, w.Body)
+	}
+	if w := call(h.UpdateAccount, http.MethodPatch, `{"weeklyEmail":false}`, "mine"); w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != `{"weeklyEmail":false}` {
+		t.Fatalf("turn off: %d %s", w.Code, w.Body)
+	}
+	w := call(h.GetAccount, http.MethodGet, "", "mine")
+	if !strings.Contains(w.Body.String(), `"weeklyEmail":false`) || !strings.Contains(w.Body.String(), `"language":"en"`) {
+		t.Errorf("after turning it off, the language changed or the email is on: %s", w.Body)
+	}
+	if w := call(h.UpdateAccount, http.MethodPatch, `{"weeklyEmail":true,"language":"fr"}`, "mine"); w.Code != http.StatusOK {
+		t.Fatalf("both at once: %d %s", w.Code, w.Body)
+	}
+	if w := call(h.GetAccount, http.MethodGet, "", "mine"); !strings.Contains(w.Body.String(), `"weeklyEmail":true`) || !strings.Contains(w.Body.String(), `"language":"fr"`) {
+		t.Errorf("after both: %s", w.Body)
 	}
 }

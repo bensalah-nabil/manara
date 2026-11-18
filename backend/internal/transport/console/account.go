@@ -35,10 +35,14 @@ type accountDTO struct {
 	TwoFactor     bool `json:"twoFactor"`
 	// Language the console and emails use for this parent: en, fr or ar.
 	Language string `json:"language"`
+	// WeeklyEmail: the Monday email saying last week's report is ready.
+	WeeklyEmail bool `json:"weeklyEmail"`
 }
 
+// updateAccountRequest: a field left out is not changed.
 type updateAccountRequest struct {
-	Language string `json:"language"`
+	Language    *string `json:"language"`
+	WeeklyEmail *bool   `json:"weeklyEmail"`
 }
 
 // resetsAvailable: a reset needs a way to send mail and a console to link to.
@@ -155,11 +159,15 @@ func (h *Handlers) GetAccount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	writeJSON(w, http.StatusOK, accountDTO{Email: parent.Email, Phones: len(devices), PasswordReset: h.resetsAvailable(), TwoFactor: twoFactor, Language: domain.NormalizeLanguage(parent.Language)})
+	writeJSON(w, http.StatusOK, accountDTO{
+		Email: parent.Email, Phones: len(devices), PasswordReset: h.resetsAvailable(), TwoFactor: twoFactor,
+		Language: domain.NormalizeLanguage(parent.Language), WeeklyEmail: parent.WeeklyEmail,
+	})
 }
 
-// UpdateAccount stores the language the parent chose in the console, so
-// emails (alerts, the weekly summary) are written in it too.
+// UpdateAccount stores what the parent chose in the console: the language
+// (emails, alerts and the weekly one, are written in it too) and whether the
+// weekly email comes. Either or both; what is left out stays as it was.
 func (h *Handlers) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	parentID, ok := h.requireParent(w, r)
 	if !ok {
@@ -170,16 +178,32 @@ func (h *Handlers) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
-	if !domain.Languages[req.Language] {
+	if req.Language == nil && req.WeeklyEmail == nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "language or weeklyEmail is required")
+		return
+	}
+	if req.Language != nil && !domain.Languages[*req.Language] {
 		writeError(w, http.StatusBadRequest, "unknown_language", domain.ErrUnknownLanguage.Error())
 		return
 	}
-	if err := h.Parents.SetLanguage(r.Context(), parentID, req.Language); err != nil {
-		log.Printf("console: set language: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "")
-		return
+	stored := map[string]any{}
+	if req.Language != nil {
+		if err := h.Parents.SetLanguage(r.Context(), parentID, *req.Language); err != nil {
+			log.Printf("console: set language: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+		stored["language"] = *req.Language
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"language": req.Language})
+	if req.WeeklyEmail != nil {
+		if err := h.Parents.SetWeeklyEmail(r.Context(), parentID, *req.WeeklyEmail); err != nil {
+			log.Printf("console: set weekly email: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+		stored["weeklyEmail"] = *req.WeeklyEmail
+	}
+	writeJSON(w, http.StatusOK, stored)
 }
 
 // DeleteAccount needs the password again: a session left open on a shared

@@ -516,10 +516,11 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     patch:
       tags: [console]
-      summary: Set the parent's language
+      summary: Set the parent's language or weekly email
       description: >
         The language the console and the emails (alerts, weekly summary) are
-        written in for this parent.
+        written in for this parent, and whether the weekly email comes. Either
+        or both; a field left out is not changed.
       security: [{ parentSession: [] }]
       requestBody:
         required: true
@@ -527,20 +528,22 @@ paths:
           application/json:
             schema:
               type: object
-              required: [language]
+              minProperties: 1
               properties:
                 language: { type: string, enum: [en, fr, ar] }
+                weeklyEmail: { type: boolean }
       responses:
         '200':
-          description: Stored.
+          description: Stored. Only the fields that were sent.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   language: { type: string, enum: [en, fr, ar] }
+                  weeklyEmail: { type: boolean }
         '400':
-          description: "`unknown_language`."
+          description: "`unknown_language`, or `bad_request` when neither field is sent."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1062,6 +1065,13 @@ components:
           type: string
           enum: [en, fr, ar]
           description: The language the console and emails use for this parent. `en` until chosen.
+        weeklyEmail:
+          type: boolean
+          description: >
+            The weekly email is on (the default). On Monday from 08:00 Tunis
+            time (UTC+1), it tells the parent that last week's report is ready
+            in the console. It goes only when a phone on the account reported
+            daily usage that week, and carries no figure and no phone's name.
 
     AuthResponse:
       type: object

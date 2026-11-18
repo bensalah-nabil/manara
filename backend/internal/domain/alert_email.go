@@ -77,12 +77,17 @@ func (e *AlertEmail) Failed(now time.Time) bool {
 		e.Drop()
 		return false
 	}
-	wait := time.Hour
-	if e.Tries <= 6 {
-		wait = time.Minute << (e.Tries - 1)
-	}
-	e.NextTry = now.Add(wait)
+	e.NextTry = now.Add(retryWait(e.Tries))
 	return true
+}
+
+// retryWait is how long to wait after the tries-th failed send: 1, 2, 4 ...
+// 32 minutes, then hourly.
+func retryWait(tries int) time.Duration {
+	if tries <= 6 {
+		return time.Minute << (tries - 1)
+	}
+	return time.Hour
 }
 
 // Drop gives up the owed email: no address to send it to, or too many tries.

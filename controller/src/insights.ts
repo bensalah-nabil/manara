@@ -117,6 +117,51 @@ export function dailySeries(reports: Report[], today: string, count = 30): Day[]
     })
 }
 
+export interface WeekSummary {
+    /** The week's Monday and Sunday, YYYY-MM-DD. */
+    from: string
+    to: string
+    /** Screen time over the days the phone reported; null when it reported none. */
+    minutes: number | null
+    reportedDays: number
+    /** Minutes a day, over the days reported; null when none was. */
+    average: number | null
+    /** The week before, the same way, to compare with. */
+    previousAverage: number | null
+    /** The week's busiest apps, most minutes first. */
+    topApps: { packageName: string; minutes: number }[]
+}
+
+/**
+ * Last week, Monday to Sunday before the week of [today]: the report the weekly email points to.
+ * A day counts with its last report, as in [dailySeries]; apps are summed over the week's days
+ * (each report lists the day's busiest 30, so a rarely used app can be short).
+ */
+export function lastWeek(reports: Report[], today: string, top = 3): WeekSummary {
+    const last = lastPerDate(reports)
+    const day = Date.parse(today + 'T00:00:00Z')
+    const monday = day - ((new Date(day).getUTCDay() + 6) % 7 + 7) * DAY_MS
+    const daysOf = (start: number) => Array.from({ length: 7 }, (_, i) => last.get(isoDate(start + i * DAY_MS)))
+        .filter((r): r is Report => r !== undefined)
+    const average = (days: Report[]) => days.length ? days.reduce((sum, r) => sum + r.total, 0) / days.length : null
+    const week = daysOf(monday)
+    const apps = new Map<string, number>()
+    for (const r of week) for (const [pkg, minutes] of r.apps) apps.set(pkg, (apps.get(pkg) ?? 0) + minutes)
+    return {
+        from: isoDate(monday),
+        to: isoDate(monday + 6 * DAY_MS),
+        minutes: week.length ? week.reduce((sum, r) => sum + r.total, 0) : null,
+        reportedDays: week.length,
+        average: average(week),
+        previousAverage: average(daysOf(monday - 7 * DAY_MS)),
+        topApps: [...apps]
+            .filter(([, minutes]) => minutes > 0)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, top)
+            .map(([packageName, minutes]) => ({ packageName, minutes })),
+    }
+}
+
 export function median(values: number[]): number | null {
     if (values.length === 0) return null
     const sorted = [...values].sort((a, b) => a - b)

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
-    aboveUsual, appName, applySuggestion, dailySeries, findInsights, hourGrid, lateNights, median, parseReports, suggestionText,
+    aboveUsual, appName, applySuggestion, dailySeries, findInsights, hourGrid, lastWeek, lateNights, median, parseReports, suggestionText,
 } from './insights.ts'
 import type { EventItem } from './protection.ts'
 
@@ -154,4 +154,45 @@ test('a suggestion adds its rule and keeps everything else', () => {
 test('app names: known ones, else the package\'s last part', () => {
     assert.equal(appName('com.zhiliaoapp.musically'), 'TikTok')
     assert.equal(appName('com.example.coolgame'), 'Coolgame')
+})
+
+test('last week is Monday to Sunday before this week, each day by its last report', () => {
+    const reports = parseReports([
+        report('2026-11-03T20:00:00Z', 60),
+        report('2026-11-08T20:00:00Z', 120), // the Sunday of the week before
+        report('2026-11-09T09:00:00Z', 10, { 'com.zhiliaoapp.musically': 10 }),
+        report('2026-11-09T20:00:00Z', 60, { 'com.zhiliaoapp.musically': 40, 'com.google.android.youtube': 20 }),
+        report('2026-11-12T20:00:00Z', 90, { 'com.zhiliaoapp.musically': 50, 'com.whatsapp': 40 }),
+        report('2026-11-15T20:00:00Z', 30, { 'com.google.android.youtube': 30, 'com.android.chrome': 0 }),
+        report('2026-11-16T20:00:00Z', 500, { 'com.android.chrome': 500 }), // this week
+    ])
+    const week = lastWeek(reports, '2026-11-18')
+    assert.equal(week.from, '2026-11-09')
+    assert.equal(week.to, '2026-11-15')
+    assert.equal(week.minutes, 180)
+    assert.equal(week.reportedDays, 3)
+    assert.equal(week.average, 60)
+    assert.equal(week.previousAverage, 90)
+    assert.deepEqual(week.topApps, [
+        { packageName: 'com.zhiliaoapp.musically', minutes: 90 },
+        { packageName: 'com.google.android.youtube', minutes: 50 },
+        { packageName: 'com.whatsapp', minutes: 40 },
+    ])
+})
+
+test('on Monday and on Sunday, last week is the one before this Monday', () => {
+    for (const today of ['2026-11-16', '2026-11-22']) {
+        const week = lastWeek([], today)
+        assert.deepEqual([week.from, week.to], ['2026-11-09', '2026-11-15'], today)
+    }
+    const crossing = lastWeek([], '2027-01-05')
+    assert.deepEqual([crossing.from, crossing.to], ['2026-12-28', '2027-01-03'])
+})
+
+test('a week with no report has no figures to show', () => {
+    const week = lastWeek(parseReports([report('2026-11-16T20:00:00Z', 50)]), '2026-11-18')
+    assert.equal(week.minutes, null)
+    assert.equal(week.average, null)
+    assert.equal(week.previousAverage, null)
+    assert.deepEqual(week.topApps, [])
 })

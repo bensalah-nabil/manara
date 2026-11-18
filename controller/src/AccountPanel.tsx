@@ -14,6 +14,8 @@ export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; o
     const [password, setPassword] = useState('')
     const [typed, setTyped] = useState('')
     const [deleting, setDeleting] = useState(false)
+    const [savingWeekly, setSavingWeekly] = useState(false)
+    const [weeklyError, setWeeklyError] = useState('')
 
     useEffect(() => {
         let current = true
@@ -44,6 +46,21 @@ export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; o
         }
     }
 
+    async function setWeekly(on: boolean) {
+        if (account === null) return
+        setSavingWeekly(true)
+        setWeeklyError('')
+        try {
+            await api.setWeeklyEmail(on)
+            setAccount({ ...account, weeklyEmail: on })
+        } catch (caught) {
+            if (isSessionError(caught)) onSessionExpired()
+            else setWeeklyError(errorText(caught))
+        } finally {
+            setSavingWeekly(false)
+        }
+    }
+
     if (account === null) {
         return error ? <p role="alert" class="error">{error}</p> : <p class="muted">{t('common.loading')}</p>
     }
@@ -65,6 +82,16 @@ export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; o
                 <h3>{t('language.label')}</h3>
                 <p class="muted small">{t('account.languageHelp')}</p>
                 <LanguageSwitch onChoose={(lang) => api.setLanguage(lang)} />
+            </section>
+
+            <section class="card">
+                <h3>{t('account.weeklyEmail')}</h3>
+                <label class="check">
+                    <input type="checkbox" checked={account.weeklyEmail} disabled={savingWeekly} onChange={(event) => setWeekly(event.currentTarget.checked)} />
+                    <span>{t('account.weeklyEmailOn')}</span>
+                </label>
+                <p class="muted small">{t('account.weeklyEmailHelp')}</p>
+                {weeklyError && <p role="alert" class="error">{weeklyError}</p>}
             </section>
 
             <TwoStepPanel

@@ -14,6 +14,8 @@ export interface Account {
     twoFactor: boolean
     /** The language the console and emails use for this parent: en, fr or ar. */
     language: string
+    /** The Monday email saying last week's report is ready (on unless turned off). */
+    weeklyEmail: boolean
 }
 
 /** The password was right and two-step sign-in is on: send a code with this challenge. */
@@ -225,12 +227,18 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
             return {
                 email: value.email, phones: value.phones, passwordReset: value.passwordReset === true, twoFactor: value.twoFactor === true,
                 language: typeof value.language === 'string' ? value.language : 'en',
+                weeklyEmail: value.weeklyEmail !== false,
             }
         },
 
         /** The language the console and the emails are written in for this parent. */
         async setLanguage(language: string): Promise<void> {
             await request('PATCH', '/console/account', { language }, true)
+        },
+
+        /** Turns the weekly "last week's report is ready" email on or off. */
+        async setWeeklyEmail(on: boolean): Promise<void> {
+            await request('PATCH', '/console/account', { weeklyEmail: on }, true)
         },
 
         /** Needs the password again. Refused (devices_remain) while any phone is still on the account. */

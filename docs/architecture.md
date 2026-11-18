@@ -180,6 +180,13 @@ operator ntfy topic or webhook. Sources: a protection reported missing or
 failed, and a phone silent for `SILENT_PHONE_HOURS`. Password-reset links use
 the same email sender. Without an email key, all of this is simply off.
 
+The weekly email (roadmap P8, `notify.WeeklyEmails`) goes on Monday from 08:00
+Tunis time to each parent who has it on (the default) and a phone that sent a
+`usage_report` that week, and is skipped after two days. It says only that last
+week's report is ready, with the week's dates and the console's address;
+Brevo may train on email content ([`privacy/dpa-brevo.md`](privacy/dpa-brevo.md)
+§6.7), so the figures stay in the console's Insights panel ("Last week").
+
 ## 4. Controller (web app)
 
 One responsive single-page app, served by (or alongside) the backend, that

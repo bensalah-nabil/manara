@@ -4,9 +4,9 @@ import type { Props } from './Editors.tsx'
 import { minutesText } from './dailyUsage.ts'
 import { errorText } from './format.ts'
 import {
-    aboveUsual, applySuggestion, dailySeries, findInsights, hourGrid, lateNights, median, parseReports, suggestionText,
+    aboveUsual, appName, applySuggestion, dailySeries, findInsights, hourGrid, lastWeek, lateNights, median, parseReports, suggestionText,
 } from './insights.ts'
-import type { Day, Insight, Report } from './insights.ts'
+import type { Day, Insight, Report, WeekSummary } from './insights.ts'
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
 import { savedText } from './usePolicyEditor.ts'
@@ -24,6 +24,36 @@ function localDate(ms: number): string {
 
 function shortDate(date: string): string {
     return new Date(date + 'T12:00:00').toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** Last week at a glance: what the weekly email points the parent to. */
+function LastWeek({ week }: { week: WeekSummary }) {
+    const { minutes, average, previousAverage, reportedDays, topApps } = week
+    let compared = ''
+    if (average !== null && previousAverage !== null) {
+        const change = Math.round(average) - Math.round(previousAverage)
+        compared = change > 0 ? t('insights.lastWeekMore', { time: minutesText(change) })
+            : change < 0 ? t('insights.lastWeekLess', { time: minutesText(-change) })
+                : t('insights.lastWeekSame')
+    }
+    return (
+        <div class="stack">
+            <strong>{t('insights.lastWeek', { from: shortDate(week.from), to: shortDate(week.to) })}</strong>
+            {minutes === null || average === null ? (
+                <p class="muted">{t('insights.lastWeekNone')}</p>
+            ) : (
+                <>
+                    <p>
+                        {t('insights.lastWeekTotal', { time: minutesText(minutes), average: minutesText(average), days: reportedDays })}
+                        {compared && <> {compared}</>}
+                    </p>
+                    {topApps.length > 0 && (
+                        <p>{t('insights.lastWeekTop', { apps: topApps.map((a) => `${appName(a.packageName)} ${minutesText(a.minutes)}`).join(', ') })}</p>
+                    )}
+                </>
+            )}
+        </div>
+    )
 }
 
 function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
@@ -225,6 +255,7 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
             nights: lateNights(reports, now).count,
             hitsThisWeek: limitHits.filter((h) => Date.parse(h.occurredAt) >= now - 7 * DAY_MS).length,
             grid: hourGrid(reports),
+            lastWeek: lastWeek(reports, today),
             insights: findInsights({ reports, limitHits, policy, today, now }),
         }
     }, [reports, hits, policy])
@@ -270,6 +301,8 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                         <Tile label={t('insights.lateNights')} value={String(view.nights)} note={t('insights.nightHours')} />
                         <Tile label={t('insights.limitsReached')} value={String(view.hitsThisWeek)} />
                     </div>
+
+                    {reports && reports.length > 0 && <LastWeek week={view.lastWeek} />}
 
                     {view.insights.length > 0 && (
                         <div class="stack">

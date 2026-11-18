@@ -34,7 +34,7 @@
   </header>
 
   <h1>Privacy policy</h1>
-  <p class="muted">Last updated 17 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
+  <p class="muted">Last updated 18 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
 
   <p class="note">
     Manara lets a parent set rules on their own child's phone. The phone always shows that it is managed and what is
@@ -101,10 +101,12 @@
       <li>Vercel (hosts this website and the parent console), and Netlify (an earlier copy of both, still online).</li>
       <li>Google Firebase Cloud Messaging, to wake the phone when the parent sends a command or changes a rule. The message
         carries no data, only "check in now".</li>
-      <li>Brevo (email), to send the parent a password-reset link and alerts, such as a phone that stopped checking in.
-        It receives the parent's email address and the email's text. An alert email says only that a phone needs
-        attention, and when: never the phone's name, which protection, or the child's location, calls or app use. The
-        console shows the rest.</li>
+      <li>Brevo (email), to send the parent a password-reset link, alerts such as a phone that stopped checking in, and
+        on Monday a note that last week's report is ready (sent only when a phone reported daily app use that week;
+        the parent can turn it off under Account). It receives the parent's email address and the email's text. An
+        alert email says only that a phone needs attention, and when; the weekly email only the week's dates. Neither
+        ever has the phone's name, which protection, or the child's location, calls or app use. The console shows
+        the rest.</li>
       <li>Google Play services on the phone, for location and for scanning the connection QR code.</li>
     </ul>
     <p>

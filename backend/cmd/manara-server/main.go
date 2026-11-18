@@ -74,6 +74,13 @@ func main() {
 			Parents: parents, Mailer: mailer, Emails: postgres.NewAlertEmailRepository(db), Now: time.Now,
 		}
 		go retryAlertEmails(ctx, emailAlerts)
+		if url := consoleURL(); url != "" {
+			go sendWeeklyEmails(ctx, &notify.WeeklyEmails{
+				Parents: parents, Mailer: mailer, Emails: postgres.NewWeeklyEmailRepository(db), ConsoleURL: url, Now: time.Now,
+			})
+		} else {
+			log.Printf("weekly emails: off (no CONSOLE_URL or CORS_ALLOWED_ORIGIN to link to)")
+		}
 	}
 	alertSenders := newAlertSenders(emailAlerts)
 
@@ -307,6 +314,31 @@ func retryAlertEmails(ctx context.Context, a *notify.ParentEmailAlerts) {
 		}
 		if n > 0 {
 			log.Printf("alerts: %d owed email(s) sent", n)
+		}
+	}
+}
+
+// sendWeeklyEmails sends, at start and every five minutes, each weekly email
+// that is due (domain.ReportWeek: from Monday 08:00 Tunis time) and tries a
+// failed one again. A free Render service asleep on Monday morning sends when
+// a phone's sync wakes it; after two days that week's email is skipped.
+func sendWeeklyEmails(ctx context.Context, w *notify.WeeklyEmails) {
+	tick := time.NewTicker(5 * time.Minute)
+	defer tick.Stop()
+	for {
+		tryCtx, cancel := context.WithTimeout(ctx, 4*time.Minute)
+		n, err := w.DeliverDue(tryCtx)
+		cancel()
+		if err != nil {
+			log.Printf("weekly emails: %v", err)
+		}
+		if n > 0 {
+			log.Printf("weekly emails: %d sent", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
 		}
 	}
 }

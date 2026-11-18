@@ -20,8 +20,11 @@ type Parent struct {
 	Email        string
 	PasswordHash string // bcrypt -- see AuthRepository.SignUp; never compared directly
 	// Language is what the console and emails are written in for this parent.
-	Language  string
-	CreatedAt time.Time
+	Language string
+	// WeeklyEmail: the Monday email saying last week's report is ready
+	// (WeeklyEmail). On until the parent turns it off.
+	WeeklyEmail bool
+	CreatedAt   time.Time
 }
 
 type ParentRepository interface {
@@ -29,6 +32,8 @@ type ParentRepository interface {
 	FindByID(ctx context.Context, id string) (*Parent, error)
 	// SetLanguage stores one of Languages for the parent.
 	SetLanguage(ctx context.Context, id, language string) error
+	// SetWeeklyEmail turns the parent's weekly email on or off.
+	SetWeeklyEmail(ctx context.Context, id string, on bool) error
 }
 
 // DefaultLanguage is what an account has until the parent chooses.

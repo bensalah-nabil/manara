@@ -33,8 +33,8 @@ func (r *ParentRepository) FindByID(ctx context.Context, id string) (*domain.Par
 	var p domain.Parent
 	var email, hash *string
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, created_at, language FROM parents WHERE id = $1`, id,
-	).Scan(&p.ID, &email, &hash, &p.CreatedAt, &p.Language)
+		`SELECT id, email, password_hash, created_at, language, weekly_email FROM parents WHERE id = $1`, id,
+	).Scan(&p.ID, &email, &hash, &p.CreatedAt, &p.Language, &p.WeeklyEmail)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -56,6 +56,13 @@ func (r *ParentRepository) SetLanguage(ctx context.Context, id, language string)
 	}
 	if _, err := r.db.Pool.Exec(ctx, `UPDATE parents SET language = $2 WHERE id = $1`, id, language); err != nil {
 		return fmt.Errorf("set language: %w", err)
+	}
+	return nil
+}
+
+func (r *ParentRepository) SetWeeklyEmail(ctx context.Context, id string, on bool) error {
+	if _, err := r.db.Pool.Exec(ctx, `UPDATE parents SET weekly_email = $2 WHERE id = $1`, id, on); err != nil {
+		return fmt.Errorf("set weekly email: %w", err)
 	}
 	return nil
 }

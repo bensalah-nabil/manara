@@ -76,7 +76,8 @@ func (f fakeParents) Create(context.Context, *domain.Parent) error { return nil 
 func (f fakeParents) FindByID(_ context.Context, id string) (*domain.Parent, error) {
 	return f.byID[id], nil
 }
-func (f fakeParents) SetLanguage(context.Context, string, string) error { return nil }
+func (f fakeParents) SetLanguage(context.Context, string, string) error  { return nil }
+func (f fakeParents) SetWeeklyEmail(context.Context, string, bool) error { return nil }
 
 // recordingMailer records each email sent. With err set, every send fails
 // the way Brevo did for an unknown IP address.
