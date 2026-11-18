@@ -89,6 +89,9 @@ mid-pause keeps every app closed that was closed before.
   `bedtime` rule next to the three browsers `browser-block` already held; TikTok's dialog gave the
   bedtime sentence alone. Android refused the Play Store (the required installer), as
   `canSuspendPackageForUser` says; Manara logs that and does not report it as a problem.
+- **Bedtime's exceptions seen on the A52** (release 1.0.31, 2026-11-18): the `bedtime` rule held
+  145 apps and left out the default SMS app (Google Messages) and the parent's `allowedApps`
+  (Mawaqit, Al-Azan); the list went from the console through the live server to the phone intact.
 - The same message shows for every action Manara blocks, not only a paused app (AOSP
   android14-release and android15-release, Settings `ActionDisabledByAdminDialogHelper
   .setAdminSupportDetails`), so it says who manages the phone before why apps are paused.
