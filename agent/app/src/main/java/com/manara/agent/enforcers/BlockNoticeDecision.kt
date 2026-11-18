@@ -19,8 +19,8 @@ object BlockNoticeDecision {
 
     data class Notice(val short: String, val long: String)
 
-    /** The enforcers' ids that have their own sentence, in the order the sentences appear. */
-    private val worded = listOf("time-limit", "browser-block")
+    /** The rules that have their own sentence, in the order the sentences appear. */
+    private val worded = listOf(BedtimeDecision.RULE, "time-limit", "browser-block")
 
     /** [holds] as [AppPauses] keeps them; [label] names an app for the long message. */
     fun notice(holds: Map<String, Set<String>>, words: Words, label: (String) -> String): Notice {
@@ -28,7 +28,9 @@ object BlockNoticeDecision {
         val rules = worded.filter { it in held } + held.keys.filter { it !in worded }.sorted()
         val managed = words.get(R.string.block_notice_managed)
         val open = words.get(R.string.block_notice_open)
-        val reasons = rules.map { reason(it, words) }.distinct()
+        // At bedtime every app but calls, the clock and Settings is paused: that sentence says it all.
+        val reasons = if (BedtimeDecision.RULE in held) listOf(reason(BedtimeDecision.RULE, words))
+        else rules.map { reason(it, words) }.distinct()
 
         val short = listOf(
             listOf(managed) + reasons + open,
@@ -40,7 +42,7 @@ object BlockNoticeDecision {
             append(managed)
             rules.forEach { rule ->
                 append("\n\n").append(reason(rule, words)).append('\n')
-                append(held.getValue(rule).map(label).sorted().joinToString(", "))
+                append(held.getValue(rule).map(label).sortedWith(String.CASE_INSENSITIVE_ORDER).joinToString(", "))
             }
             append("\n\n").append(open)
         }
@@ -48,6 +50,7 @@ object BlockNoticeDecision {
     }
 
     private fun reason(rule: String, words: Words): String = when (rule) {
+        BedtimeDecision.RULE -> words.get(R.string.block_notice_bedtime)
         "time-limit" -> words.get(R.string.block_notice_time_limit)
         "browser-block" -> words.get(R.string.block_notice_browser)
         else -> words.get(R.string.block_notice_other)

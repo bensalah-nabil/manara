@@ -13,7 +13,7 @@
     <string name="summary_filter">Site filtering requested</string>
     <string name="summary_location">Location sharing requested, every %1$s min</string>
     <string name="summary_usage">Daily app usage is reported to your parent</string>
-    <string name="summary_lock">Scheduled lock windows: %1$s</string>
+    <string name="summary_lock">Bedtime windows, when apps pause and calls and texts still work: %1$s</string>
     <string name="summary_restrictions">Settings restrictions requested: %1$s</string>
     <string name="summary_chrome">Chrome rules set by your parent</string>
     <string name="summary_other_browsers">Browsers other than Chrome are blocked</string>
@@ -133,7 +133,7 @@
         <item quantity="one">%1$s app</item>
         <item quantity="other">%1$s apps</item>
     </plurals>
-    <string name="rule_locked">Locked %1$s–%2$s</string>
+    <string name="rule_locked">Apps pause %1$s–%2$s, calls and texts still work</string>
     <string name="days_every">Every day</string>
     <string name="days_weekdays">Weekdays</string>
     <string name="days_weekends">Weekends</string>
@@ -235,6 +235,7 @@
     <string name="block_notice_managed">Your parent manages this phone with Manara.</string>
     <string name="block_notice_time_limit">Apps whose time is used up for today are paused.</string>
     <string name="block_notice_browser">Only Chrome can be used to browse the web.</string>
+    <string name="block_notice_bedtime">It is bedtime: apps are paused, but calls and texts still work.</string>
     <string name="block_notice_other">Some apps are paused.</string>
     <string name="block_notice_open">Open Manara to see the rules.</string>
 </resources>

@@ -38,7 +38,7 @@ var enforcerNames = map[string]string{
 	"site-filter":  "Site filtering",
 	"time-limit":   "App time limits",
 	"restrictions": "Settings restrictions",
-	"lock":         "Scheduled lock",
+	"lock":         "Bedtime",
 	"usage-report": "Usage reporting",
 	"browser":      "Chrome rules",
 	"call-log":     "Call history",
@@ -46,6 +46,7 @@ var enforcerNames = map[string]string{
 
 var detailSentences = map[string]string{
 	"usage_access":                "Usage Access is turned off, so app usage cannot be measured.",
+	"bedtime_pause":               "Bedtime could not pause apps on this phone.",
 	"location_permission":         "Manara is not allowed to read the phone's location.",
 	"read_call_log":               "Manara is not allowed to read the phone's call history.",
 	"app_call_notifications":      "Notification access is off, so calls in apps such as WhatsApp are not seen.",

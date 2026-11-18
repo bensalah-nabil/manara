@@ -85,6 +85,10 @@ mid-pause keeps every app closed that was closed before.
 - **Seen on the A52** (SM-A528B, Android 14, One UI, release 1.0.29, 2026-11-17): opening TikTok,
   paused by a daily limit, showed Samsung's "Action not allowed" dialog with Manara's short support
   message, both reasons included. Not yet seen on the A045F, nor after a change of language.
+- **Bedtime seen on the A52** (release 1.0.30, 2026-11-18): a test window held 148 apps under the
+  `bedtime` rule next to the three browsers `browser-block` already held; TikTok's dialog gave the
+  bedtime sentence alone. Android refused the Play Store (the required installer), as
+  `canSuspendPackageForUser` says; Manara logs that and does not report it as a problem.
 - The same message shows for every action Manara blocks, not only a paused app (AOSP
   android14-release and android15-release, Settings `ActionDisabledByAdminDialogHelper
   .setAdminSupportDetails`), so it says who manages the phone before why apps are paused.

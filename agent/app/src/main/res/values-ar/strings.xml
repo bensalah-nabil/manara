@@ -16,7 +16,8 @@
     <string name="summary_filter">حجب المواقع مطلوب</string>
     <string name="summary_location">مشاركة الموقع مطلوبة، كل %1$s دقيقة</string>
     <string name="summary_usage">يُرسَل استخدام التطبيقات اليومي إلى ولي أمرك</string>
-    <string name="summary_lock">فترات القفل المجدولة: %1$s</string>
+    <!-- TODO-REVIEW: bedtime wording (P2) -->
+    <string name="summary_lock">فترات وقت النوم، تتوقف فيها التطبيقات وتبقى المكالمات والرسائل ممكنة: %1$s</string>
     <string name="summary_restrictions">الإعدادات المقيَّدة المطلوبة: %1$s</string>
     <string name="summary_chrome">قواعد Chrome حدّدها ولي أمرك</string>
     <string name="summary_other_browsers">المتصفحات الأخرى غير Chrome محجوبة</string>
@@ -142,7 +143,8 @@
         <item quantity="many">%1$s تطبيقًا</item>
         <item quantity="other">%1$s تطبيق</item>
     </plurals>
-    <string name="rule_locked">مقفل %1$s–%2$s</string>
+    <!-- TODO-REVIEW: bedtime wording (P2) -->
+    <string name="rule_locked">التطبيقات متوقفة %1$s–%2$s، والمكالمات والرسائل ممكنة</string>
     <string name="days_every">كل يوم</string>
     <!-- TODO-REVIEW: "weekdays" means Monday to Friday here, "weekends" Saturday and Sunday (Tunisia's week) -->
     <string name="days_weekdays">من الاثنين إلى الجمعة</string>
@@ -248,6 +250,8 @@
     <string name="block_notice_managed">يدير ولي أمرك هذا الهاتف بواسطة منارة.</string>
     <string name="block_notice_time_limit">التطبيقات التي انتهى وقتها لهذا اليوم متوقفة مؤقتًا.</string>
     <string name="block_notice_browser">لا يمكن تصفح الويب إلا عبر Chrome.</string>
+    <!-- TODO-REVIEW: bedtime wording (P2) -->
+    <string name="block_notice_bedtime">حان وقت النوم: التطبيقات متوقفة، لكن يمكنك الاتصال وإرسال الرسائل.</string>
     <string name="block_notice_other">بعض التطبيقات متوقفة مؤقتًا.</string>
     <string name="block_notice_open">افتح منارة لترى القواعد.</string>
 </resources>

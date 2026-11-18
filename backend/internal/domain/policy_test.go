@@ -18,7 +18,7 @@ func TestPolicyRoundTripKeepsEveryFieldTheAgentDefines(t *testing.T) {
 		"siteFilter": {"enabled": true, "dnsHost": "dns.example"},
 		"location": {"enabled": true, "intervalMinutes": 10},
 		"callLog": {"enabled": true},
-		"lockSchedule": {"enabled": true, "windows": [{"days": [6, 7], "fromHour": 22, "toHour": 7}]},
+		"lockSchedule": {"enabled": true, "windows": [{"days": [6, 7], "fromHour": 22, "toHour": 7}], "allowedApps": ["com.kanout.mawaqit"]},
 		"restrictions": {"blockVpnConfig": true, "blockPrivateDnsConfig": true, "blockFactoryReset": true, "blockSafeBoot": true, "blockAddUser": true, "blockDebugging": true, "blockDateTime": true},
 		"usageReport": {"enabled": true},
 		"browser": {"safeSearch": true, "youtube": "strict", "secureDnsOff": true, "blockedSites": ["example.com"], "blockOtherBrowsers": true}
@@ -77,6 +77,33 @@ func TestBrowserRulesValidate(t *testing.T) {
 	for _, b := range bad {
 		if err := b.Validate(); !errors.Is(err, ErrInvalidBrowserPolicy) {
 			t.Errorf("%+v accepted: %v", b, err)
+		}
+	}
+}
+
+func TestBedtimeAllowedAppsValidate(t *testing.T) {
+	var none *LockSchedule
+	ok := []*LockSchedule{none, {}, {Enabled: true, AllowedApps: []string{"com.kanout.mawaqit", "com.github.meypod.al_azan", "com.AppRocks.now.prayer"}}}
+	for _, s := range ok {
+		if err := s.Validate(); err != nil {
+			t.Errorf("%+v: %v", s, err)
+		}
+	}
+	many := make([]string, MaxBedtimeAllowedApps+1)
+	for i := range many {
+		many[i] = "com.example.app"
+	}
+	bad := []*LockSchedule{
+		{AllowedApps: []string{""}},
+		{AllowedApps: []string{"mawaqit"}},         // no dot: not a package name
+		{AllowedApps: []string{"com.example app"}}, // space
+		{AllowedApps: []string{"1com.example"}},    // starts with a digit
+		{AllowedApps: []string{"com..example"}},    // empty segment
+		{AllowedApps: many},
+	}
+	for _, s := range bad {
+		if err := s.Validate(); !errors.Is(err, ErrInvalidLockSchedule) {
+			t.Errorf("%+v accepted: %v", s, err)
 		}
 	}
 }

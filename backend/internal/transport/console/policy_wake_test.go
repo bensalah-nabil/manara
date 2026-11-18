@@ -78,3 +78,20 @@ func TestSavingAnotherParentsRulesSendsNoPush(t *testing.T) {
 		t.Fatalf("status %d, %d pushes; want 404 and none", w.Code, calls)
 	}
 }
+
+func TestABedtimeAllowListThatIsNotPackageNamesIsRefused(t *testing.T) {
+	calls := 0
+	h := testHandlers(nil)
+	h.Devices = fakeDevices{byID: map[string]*domain.Device{"dev-1": {ID: "dev-1", ParentID: "parent-1", PushToken: "tok"}}}
+	h.Notifier = countingNotifier{calls: &calls}
+	h.PushEnabled = true
+	body := `{"lockSchedule":{"enabled":true,"windows":[{"days":[1],"fromHour":21,"toHour":7}],"allowedApps":["Mawaqit app"]}}`
+	r := httptest.NewRequest(http.MethodPut, "/api/v1/console/devices/dev-1/policy", strings.NewReader(body))
+	r.SetPathValue("deviceId", "dev-1")
+	r.Header.Set("Authorization", "Bearer mine")
+	w := httptest.NewRecorder()
+	h.SetPolicy(w, r)
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "invalid_lock_schedule") || calls != 0 {
+		t.Fatalf("status %d %s, %d pushes; want 400 invalid_lock_schedule and no push", w.Code, w.Body.String(), calls)
+	}
+}

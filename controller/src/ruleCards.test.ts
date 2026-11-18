@@ -126,3 +126,12 @@ test('minutes read plainly', () => {
     assert.equal(minutesLabel(45), '45 min')
     assert.equal(minutesLabel(120), '2 h')
 })
+
+test('switching the bedtime card or moving its hour keeps the apps that stay open', () => {
+    const policy = { version: 1, lockSchedule: { enabled: false, windows: [], allowedApps: ['com.kanout.mawaqit'] } }
+    const on = setCard(policy, 'bedtime', true)
+    assert.deepEqual((on.lockSchedule as { allowedApps?: string[] }).allowedApps, ['com.kanout.mawaqit'])
+    const moved = setBedtimeHour(on, 22)
+    assert.deepEqual((moved.lockSchedule as { allowedApps?: string[] }).allowedApps, ['com.kanout.mawaqit'])
+    assert.equal(readCards(moved).bedtimeHour, 22)
+})

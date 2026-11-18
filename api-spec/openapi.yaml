@@ -1172,12 +1172,27 @@ components:
         lockSchedule:
           type: object
           description: >
-            Optional recurring lock windows (e.g. bedtime). Hours are 0-23 in
-            the device's own local time. A window whose `toHour` is earlier than
-            its `fromHour` runs past midnight and belongs to the day it starts
-            on. A window with equal hours never locks the device.
+            Optional recurring bedtime windows. Inside a window the phone pauses
+            its apps, except calls, texts, the clock, Settings, Manara and
+            `allowedApps`. Hours are 0-23 in the device's own local time. A
+            window whose `toHour` is earlier than its `fromHour` runs past
+            midnight and belongs to the day it starts on. A window with equal
+            hours never applies.
           properties:
             enabled: { type: boolean }
+            allowedApps:
+              type: array
+              description: >
+                Package names that stay open during a window, such as a prayer-time
+                app. A listed app the phone doesn't have is ignored. Refused with
+                400 `invalid_lock_schedule` for more than 50 entries or one that is
+                not a package name.
+              maxItems: 50
+              items:
+                type: string
+                pattern: '^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$'
+                maxLength: 255
+              example: [com.kanout.mawaqit]
             windows:
               type: array
               items:

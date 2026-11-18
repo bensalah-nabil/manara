@@ -1,6 +1,7 @@
 import type { Policy } from './policy.ts'
 import { withSection } from './policy.ts'
 import { t } from './i18n.ts'
+import { PACKAGE_NAME, parsePackages } from './timeLimits.ts'
 
 export interface LockWindow {
     days: number[]
@@ -11,11 +12,37 @@ export interface LockWindow {
 export interface LockSchedule {
     enabled: boolean
     windows?: LockWindow[]
+    /** Apps that stay open during a window, besides calls, texts, the clock and Settings. */
+    allowedApps?: string[]
 }
 
 export interface Draft {
     enabled: boolean
     windows: LockWindow[]
+    /** One package name per line, as the parent typed them. */
+    allowedApps?: string
+}
+
+/** The server refuses more (domain.MaxBedtimeAllowedApps). */
+export const MAX_ALLOWED_APPS = 50
+
+/**
+ * Prayer-time apps, whose adhan a paused app could not sound (Android hides a paused app's
+ * notifications and stops it ringing the phone). Each id checked on Google Play: Mawaqit, Al-Azan,
+ * Muslim Pro, Athan, Prayer Now, My Prayer. An app the phone doesn't have is ignored there.
+ */
+export const PRAYER_APPS = [
+    'com.kanout.mawaqit',
+    'com.github.meypod.al_azan',
+    'com.bitsmedia.android.muslimpro',
+    'com.athan',
+    'com.AppRocks.now.prayer',
+    'com.haz.prayer',
+]
+
+/** [text] with the prayer-time apps added once, keeping what the parent already wrote first. */
+export function withPrayerApps(text: string): string {
+    return [...new Set([...parsePackages(text), ...PRAYER_APPS])].join('\n')
 }
 
 export type ValidationResult = { ok: true; schedule: LockSchedule } | { ok: false; errors: string[] }
@@ -36,6 +63,7 @@ export function toDraft(policy: Policy): Draft {
     return {
         enabled: schedule?.enabled ?? false,
         windows: (schedule?.windows ?? []).map((window) => ({ ...window, days: [...window.days] })),
+        allowedApps: (schedule?.allowedApps ?? []).join('\n'),
     }
 }
 
@@ -65,8 +93,14 @@ export function validateDraft(draft: Draft): ValidationResult {
         windows.push({ days, fromHour: window.fromHour, toHour: window.toHour })
     })
 
+    const allowedApps = parsePackages(draft.allowedApps ?? '')
+    for (const name of allowedApps) {
+        if (!PACKAGE_NAME.test(name)) errors.push(t('scheduleEditor.errPackage', { name }))
+    }
+    if (allowedApps.length > MAX_ALLOWED_APPS) errors.push(t('scheduleEditor.errTooMany', { max: MAX_ALLOWED_APPS }))
+
     if (errors.length > 0) return { ok: false, errors }
-    return { ok: true, schedule: { enabled: draft.enabled, windows } }
+    return { ok: true, schedule: { enabled: draft.enabled, windows, ...(allowedApps.length > 0 ? { allowedApps } : {}) } }
 }
 
 export function applySchedule(policy: Policy, schedule: LockSchedule): Policy {

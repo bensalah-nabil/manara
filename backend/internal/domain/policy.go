@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -121,9 +122,40 @@ type CallLog struct {
 	Enabled bool `json:"enabled"`
 }
 
+// LockSchedule is bedtime: inside a window the phone pauses its apps, except
+// calls, texts, the clock, Settings, Manara and AllowedApps (roadmap P2).
 type LockSchedule struct {
 	Enabled bool         `json:"enabled"`
 	Windows []LockWindow `json:"windows,omitempty"`
+	// AllowedApps stay open during a window, such as a prayer-time app whose
+	// adhan a paused app could not sound. Package names; one the phone
+	// doesn't have is ignored there.
+	AllowedApps []string `json:"allowedApps,omitempty"`
+}
+
+// MaxBedtimeAllowedApps keeps the list a few chosen apps, not a way around bedtime.
+const MaxBedtimeAllowedApps = 50
+
+var ErrInvalidLockSchedule = errors.New("invalid bedtime rules")
+
+// packageName is Android's package name syntax, as the console checks it.
+var packageName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$`)
+
+// Validate refuses an allowed-apps list the phone could not use: too long, or
+// holding something that is not a package name.
+func (s *LockSchedule) Validate() error {
+	if s == nil {
+		return nil
+	}
+	if len(s.AllowedApps) > MaxBedtimeAllowedApps {
+		return fmt.Errorf("%w: at most %d allowed apps", ErrInvalidLockSchedule, MaxBedtimeAllowedApps)
+	}
+	for _, app := range s.AllowedApps {
+		if len(app) > 255 || !packageName.MatchString(app) {
+			return fmt.Errorf("%w: %q is not a package name", ErrInvalidLockSchedule, app)
+		}
+	}
+	return nil
 }
 
 type LockWindow struct {

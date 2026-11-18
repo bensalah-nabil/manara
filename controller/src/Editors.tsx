@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact'
 import type { Api, DeviceSummary } from './api.ts'
 import { applyLocation, MAX_INTERVAL, MIN_INTERVAL, toDraft as locationDraft, validateDraft as validateLocation } from './location.ts'
 import type { Draft as LocationDraft, LocationPolicy } from './location.ts'
-import { applySchedule, DAYS, emptyWindow, toDraft as scheduleDraft, validateDraft as validateSchedule } from './schedule.ts'
+import { applySchedule, DAYS, emptyWindow, toDraft as scheduleDraft, validateDraft as validateSchedule, withPrayerApps } from './schedule.ts'
 import type { Draft as ScheduleDraft, LockSchedule, LockWindow } from './schedule.ts'
 import { applyTimeLimits, blocksImmediately, emptyRule, socialMediaRule, toDraft as limitsDraft, validateDraft as validateLimits } from './timeLimits.ts'
 import type { Draft as LimitsDraft, RuleDraft, TimeLimits } from './timeLimits.ts'
@@ -258,6 +258,12 @@ export function ScheduleEditor(props: Props) {
                 </fieldset>
             ))}
             <button type="button" class="ghost" onClick={() => setDraft({ ...draft, windows: [...draft.windows, emptyWindow()] })}>{t('scheduleEditor.addWindow')}</button>
+            <label>
+                {t('scheduleEditor.allowed')}
+                <textarea rows={3} spellcheck={false} dir="ltr" value={draft.allowedApps ?? ''} onInput={(event) => setDraft({ ...draft, allowedApps: event.currentTarget.value })} />
+            </label>
+            <p class="muted">{t('scheduleEditor.allowedHelp')}</p>
+            <button type="button" class="ghost" onClick={() => setDraft({ ...draft, allowedApps: withPrayerApps(draft.allowedApps ?? '') })}>{t('scheduleEditor.addPrayer')}</button>
             <Footer editor={editor} saveLabel={t('scheduleEditor.save')} />
         </Open>
     )

@@ -90,7 +90,9 @@ data class Policy(
     @Serializable
     data class LockSchedule(
         val enabled: Boolean = false,
-        val windows: List<Window> = emptyList()
+        val windows: List<Window> = emptyList(),
+        /** Apps that stay open during a window (a prayer-time app, say); one not installed is ignored. */
+        val allowedApps: List<String> = emptyList(),
     ) {
         @Serializable
         data class Window(

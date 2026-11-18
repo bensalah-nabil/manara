@@ -503,6 +503,10 @@ func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_browser_rules", err.Error())
 		return
 	}
+	if err := policy.LockSchedule.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_lock_schedule", err.Error())
+		return
+	}
 	stored, err := h.Policies.Set(r.Context(), deviceID, policy)
 	if err != nil {
 		log.Printf("console: set policy: %v", err)

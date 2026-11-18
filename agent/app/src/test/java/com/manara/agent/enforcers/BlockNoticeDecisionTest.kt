@@ -79,6 +79,26 @@ class BlockNoticeDecisionTest {
     }
 
     @Test
+    fun atBedtimeTheBedtimeSentenceSaysItAll() {
+        val holds = everything + (BedtimeDecision.RULE to setOf("com.whatsapp", "com.opera.browser"))
+        val notice = BlockNoticeDecision.notice(holds, english, label)
+        assertEquals(
+            listOf("block_notice_managed", "block_notice_bedtime", "block_notice_open").joinToString(" ") { say(it) },
+            notice.short,
+        )
+        // The long message still lists every app under each reason.
+        assertTrue(notice.long, notice.long.contains("${say("block_notice_bedtime")}\ncom.whatsapp, Opera"))
+        assertTrue(notice.long, notice.long.contains("${say("block_notice_time_limit")}\nInstagram, TikTok"))
+        listOf(
+            ResourceWords("src/main/res/values-fr/strings.xml"),
+            ResourceWords("src/main/res/values-ar/strings.xml"),
+        ).forEach { words ->
+            val short = BlockNoticeDecision.notice(holds, words, label).short
+            assertTrue(short, short.contains(words.get(R.string.block_notice_bedtime)) && short.length <= BlockNoticeDecision.SHORT_LIMIT)
+        }
+    }
+
+    @Test
     fun aWordingTooLongForAndroidFallsBackToAShorterOne() {
         val wordy = object : Words {
             override fun get(id: Int, vararg args: Any): String =

@@ -139,8 +139,9 @@ function gamesRule(minutes: number): Rule {
     return { category: GAMES_RULE, packages: [], dailyMinutes: minutes, allGames: true }
 }
 
+/** Sets the one nightly window; the rest of the schedule (the apps that stay open) is kept. */
 function withBedtime(policy: Policy, hour: number): Policy {
-    return { ...policy, lockSchedule: { enabled: true, windows: [{ days: ALL_DAYS, fromHour: hour, toHour: BEDTIME_END }] } }
+    return { ...policy, lockSchedule: { ...section(policy, 'lockSchedule'), enabled: true, windows: [{ days: ALL_DAYS, fromHour: hour, toHour: BEDTIME_END }] } }
 }
 
 export function setCard(policy: Policy, id: CardId, on: boolean): Policy {

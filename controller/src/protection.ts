@@ -29,6 +29,8 @@ const ENFORCERS: Record<string, string> = {
 
 const DETAILS: Record<string, string> = {
     usage_access: t('protection.detail.usageAccess'),
+    // LockEnforcer: bedtime could not pause apps (P2).
+    bedtime_pause: t('protection.detail.bedtimePause'),
     // CallLogEnforcer's checks.
     read_call_log: t('protection.detail.callLogPermission'),
     app_call_notifications: t('protection.detail.appCalls'),

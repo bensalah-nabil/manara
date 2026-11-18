@@ -30,7 +30,8 @@ export interface Draft {
 export type ValidationResult = { ok: true; timeLimits: TimeLimits } | { ok: false; errors: string[] }
 
 const MAX_MINUTES = 1440
-const PACKAGE_NAME = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/
+/** Android's package name syntax; the server checks the bedtime list with the same one. */
+export const PACKAGE_NAME = /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/
 
 export function toDraft(policy: Policy): Draft {
     const limits = policy.timeLimits as TimeLimits | undefined
