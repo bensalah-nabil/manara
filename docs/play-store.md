@@ -61,6 +61,11 @@ phones ran 1.0.31.
    latest release.
 3. Check that the link now redirects to the new tag:
    `curl -sI https://github.com/bensalah-nabil/manara/releases/latest/download/manara.apk | grep -i location`.
+4. **Phones already set up update themselves** once the server offers the version (ADR-0010). In
+   Render, Environment, set `AGENT_UPDATE_VERSION_CODE`, `AGENT_UPDATE_VERSION_NAME` and
+   `AGENT_UPDATE_SHA256` (`sha256sum` of the APK, lowercase) and save, which restarts the server.
+   Its log says `agent updates: phones update to ...`, or why they are held back. To stop a bad
+   release from spreading, clear `AGENT_UPDATE_VERSION_CODE`.
 
 The certificate fingerprint on download.html and `MANARA_SIGNATURE` in
 `controller/src/provisioning.ts` are the upload key's

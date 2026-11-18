@@ -94,6 +94,11 @@ optimization exemption, and reschedule itself via `WorkManager` + a boot
 receiver. Treat "survives a reboot and 24h idle on a Xiaomi" as an acceptance
 test, not an afterthought.
 
+The direct build updates itself (ADR-0010). The server's sync response names the
+version to run, the phone downloads it from the GitHub release on Wi-Fi while
+charging, checks its SHA-256, and installs it as device owner, with no prompt. The
+play build updates through Play only.
+
 ## 3. Backend (Go)
 
 Three layers. Dependencies point **inward only**: transport → domain ←

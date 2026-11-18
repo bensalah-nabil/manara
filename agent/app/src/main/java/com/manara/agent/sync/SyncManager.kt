@@ -45,7 +45,9 @@ class SyncManager(
     private val releaser: Releaser,
     private val releaseStore: ReleaseStore,
     private val now: () -> Long = System::currentTimeMillis,
-    private val onSuccess: (Long) -> Unit = {}
+    private val onSuccess: (Long) -> Unit = {},
+    /** Gets every sync's update offer, including none (updates held back). */
+    private val onAgentUpdate: (com.manara.agent.update.UpdateOffer?) -> Unit = {}
 ) {
     sealed class Result {
         data object Success : Result()
@@ -120,6 +122,8 @@ class SyncManager(
                     }
                     collectEnforcerEvents()
 
+                    runCatching { onAgentUpdate(body.agentUpdate) }
+                        .onFailure { android.util.Log.w("ManaraSync", "update offer not handled", it) }
                     onSuccess(now())
                     if (removal != null) removeManara(token, removal) else Result.Success
                 }
@@ -184,7 +188,8 @@ class SyncManager(
                 pushTokenStore = PushTokenStore(context),
                 releaser = Releaser(context, db, registry, tokenStore, releaseStore),
                 releaseStore = releaseStore,
-                onSuccess = SyncStatusStore(context)::recordSuccess
+                onSuccess = SyncStatusStore(context)::recordSuccess,
+                onAgentUpdate = { com.manara.agent.update.AgentUpdates.offered(context, it) }
             )
         }
     }

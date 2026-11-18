@@ -87,7 +87,7 @@ func main() {
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
-		Alerts: newAlertService(devices, alertSenders),
+		Alerts: newAlertService(devices, alertSenders), AgentUpdate: agentUpdate(),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
@@ -258,6 +258,29 @@ func corsOrigins() []string {
 		return []string{"*"}
 	}
 	return origins
+}
+
+// agentUpdate is the directly downloaded Manara phones should update to: AGENT_UPDATE_VERSION_CODE,
+// AGENT_UPDATE_VERSION_NAME and AGENT_UPDATE_SHA256, matching a published GitHub release
+// (docs/play-store.md). Leaving AGENT_UPDATE_VERSION_CODE empty holds every update back.
+func agentUpdate() *domain.AgentUpdate {
+	raw := os.Getenv("AGENT_UPDATE_VERSION_CODE")
+	if raw == "" {
+		log.Printf("agent updates: held back (AGENT_UPDATE_VERSION_CODE not set)")
+		return nil
+	}
+	code, err := strconv.Atoi(raw)
+	if err != nil {
+		log.Printf("agent updates: held back: AGENT_UPDATE_VERSION_CODE=%q is not a whole number", raw)
+		return nil
+	}
+	u, err := domain.NewAgentUpdate(code, os.Getenv("AGENT_UPDATE_VERSION_NAME"), os.Getenv("AGENT_UPDATE_SHA256"))
+	if err != nil {
+		log.Printf("agent updates: held back: %v", err)
+		return nil
+	}
+	log.Printf("agent updates: phones update to %s (%d)", u.VersionName, u.VersionCode)
+	return &u
 }
 
 // silentAfter is SILENT_PHONE_HOURS, or 12 hours.

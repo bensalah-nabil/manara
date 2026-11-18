@@ -269,3 +269,19 @@ func TestSyncWithoutAnAlertServiceStillWorks(t *testing.T) {
 		t.Fatalf("accepted = %v", resp.AcceptedEventIDs)
 	}
 }
+
+func TestSyncTellsThePhoneTheVersionToRunOnlyWhenOneIsSet(t *testing.T) {
+	h := newHandlers(nil)
+	if resp := postSync(t, h, map[string]any{"policyVersion": 0, "events": []any{}}); resp.AgentUpdate != nil {
+		t.Fatalf("update sent while held back: %+v", resp.AgentUpdate)
+	}
+	u, err := domain.NewAgentUpdate(32, "1.0.32", "abababababababababababababababababababababababababababababababab")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.AgentUpdate = &u
+	resp := postSync(t, h, map[string]any{"policyVersion": 0, "events": []any{}})
+	if resp.AgentUpdate == nil || *resp.AgentUpdate != u {
+		t.Fatalf("update = %+v, want %+v", resp.AgentUpdate, u)
+	}
+}

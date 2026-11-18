@@ -216,6 +216,9 @@ class SetupService : Service() {
         /** While setup runs, nothing may block the wireless debugging it works over. */
         val isRunning: Boolean get() = running && !watchOnly
 
+        /** Any part of setup, the account watch at its end included: nothing may kill the process. */
+        val isActive: Boolean get() = running
+
         /** Posts the setup notice again, as last shown; nothing if setup isn't running. */
         fun showAgain() {
             val service = current ?: return

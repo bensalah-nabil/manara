@@ -31,6 +31,8 @@ type Handlers struct {
 	Releases    domain.ReleaseRepository
 	// Alerts is optional: nil means no parent alerts are configured.
 	Alerts *domain.AlertService
+	// AgentUpdate is the direct-download version phones should run; nil holds updates back.
+	AgentUpdate *domain.AgentUpdate
 }
 
 // --- wire types, matching api-spec/openapi.yaml field-for-field ------------
@@ -98,6 +100,8 @@ type syncResponse struct {
 	ReleaseSecret    string         `json:"releaseSecret,omitempty"`
 	// Released confirms the phone's release ack: this device no longer exists here.
 	Released bool `json:"released,omitempty"`
+	// AgentUpdate is the latest directly downloaded Manara (absent while updates are held back).
+	AgentUpdate *domain.AgentUpdate `json:"agentUpdate,omitempty"`
 }
 
 type errorBody struct {
@@ -285,7 +289,7 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	resp := syncResponse{PendingCommands: pendingDTOs, AcceptedEventIDs: acceptedIDs, ReleaseSecret: releaseSecret}
+	resp := syncResponse{PendingCommands: pendingDTOs, AcceptedEventIDs: acceptedIDs, ReleaseSecret: releaseSecret, AgentUpdate: h.AgentUpdate}
 	policy, err := h.Policies.Get(r.Context(), deviceID)
 	if err != nil {
 		log.Printf("sync: get policy: %v", err)

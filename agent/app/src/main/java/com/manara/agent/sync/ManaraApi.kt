@@ -133,5 +133,7 @@ data class SyncResponse(
     val acceptedEventIds: List<String> = emptyList(),
     val releaseSecret: String? = null,
     /** The server has removed this phone after its release ack. */
-    val released: Boolean = false
+    val released: Boolean = false,
+    /** The direct-download version to run; absent while updates are held back. */
+    val agentUpdate: com.manara.agent.update.UpdateOffer? = null
 )

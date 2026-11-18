@@ -17,5 +17,10 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Self-update (direct build only): the installer's answer for UpdateWorker's session. -->
+        <receiver
+            android:name=".update.UpdateResultReceiver"
+            android:exported="false" />
     </application>
 </manifest>

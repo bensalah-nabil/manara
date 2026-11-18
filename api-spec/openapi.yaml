@@ -148,6 +148,25 @@ paths:
                     type: array
                     description: Event ids now durably stored; safe to drop locally.
                     items: { type: string, format: uuid }
+                  agentUpdate:
+                    type: object
+                    description: >
+                      The directly downloaded Manara version phones should run.
+                      Absent while the operator holds updates back. A phone of
+                      the direct build that runs a lower versionCode downloads
+                      `url` on Wi-Fi while charging, checks it against `sha256`
+                      and its own signing certificate, and installs it as the
+                      device owner. The Play build ignores it.
+                    required: [versionCode, versionName, url, sha256]
+                    properties:
+                      versionCode: { type: integer, minimum: 1, example: 32 }
+                      versionName: { type: string, example: "1.0.32" }
+                      url:
+                        type: string
+                        example: "https://github.com/bensalah-nabil/manara/releases/download/v1.0.32/manara.apk"
+                      sha256:
+                        type: string
+                        pattern: '^[0-9a-f]{64}$'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
