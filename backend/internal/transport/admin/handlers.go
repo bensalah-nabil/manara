@@ -50,7 +50,11 @@ func (h *Handlers) admin(w http.ResponseWriter, r *http.Request, action, target 
 	}
 	a, err := h.Verifier.Verify(r.Context(), token)
 	if err != nil {
-		if !errors.Is(err, ErrNotAdmin) {
+		// The reason (wrong object id, audience, issuer...) goes to the server log only, never
+		// to the caller. It holds no part of the token.
+		if errors.Is(err, ErrNotAdmin) {
+			log.Printf("admin: refused: %v", err)
+		} else {
 			log.Printf("admin: verify token: %v", err)
 		}
 		writeError(w, http.StatusUnauthorized, "not_admin", "sign in with an admin account")

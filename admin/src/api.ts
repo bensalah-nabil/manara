@@ -50,7 +50,8 @@ export class NotAdmin extends Error {}
 export function createApi(token: () => Promise<string>) {
     async function get<T>(path: string): Promise<T> {
         const response = await fetch(API_URL + path, { headers: { Authorization: `Bearer ${await token()}` } })
-        if (response.status === 401 || response.status === 404) throw new NotAdmin()
+        if (response.status === 401) throw new NotAdmin()
+        if (response.status === 404) throw new Error('The admin API is off on this server: set the three ADMIN_ settings on Render (docs/admin-console.md).')
         if (!response.ok) throw new Error(`The server answered ${response.status}.`)
         return (await response.json()) as T
     }

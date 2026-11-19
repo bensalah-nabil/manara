@@ -68,6 +68,7 @@ function Console({ auth }: { auth: Auth }) {
                 <div class="card narrow">
                     <h1>Not an admin</h1>
                     <p>The server refused this Microsoft account ({auth.account?.username}). Its object id must be in ADMIN_ALLOWED_OIDS on the server.</p>
+                    <p class="muted small">This account's object id: <code>{(auth.account?.idTokenClaims as { oid?: string } | undefined)?.oid ?? auth.account?.localAccountId ?? 'unknown'}</code>. The server log names the exact reason ("admin: refused: ...").</p>
                 </div>
             </Shell>
         )

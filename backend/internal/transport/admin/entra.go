@@ -111,7 +111,8 @@ func (v *Verifier) Verify(ctx context.Context, token string) (domain.Admin, erro
 	case !slices.Contains(strings.Fields(c.Scp), Scope):
 		return domain.Admin{}, fmt.Errorf("%w: no %s scope", ErrNotAdmin, Scope)
 	case c.Oid == "" || !slices.Contains(v.Allowed, c.Oid):
-		return domain.Admin{}, fmt.Errorf("%w: object id not allowed", ErrNotAdmin)
+		// The object id isn't secret, and naming it is what lets the owner fix ADMIN_ALLOWED_OIDS.
+		return domain.Admin{}, fmt.Errorf("%w: object id %q not in ADMIN_ALLOWED_OIDS", ErrNotAdmin, c.Oid)
 	}
 	name := c.Name
 	if name == "" {
