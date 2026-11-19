@@ -78,4 +78,10 @@ class BedtimeDecisionTest {
     fun allowingAnAppPausesNothingOutsideBedtime() {
         assertEquals(emptySet<String>(), hold(Calendar.MONDAY, 20, allowed = setOf("com.kanout.mawaqit")))
     }
+
+    @Test
+    fun authenticatorAppsStayOpenAtBedtimeWithoutBeingAllowed() {
+        val apps = launchable + "com.google.android.apps.authenticator2" + "com.azure.authenticator"
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.MONDAY, 22, apps = apps))
+    }
 }

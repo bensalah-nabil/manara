@@ -21,6 +21,19 @@ object BedtimeDecision {
     const val RULE = "bedtime"
 
     /**
+     * Sign-in code apps, never paused: a parent who set Manara up on a phone that also holds their
+     * own authenticator was locked out of the console at night (2026-11-19). An app here that
+     * the phone doesn't have changes nothing.
+     */
+    val AUTHENTICATORS = setOf(
+        "com.google.android.apps.authenticator2", // Google Authenticator
+        "com.azure.authenticator", // Microsoft Authenticator
+        "com.authy.authy", // Twilio Authy
+        "com.twofasapp", // 2FAS
+        "com.beemdevelopment.aegis", // Aegis
+    )
+
+    /**
      * [launchable]: the apps with a launcher icon. [keepOpen]: what the phone always keeps usable at
      * bedtime. [allowed]: the parent's own list (`lockSchedule.allowedApps`). Outside every window,
      * nothing is held, so bedtime ending lets go of everything it paused.
@@ -33,5 +46,5 @@ object BedtimeDecision {
         keepOpen: Set<String>,
         allowed: Set<String>,
     ): Set<String> =
-        if (LockDecision.isWithinAnyWindow(windows, dayOfWeek, hour)) launchable - keepOpen - allowed else emptySet()
+        if (LockDecision.isWithinAnyWindow(windows, dayOfWeek, hour)) launchable - keepOpen - AUTHENTICATORS - allowed else emptySet()
 }
