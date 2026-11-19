@@ -24,6 +24,9 @@
   li { margin: 4px 0; }
   a { color: var(--brand); }
   strong { font-weight: 650; }
+  details { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 10px 0; }
+  summary { cursor: pointer; font-weight: 650; }
+  video { display: block; width: 100%; height: auto; margin-top: 10px; border-radius: 8px; background: #000; }
 </style>
 </head>
 <body>
@@ -36,6 +39,7 @@
     <ol>
       <li><a href="#how">How Manara works</a></li>
       <li><a href="#before">Before you start</a></li>
+      <li><a href="#video">Watch it first (video)</a></li>
       <li><a href="#account">Create your account</a></li>
       <li><a href="#connect">Connect the phone</a></li>
       <li><a href="#setup">Guided setup</a></li>
@@ -78,6 +82,36 @@
       <li>On a Samsung, a <strong>Secure Folder</strong> must be removed first. Move anything you need out of it.</li>
       <li>Tell your child the phone will be managed, and why.</li>
     </ul>
+  </section>
+
+  <section id="video">
+    <h2>Watch it first (video)</h2>
+    <p>
+      A short video shows setting up a phone your child already uses, step by step, so nothing on the phone surprises
+      you. The screens are drawings and every name in them is invented; your phone's menus may be worded slightly
+      differently. A new phone, or one you can reset, doesn't need it: you scan one QR code.
+    </p>
+    <details open>
+      <summary>English (2 min)</summary>
+      <video controls preload="none" playsinline poster="guide-video/manara-setup-en.jpg" width="1280" height="720">
+        <source src="guide-video/manara-setup-en.mp4" type="video/mp4" />
+        <a href="guide-video/manara-setup-en.mp4">Open the video</a>
+      </video>
+    </details>
+    <details lang="fr">
+      <summary>Français (2 min 20)</summary>
+      <video controls preload="none" playsinline poster="guide-video/manara-setup-fr.jpg" width="1280" height="720">
+        <source src="guide-video/manara-setup-fr.mp4" type="video/mp4" />
+        <a href="guide-video/manara-setup-fr.mp4">Ouvrir la vidéo</a>
+      </video>
+    </details>
+    <details lang="ar" dir="rtl">
+      <summary>العربية (دقيقتان و40 ثانية)</summary>
+      <video controls preload="none" playsinline poster="guide-video/manara-setup-ar.jpg" width="1280" height="720">
+        <source src="guide-video/manara-setup-ar.mp4" type="video/mp4" />
+        <a href="guide-video/manara-setup-ar.mp4">افتح الفيديو</a>
+      </video>
+    </details>
   </section>
 
   <section id="account">
