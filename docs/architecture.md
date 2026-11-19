@@ -153,11 +153,12 @@ live data can't be seen.
 
 No session state in process memory → run 2+ instances behind a load balancer,
 lose one without downtime. Everything durable is in Postgres. Deploy is Docker;
-scaling is horizontal. Two exceptions today, both harmless on one instance:
-the alert throttle is in memory (a restart can repeat one alert), and every
-instance runs the silent-phone check (two instances could each email the same
-silence before either records it). Both move to Postgres before a second
-instance is added.
+scaling is horizontal. Rate limits and the alert throttle are counted in
+Postgres (`rate_hits`, `alert_throttle`), so instances share them and a restart
+keeps them. One exception remains, harmless on one instance: every instance
+runs the silent-phone check (two instances could each email the same silence
+before either records it). It moves to Postgres before a second instance is
+added.
 
 ### 3.5 Guided setup
 

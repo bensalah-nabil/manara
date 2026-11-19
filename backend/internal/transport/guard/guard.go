@@ -4,7 +4,9 @@
 package guard
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -27,12 +29,22 @@ func BodyLimit(next http.Handler) http.Handler {
 	})
 }
 
+// Store keeps a limit's events where every server instance sees them, so a
+// second instance or a restart doesn't start each count again from zero.
+// Hit records one event for key under scope and answers like Limiter.Allow.
+type Store interface {
+	Hit(ctx context.Context, scope, key string, max int, window time.Duration, now time.Time) (bool, time.Duration, error)
+}
+
 // Limiter allows at most Max events per key within Window (a sliding log).
-// In memory: one server instance, and a restart forgets the counts, which
-// errs on the side of letting a parent in.
+// With a Store (Persist) the count is shared through it; without one, or when
+// the store fails, it is kept in this process's memory, so a failing database
+// still leaves every route limited per instance, never unlimited.
 type Limiter struct {
 	Max    int
 	Window time.Duration
+	scope  string
+	store  Store
 	mu     sync.Mutex
 	seen   map[string][]time.Time
 	sweep  time.Time
@@ -42,9 +54,27 @@ func NewLimiter(max int, window time.Duration) *Limiter {
 	return &Limiter{Max: max, Window: window, seen: map[string][]time.Time{}}
 }
 
+// Persist keeps this limiter's count in store under scope, a name no other
+// limiter uses.
+func (l *Limiter) Persist(scope string, store Store) *Limiter {
+	l.scope, l.store = scope, store
+	return l
+}
+
 // Allow records one event for key and reports whether it is within the limit,
 // and if not, how long until the oldest event leaves the window.
-func (l *Limiter) Allow(key string, now time.Time) (bool, time.Duration) {
+func (l *Limiter) Allow(ctx context.Context, key string, now time.Time) (bool, time.Duration) {
+	if l.store != nil {
+		ok, wait, err := l.store.Hit(ctx, l.scope, key, l.Max, l.Window, now)
+		if err == nil {
+			return ok, wait
+		}
+		log.Printf("rate limit %s: shared count unavailable, counting in memory: %v", l.scope, err)
+	}
+	return l.allowInMemory(key, now)
+}
+
+func (l *Limiter) allowInMemory(key string, now time.Time) (bool, time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	cutoff := now.Add(-l.Window)
@@ -102,7 +132,7 @@ func Refuse(w http.ResponseWriter, retryAfter time.Duration) {
 // PerClient limits a handler per client address.
 func PerClient(l *Limiter, ipHeader string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if ok, wait := l.Allow(r.URL.Path+"|"+ClientIP(r, ipHeader), time.Now()); !ok {
+		if ok, wait := l.Allow(r.Context(), r.URL.Path+"|"+ClientIP(r, ipHeader), time.Now()); !ok {
 			Refuse(w, wait)
 			return
 		}

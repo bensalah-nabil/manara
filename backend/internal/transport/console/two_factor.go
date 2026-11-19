@@ -78,7 +78,7 @@ func (h *Handlers) VerifyLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.ChallengeLimiter != nil {
-		if ok, wait := h.ChallengeLimiter.Allow(req.Challenge, time.Now()); !ok {
+		if ok, wait := h.ChallengeLimiter.Allow(r.Context(), req.Challenge, time.Now()); !ok {
 			guard.Refuse(w, wait)
 			return
 		}

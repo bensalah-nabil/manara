@@ -83,25 +83,25 @@ func TestAlertForFallbacks(t *testing.T) {
 
 func TestThrottleBlocksRepeatsUntilTheWindowPasses(t *testing.T) {
 	th := NewAlertThrottle(time.Hour)
-	if !th.Allow("k", t0) {
+	if !th.Allow(context.Background(), "k", t0) {
 		t.Fatal("first must be allowed")
 	}
-	if th.Allow("k", t0.Add(59*time.Minute)) {
+	if th.Allow(context.Background(), "k", t0.Add(59*time.Minute)) {
 		t.Fatal("repeat inside the window must be blocked")
 	}
-	if !th.Allow("other", t0.Add(time.Minute)) {
+	if !th.Allow(context.Background(), "other", t0.Add(time.Minute)) {
 		t.Fatal("a different key is independent")
 	}
-	if !th.Allow("k", t0.Add(time.Hour)) {
+	if !th.Allow(context.Background(), "k", t0.Add(time.Hour)) {
 		t.Fatal("must be allowed again once the window has passed")
 	}
 }
 
 func TestThrottleForgetAllowsAnImmediateRepeat(t *testing.T) {
 	th := NewAlertThrottle(time.Hour)
-	th.Allow("k", t0)
-	th.Forget("k")
-	if !th.Allow("k", t0.Add(time.Minute)) {
+	th.Allow(context.Background(), "k", t0)
+	th.Forget(context.Background(), "k")
+	if !th.Allow(context.Background(), "k", t0.Add(time.Minute)) {
 		t.Fatal("Forget must clear the key")
 	}
 }

@@ -87,20 +87,22 @@ func main() {
 	}
 	alertSenders := newAlertSenders(emailAlerts)
 
+	// Rate limits are counted in Postgres, shared by every instance and kept across restarts.
+	rates := postgres.NewRateStore(db)
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
-		Alerts: newAlertService(devices, alertSenders), AgentUpdate: agentUpdate(),
+		Alerts: newAlertService(db, devices, alertSenders), AgentUpdate: agentUpdate(),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
 		Events: events, Sessions: sessions, Auth: auth, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
 		Notifier: notifier, PushEnabled: !pushOff, Profiles: devices,
 		Parents: parents, Accounts: accounts, Resets: accounts, ConsoleURL: consoleURL(),
-		LoginLimiter: guard.NewLimiter(10, 15*time.Minute),
+		LoginLimiter: guard.NewLimiter(10, 15*time.Minute).Persist("login-email", rates),
 		TwoFactor:    postgres.NewTwoFactorRepository(db),
 		// 5 code tries per pending sign-in: 5 in a million against a 6-digit code.
-		ChallengeLimiter: guard.NewLimiter(5, domain.ChallengeLifetime),
+		ChallengeLimiter: guard.NewLimiter(5, domain.ChallengeLifetime).Persist("two-step-challenge", rates),
 		Audit:            audit,
 	}
 	if mailer != nil {
@@ -124,7 +126,7 @@ func main() {
 	// an enrollment code) are limited per client. TRUSTED_IP_HEADER names the
 	// header the hosting proxy sets to the real client address.
 	ipHeader := os.Getenv("TRUSTED_IP_HEADER")
-	guessable := guard.NewLimiter(20, 10*time.Minute)
+	guessable := guard.NewLimiter(20, 10*time.Minute).Persist("per-client", rates)
 	limited := func(h http.HandlerFunc) http.HandlerFunc { return guard.PerClient(guessable, ipHeader, h) }
 
 	mux.HandleFunc("POST /api/v1/enroll", limited(agentHandlers.Enroll))
@@ -161,7 +163,7 @@ func main() {
 	mux.HandleFunc("PATCH /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneEdited, console.ChangedFields, consoleHandlers.UpdateDevice))
 
 	go runHeartbeatSweep(ctx, commands)
-	go runRetentionSweep(ctx, events, setups, audit)
+	go runRetentionSweep(ctx, db, events, setups, audit)
 	go func() {
 		for {
 			if n, err := sessions.PurgeExpired(ctx); err != nil {
@@ -434,14 +436,14 @@ func newAlertSenders(email *notify.ParentEmailAlerts) notify.Fanout {
 }
 
 // newAlertService is nil without a destination, and nothing alerts.
-func newAlertService(devices domain.DeviceRepository, senders notify.Fanout) *domain.AlertService {
+func newAlertService(db *postgres.DB, devices domain.DeviceRepository, senders notify.Fanout) *domain.AlertService {
 	if len(senders) == 0 {
 		return nil
 	}
 	return &domain.AlertService{
 		Devices:  devices,
 		Notifier: senders,
-		Throttle: domain.NewAlertThrottle(6 * time.Hour),
+		Throttle: postgres.NewAlertThrottleRepository(db, 6*time.Hour),
 		Now:      time.Now,
 	}
 }
@@ -501,7 +503,7 @@ func runHeartbeatSweep(ctx context.Context, commands domain.CommandQueue) {
 // and empties setup account lists after domain.SetupAccountRetention
 // (capability-plan G2: collected data has limited retention). It also runs
 // once at start so a restart does not delay a purge by an hour.
-func runRetentionSweep(ctx context.Context, events domain.EventStore, setups domain.SetupRepository, audit domain.AuditLog) {
+func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.EventStore, setups domain.SetupRepository, audit domain.AuditLog) {
 	purge := func() {
 		for _, kind := range domain.AllEventKinds {
 			n, err := events.PurgeOlderThan(ctx, kind, time.Now().Add(-domain.RetentionFor(kind)))
@@ -521,6 +523,9 @@ func runRetentionSweep(ctx context.Context, events domain.EventStore, setups dom
 			log.Printf("retention sweep audit log: %v", err)
 		} else if a > 0 {
 			log.Printf("retention sweep: deleted %d old audit entries", a)
+		}
+		if _, err := db.PurgeLimitsOlderThan(ctx, time.Now().Add(-24*time.Hour)); err != nil {
+			log.Printf("retention sweep rate limits: %v", err)
 		}
 	}
 	purge()

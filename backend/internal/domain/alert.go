@@ -135,9 +135,18 @@ func AlertFor(d *Device, e *Event) (Alert, bool) {
 	}, true
 }
 
-// AlertThrottle stops a problem that is reported on every sync from
-// producing an alert every 15 minutes. In memory: a server restart can
-// repeat one alert, which is the safer way to be wrong.
+// AlertGate stops a problem that is reported on every sync from producing an
+// alert every 15 minutes: Allow reports whether key may alert now, and
+// records it if so; Forget makes key alert again on its next report. Kept in
+// Postgres on the server, so a restart or a second instance doesn't repeat an
+// alert. An implementation that can't answer allows: a repeated alert is the
+// safer way to be wrong.
+type AlertGate interface {
+	Allow(ctx context.Context, key string, now time.Time) bool
+	Forget(ctx context.Context, key string)
+}
+
+// AlertThrottle is an AlertGate in this process's memory, for tests.
 type AlertThrottle struct {
 	mu     sync.Mutex
 	window time.Duration
@@ -148,8 +157,7 @@ func NewAlertThrottle(window time.Duration) *AlertThrottle {
 	return &AlertThrottle{window: window, last: map[string]time.Time{}}
 }
 
-// Allow reports whether key may alert now, and records it if so.
-func (t *AlertThrottle) Allow(key string, now time.Time) bool {
+func (t *AlertThrottle) Allow(_ context.Context, key string, now time.Time) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for k, at := range t.last {
@@ -164,8 +172,7 @@ func (t *AlertThrottle) Allow(key string, now time.Time) bool {
 	return true
 }
 
-// Forget makes key alert again on its next report.
-func (t *AlertThrottle) Forget(key string) {
+func (t *AlertThrottle) Forget(_ context.Context, key string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.last, key)
@@ -175,7 +182,7 @@ func (t *AlertThrottle) Forget(key string) {
 type AlertService struct {
 	Devices  DeviceRepository
 	Notifier AlertNotifier
-	Throttle *AlertThrottle
+	Throttle AlertGate
 	Now      func() time.Time
 	// SendTimeout bounds one delivery; zero means 10 seconds.
 	SendTimeout time.Duration
@@ -203,7 +210,7 @@ func (s *AlertService) HandleNewEvents(ctx context.Context, deviceID string, eve
 	var problems []*Event
 	for _, key := range keys {
 		if e := newest[key]; isRestoredReport(e) {
-			s.Throttle.Forget(key)
+			s.Throttle.Forget(ctx, key)
 		} else {
 			problems = append(problems, e)
 		}
@@ -222,7 +229,7 @@ func (s *AlertService) HandleNewEvents(ctx context.Context, deviceID string, eve
 		timeout = 10 * time.Second
 	}
 	for _, e := range problems {
-		if !s.Throttle.Allow(ProblemKey(e), s.Now()) {
+		if !s.Throttle.Allow(ctx, ProblemKey(e), s.Now()) {
 			continue
 		}
 		alert, _ := AlertFor(device, e)

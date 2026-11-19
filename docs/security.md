@@ -142,7 +142,12 @@ Each item says why it matters and how to know it's done.
    sign in with a recovery code and set it up again. Generate it with
    `openssl rand -base64 32`; changing it needs a re-sealing step not built yet.
 5. **Rate limits and the alert throttle in Postgres** before a second server
-   instance (in memory today; one instance on Render).
+   instance. **Done (2026-11-19):** migration 0017. Each limit is counted in
+   `rate_hits` under a lock on its key, so instances share the count, a
+   restart keeps it, and tries arriving together can't pass it; the key
+   (an email or a client address) is stored only as a SHA-256 hash and deleted
+   after a day. If Postgres can't answer, the limit is counted in memory, never
+   lifted. The alert throttle is one atomic statement on `alert_throttle`.
 6. **The date and time lock on existing phones**: it is on by default only for
    phones set up after 2026-11-08; older ones need it ticked in Settings
    restrictions.

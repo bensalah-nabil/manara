@@ -1,6 +1,8 @@
 package guard
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,18 +14,18 @@ func TestLimiterAllowsMaxPerWindowThenRecovers(t *testing.T) {
 	l := NewLimiter(3, time.Minute)
 	t0 := time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC)
 	for i := 0; i < 3; i++ {
-		if ok, _ := l.Allow("a", t0.Add(time.Duration(i)*time.Second)); !ok {
+		if ok, _ := l.Allow(context.Background(), "a", t0.Add(time.Duration(i)*time.Second)); !ok {
 			t.Fatalf("attempt %d refused", i+1)
 		}
 	}
-	ok, wait := l.Allow("a", t0.Add(3*time.Second))
+	ok, wait := l.Allow(context.Background(), "a", t0.Add(3*time.Second))
 	if ok || wait <= 0 || wait > time.Minute {
 		t.Fatalf("4th: ok=%v wait=%v", ok, wait)
 	}
-	if ok, _ := l.Allow("b", t0.Add(3*time.Second)); !ok {
+	if ok, _ := l.Allow(context.Background(), "b", t0.Add(3*time.Second)); !ok {
 		t.Fatal("another key is counted separately")
 	}
-	if ok, _ := l.Allow("a", t0.Add(61*time.Second)); !ok {
+	if ok, _ := l.Allow(context.Background(), "a", t0.Add(61*time.Second)); !ok {
 		t.Fatal("still refused after the window")
 	}
 }
@@ -79,5 +81,24 @@ func TestBodyLimitRejectsOversizedBodies(t *testing.T) {
 	h.ServeHTTP(httptest.NewRecorder(), r)
 	if readErr == nil || !strings.Contains(readErr.Error(), "too large") {
 		t.Fatalf("read error %v, want request body too large", readErr)
+	}
+}
+
+type brokenStore struct{}
+
+func (brokenStore) Hit(context.Context, string, string, int, time.Duration, time.Time) (bool, time.Duration, error) {
+	return false, 0, errors.New("database down")
+}
+
+func TestAFailingStoreStillLimitsInMemory(t *testing.T) {
+	l := NewLimiter(2, time.Minute).Persist("login", brokenStore{})
+	t0 := time.Now()
+	for i := 0; i < 2; i++ {
+		if ok, _ := l.Allow(context.Background(), "a", t0); !ok {
+			t.Fatalf("try %d refused", i+1)
+		}
+	}
+	if ok, _ := l.Allow(context.Background(), "a", t0); ok {
+		t.Fatal("unlimited while the store is down")
 	}
 }

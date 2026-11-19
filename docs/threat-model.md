@@ -86,7 +86,7 @@ endpoint is added.
 | Tampering with another phone's commands | Commands are bound to the device token's phone | in place |
 | Repudiation (who changed a rule?) | Policy versions; no audit log of who changed what | **gap**: an audit log of parent actions |
 | Data leak from the database | Hashed tokens and passwords; Neon encrypts at rest; retention limits | location rows are not encrypted by the app (**open**, roadmap Phase 4); TOTP secrets stored as is (accepted, security.md) |
-| Denial of service | Rate limits, timeouts, size limits | in place for one instance; limits are in memory (security.md, item 5) |
+| Denial of service | Rate limits, timeouts, size limits | in place; limits are counted in Postgres, shared by every instance (security.md, item 5) |
 | Request forgery from another site | Bearer tokens in a header (no cookies), CORS to the console origin | in place |
 | Injection | Parameterized SQL everywhere (pgx); JSON only | in place |
 

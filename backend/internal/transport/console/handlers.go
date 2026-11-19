@@ -202,7 +202,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.LoginLimiter != nil {
-		if ok, wait := h.LoginLimiter.Allow(domain.NormalizeEmail(req.Email), time.Now()); !ok {
+		if ok, wait := h.LoginLimiter.Allow(r.Context(), domain.NormalizeEmail(req.Email), time.Now()); !ok {
 			guard.Refuse(w, wait)
 			return
 		}
