@@ -450,6 +450,7 @@ export const ar: Record<MessageKey, string> = {
     'lock.sending': 'جارٍ الإرسال…',
     'lock.button': 'قفل الآن',
     'tab.activity': 'النشاط',
+    'common.brand': "منارة",
     'pending.loosens.siteFilter': "إيقاف مرشّح المواقع أو جعله يحجب أقل",
     'pending.loosens.chrome': "تخفيف حماية Chrome",
     'pending.loosens.sites': "إلغاء حجب مواقع محجوبة",
@@ -730,7 +731,7 @@ export const ar: Record<MessageKey, string> = {
     // TODO-REVIEW: bedtime allowed apps (P2)
     'scheduleEditor.allowed': 'تطبيقات تبقى مفتوحة وقت النوم',
     'scheduleEditor.allowedHelp': 'تبقى المكالمات والرسائل والساعة والإعدادات وتطبيقات رموز تسجيل الدخول (Google أو Microsoft Authenticator) مفتوحة دائمًا. لا يستطيع التطبيق المتوقف تشغيل منبّه أو الأذان، لذا أضف هنا تطبيقات مواقيت الصلاة. اسم حزمة واحد في كل سطر، كما في رابط التطبيق على Play Store ‏(id=...). يُتجاهَل التطبيق غير الموجود على الهاتف.',
-    'scheduleEditor.addPrayer': '+ إضافة تطبيقات مواقيت الصلاة',
+    'scheduleEditor.addPrayer': "+ إضافة تطبيقات الصلاة والقرآن",
     'scheduleEditor.errPackage': '"{name}" ليس اسم حزمة، مثل com.kanout.mawaqit.',
     'scheduleEditor.errTooMany': 'يمكن أن يبقى {max} تطبيقًا مفتوحًا وقت النوم على الأكثر.',
     'scheduleEditor.errDay': '{label}: اختر يومًا واحدًا على الأقل.',

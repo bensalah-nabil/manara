@@ -1,4 +1,4 @@
-import { t } from './i18n.ts'
+import { dateLocale, joinList, t } from './i18n.ts'
 import type { MessageKey } from './i18n.ts'
 
 /**
@@ -29,7 +29,7 @@ const LOOSENS: Record<string, MessageKey> = {
 /** What the change loosens, as one sentence; an unknown code (a newer server) still reads. */
 export function loosensText(codes: string[]): string {
     const parts = codes.map((code) => (LOOSENS[code] ? t(LOOSENS[code]) : code))
-    return parts.length === 0 ? t('pending.loosens.release') : parts.join('; ')
+    return parts.length === 0 ? t('pending.loosens.release') : joinList(parts)
 }
 
 /** The same, starting with a capital, to open a sentence. */
@@ -60,7 +60,7 @@ export function remainingText(applyAt: string, now: number): string {
 /** The local date and time a change lands, for the parent to plan around. */
 export function applyAtText(applyAt: string): string {
     const at = new Date(applyAt)
-    return Number.isNaN(at.getTime()) ? '' : at.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    return Number.isNaN(at.getTime()) ? '' : at.toLocaleString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 export function queuedText(pending: PendingChange): string {

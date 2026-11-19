@@ -40,9 +40,19 @@ export const PRAYER_APPS = [
     'com.haz.prayer',
 ]
 
-/** [text] with the prayer-time apps added once, keeping what the parent already wrote first. */
+/**
+ * Quran apps, so a child can read Quran at bedtime. Each id checked on Google Play on 2026-11-20:
+ * Quran for Android (Quran.com), Al Quran (Greentech), QuranApp.
+ */
+export const QURAN_APPS = [
+    'com.quran.labs.androidquran',
+    'com.greentech.quran',
+    'com.quranapp.android',
+]
+
+/** [text] with the prayer-time and Quran apps added once, keeping what the parent already wrote first. */
 export function withPrayerApps(text: string): string {
-    return [...new Set([...parsePackages(text), ...PRAYER_APPS])].join('\n')
+    return [...new Set([...parsePackages(text), ...PRAYER_APPS, ...QURAN_APPS])].join('\n')
 }
 
 export type ValidationResult = { ok: true; schedule: LockSchedule } | { ok: false; errors: string[] }

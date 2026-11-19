@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DAYS, MAX_ALLOWED_APPS, PRAYER_APPS, applySchedule, emptyWindow, hourText, toDraft, validateDraft, withPrayerApps } from './schedule.ts'
+import { DAYS, MAX_ALLOWED_APPS, PRAYER_APPS, QURAN_APPS, applySchedule, emptyWindow, hourText, toDraft, validateDraft, withPrayerApps } from './schedule.ts'
 import type { Policy } from './policy.ts'
 
 test('days use the agent numbering: Sunday is 1 and Saturday is 7', () => {
@@ -92,5 +92,6 @@ test('adding the prayer-time apps keeps what the parent wrote and adds each once
     assert.equal(apps[0], 'com.greentech.quran')
     assert.equal(apps.filter((app) => app === 'com.kanout.mawaqit').length, 1)
     assert.ok(PRAYER_APPS.every((app) => apps.includes(app)))
+    assert.ok(QURAN_APPS.every((app) => apps.includes(app)))
     assert.equal(withPrayerApps(text), text)
 })

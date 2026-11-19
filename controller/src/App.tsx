@@ -90,7 +90,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
     if (mode === 'forgot') {
         return (
             <div class="auth">
-                <div class="auth-brand"><Logo /><span>Manara</span></div>
+                <div class="auth-brand"><Logo /><span>{t('common.brand')}</span></div>
             <LanguageSwitch />
                 <form class="card auth-card" onSubmit={submit}>
                     <h1>{t('auth.resetTitle')}</h1>
@@ -119,7 +119,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
         <div class="auth">
             <div class="auth-brand">
                 <Logo />
-                <span>Manara</span>
+                <span>{t('common.brand')}</span>
             </div>
             <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
@@ -179,7 +179,7 @@ function SecondStep({ onCode, onCancel }: { onCode: (code: string) => Promise<vo
 
     return (
         <div class="auth">
-            <div class="auth-brand"><Logo /><span>Manara</span></div>
+            <div class="auth-brand"><Logo /><span>{t('common.brand')}</span></div>
             <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
                 <h1>{t('auth.twoStepTitle')}</h1>
@@ -220,7 +220,7 @@ function ResetPassword({ token, onReset, onCancel }: { token: string; onReset: (
 
     return (
         <div class="auth">
-            <div class="auth-brand"><Logo /><span>Manara</span></div>
+            <div class="auth-brand"><Logo /><span>{t('common.brand')}</span></div>
             <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
                 <h1>{t('auth.newPasswordTitle')}</h1>
@@ -358,7 +358,7 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
     return (
         <div class="shell">
             <header class="topbar">
-                <a href="#" class="brand"><Logo /><span>Manara</span></a>
+                <a href="#" class="brand"><Logo /><span>{t('common.brand')}</span></a>
                 <span class="topbar-actions">
                     <LanguageSwitch onChoose={(lang) => api.setLanguage(lang)} />
                     <a href="/decouvrir.html" class="ghost small button-link">{t('auth.about')}</a>

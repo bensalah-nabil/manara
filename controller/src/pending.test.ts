@@ -16,7 +16,7 @@ test('a change whose time has come lands any minute', () => {
 })
 
 test('what a change loosens reads in plain words, and an unknown code still shows', () => {
-    assert.equal(loosensText(['site_filter', 'sites']), 'the website filter is turned off or blocks less; blocked websites are unblocked')
+    assert.equal(loosensText(['site_filter', 'sites']), 'the website filter is turned off or blocks less, blocked websites are unblocked')
     assert.equal(loosensText(['something_new']), 'something_new')
 })
 

@@ -611,3 +611,52 @@ label.check.choice:has(input:checked) { border-color: var(--brand); box-shadow: 
 .pending { border-color: var(--warn, #f59e0b); }
 .pending-item { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .pending-item p { margin: 0; flex: 1 1 280px; }
+
+/*
+ * The Islamic look, for the Arabic console only (owner's choice, 2026-11-20): the same tokens with
+ * emerald and gold values, and a faint eight-pointed star (khatam) behind the page. English and
+ * French keep the look above. `lang` is set on <html> by i18n.applyToDocument().
+ */
+:root:lang(ar) {
+  --bg: #f6f1e6;
+  --surface: #fffdf8;
+  --surface-2: #faf5ea;
+  --ink: #1b2a24;
+  --muted: #5b675f;
+  --line: #e5dac3;
+  --field-line: #887c62;
+  --brand: #0e5a43;
+  --brand-hover: #0a4634;
+  --brand-ink: #ffffff;
+  --brand-soft: #e2efe8;
+  --lamp: #b8901f;
+  --focus: #a8841c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:lang(ar) {
+    --bg: #0a1511;
+    --surface: #10201a;
+    --surface-2: #142820;
+    --ink: #ede6d4;
+    --muted: #a9a48d;
+    --line: #24392f;
+    --field-line: #6d7a6c;
+    --brand: #d8b24a;
+    --brand-hover: #e6c463;
+    --brand-ink: #1a1406;
+    --brand-soft: #2a2a17;
+    --lamp: #d8b24a;
+    --focus: #e6c463;
+  }
+}
+
+:root:lang(ar) body {
+  background-color: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23b99328' stroke-opacity='.18' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='4'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+:root:lang(ar) .topbar { border-bottom: 2px solid var(--lamp); }
+:root:lang(ar) .brand span { color: var(--brand); }
+:root:lang(ar) .rule-heading { color: var(--brand); }
+:root:lang(ar) .rule-card { border-top: 3px solid color-mix(in srgb, var(--lamp) 55%, transparent); }
