@@ -202,17 +202,7 @@ func (h *Handlers) DisableTwoFactor(w http.ResponseWriter, r *http.Request) {
 	if !h.checkPassword(w, r, parentID, req.Password) {
 		return
 	}
-	// Before the code, so a refusal doesn't use it up.
-	phones, err := h.Devices.ListByParent(r.Context(), parentID)
-	if err != nil {
-		log.Printf("console: list phones to disable two-step: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "")
-		return
-	}
-	if len(phones) > 0 {
-		writeError(w, http.StatusConflict, "phones_need_two_step", "remove every phone from the account first")
-		return
-	}
+	// Optional, so it can be turned off with phones in the account (2026-11-19).
 	if err := h.TwoFactor.Check(r.Context(), parentID, req.Code, time.Now()); err != nil {
 		if errors.Is(err, domain.ErrBadSecondFactor) {
 			writeError(w, http.StatusBadRequest, "bad_code", err.Error())

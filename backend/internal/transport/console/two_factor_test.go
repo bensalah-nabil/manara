@@ -131,14 +131,10 @@ func TestTurningTwoStepOnAndOff(t *testing.T) {
 	}
 }
 
-func TestTwoStepStaysOnWhilePhonesAreInTheAccount(t *testing.T) {
+func TestTwoStepCanBeTurnedOffWithPhonesInTheAccount(t *testing.T) {
 	h, tf := twoFactorHandlers(true) // parent-1 has dev-1
-	w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"correct horse","code":"111111"}`, "mine")
-	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "phones_need_two_step") || !tf.on["parent-1"] {
-		t.Fatalf("disable with a phone: %d %s", w.Code, w.Body)
-	}
-	if w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"wrong","code":"111111"}`, "mine"); w.Code != http.StatusForbidden {
-		t.Fatalf("the password is still checked first: %d", w.Code)
+	if w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"wrong","code":"111111"}`, "mine"); w.Code != http.StatusForbidden || !tf.on["parent-1"] {
+		t.Fatalf("the password is still checked: %d", w.Code)
 	}
 	// Moving to a new authenticator app needs no turning off.
 	if w := call(h.SetupTwoFactor, http.MethodPost, `{"password":"correct horse"}`, "mine"); w.Code != http.StatusOK {
@@ -146,5 +142,8 @@ func TestTwoStepStaysOnWhilePhonesAreInTheAccount(t *testing.T) {
 	}
 	if w := call(h.EnableTwoFactor, http.MethodPost, `{"code":"111111"}`, "mine"); w.Code != http.StatusOK || !tf.on["parent-1"] {
 		t.Fatalf("new app enable while on: %d", w.Code)
+	}
+	if w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"correct horse","code":"111111"}`, "mine"); w.Code != http.StatusNoContent || tf.on["parent-1"] {
+		t.Fatalf("disable with a phone: %d %s", w.Code, w.Body)
 	}
 }

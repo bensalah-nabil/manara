@@ -98,7 +98,6 @@ export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; o
             <TwoStepPanel
                 api={api}
                 on={account.twoFactor}
-                phones={account.phones}
                 onSessionExpired={onSessionExpired}
                 onChanged={() => { api.getAccount().then(setAccount).catch(() => undefined) }}
             />

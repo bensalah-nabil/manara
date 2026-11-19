@@ -120,6 +120,8 @@ Each item says why it matters and how to know it's done.
    android14-release: the shell holds MANAGE_DEBUGGING, and the call empties
    the paired list and adb_keys. Check on the next guided setup that Settings,
    Wireless debugging, Paired devices is empty afterwards.
+   **Seen on a phone (2026-11-19):** after guided setup on the SM-A045F
+   (Android 14, 1.0.34), the PC that ran setup was refused until paired again.
 3. **Make two-step sign-in required for new accounts**, or strongly prompted
    at first sign-in. **Mostly done (2026-11-15):** the server refuses an
    enrollment code (`two_factor_required`) to a parent without it, so no new
@@ -129,6 +131,16 @@ Each item says why it matters and how to know it's done.
    every screen. **Done (2026-11-18):** it can't be turned off while a phone is
    in the account (`phones_need_two_step`); a parent who changes phones moves
    to a new authenticator app instead, which keeps it on throughout.
+   **Reversed (2026-11-19), the owner's decision: optional.** Setting up an
+   authenticator app was one more hard step for a parent with no technical
+   background (the setup-ease priority). A phone is now added without it, it
+   can be turned off with phones in the account, and the every-screen banner
+   is gone; the Account page still recommends it. What this gives up: a stolen
+   or guessed password alone opens the console, its rules and the phone's
+   location. Still in place against that: rate limits on sign-in, timing-safe
+   login, reset links to the account's email only, sign-in alerts in Recent
+   activity. Worth revisiting: a gentler prompt (passkeys, or a code by email
+   at a new browser) that adds safety without an authenticator app.
 4. **Encrypt the authenticator secrets and location rows at rest** with a
    server key (today: Neon's disk encryption only; the secrets are useless
    without the password, location is the most sensitive data Manara holds).

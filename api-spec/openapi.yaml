@@ -492,8 +492,6 @@ paths:
           description: "`bad_code`."
         '403':
           description: "`wrong_password`."
-        '409':
-          description: "`phones_need_two_step`: a phone is still in the account. Checked before the code, which isn't used up."
 
   /console/auth/password-reset:
     post:
@@ -736,10 +734,6 @@ paths:
             `attestation_outdated`, or `unknown_phone_brand`. No token is issued.
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          description: >
-            `two_factor_required`: the parent hasn't turned on two-step sign-in.
-            A phone is only added to an account that has it. No token is issued.
 
   /console/devices:
     get:

@@ -195,7 +195,6 @@ fieldset.group legend { padding: 0 6px; font-weight: 600; font-size: 0.9rem; col
 /* Shell */
 
 .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
-.shell.with-banner { grid-template-rows: auto auto 1fr; }
 .topbar {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -597,8 +596,6 @@ code, .token, .release-code, textarea, input[type="email"], input[type="password
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Two-step sign-in missing on an account with phones: under the top bar, on every screen. */
-.shell-banner { margin: 12px 20px 0; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
-@media (max-width: 760px) { .shell-banner { margin: 10px 16px 0; } }
 
 /* The two ways to add a phone, as cards to choose between */
 label.check.choice {

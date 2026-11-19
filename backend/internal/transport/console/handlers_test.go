@@ -202,8 +202,8 @@ func TestEnrollmentTokenRecordsTheAttestation(t *testing.T) {
 	}
 }
 
-// A phone is only added to an account with two-step sign-in (security.md, item 3).
-func TestEnrollmentTokenRequiresTwoStepSignIn(t *testing.T) {
+// Two-step sign-in is optional: a phone is added with it on or off (security.md, item 3).
+func TestEnrollmentTokenWithOrWithoutTwoStepSignIn(t *testing.T) {
 	for _, on := range []bool{false, true} {
 		enrollments := &fakeEnrollments{}
 		h := testHandlers(nil)
@@ -211,14 +211,8 @@ func TestEnrollmentTokenRequiresTwoStepSignIn(t *testing.T) {
 		h.TwoFactor = &fakeTwoFactor{on: map[string]bool{"parent-1": on}, challenges: map[string]string{}}
 		w := httptest.NewRecorder()
 		h.CreateEnrollmentToken(w, newEnrollmentRequest("mine", fullAttestation))
-		if !on {
-			if w.Code != http.StatusForbidden || !strings.Contains(w.Body.String(), "two_factor_required") || len(enrollments.created) != 0 {
-				t.Errorf("off: status %d body %s, created %d; want 403 two_factor_required and no token", w.Code, w.Body.String(), len(enrollments.created))
-			}
-			continue
-		}
 		if w.Code != http.StatusOK || len(enrollments.created) != 1 {
-			t.Errorf("on: status %d, created %d; want a token", w.Code, len(enrollments.created))
+			t.Errorf("two-step %v: status %d body %s, created %d; want a token", on, w.Code, w.Body.String(), len(enrollments.created))
 		}
 	}
 }

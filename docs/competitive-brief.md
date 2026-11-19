@@ -40,7 +40,7 @@ Manara.
 - **Built, not yet seen on a phone:** Arabic and French (P1); a presentation
   page for parents with an advert video; a prayer-times chart (part of P14);
   a shorter enrollment (E-1 to E-3).
-- **Shipped:** two-step sign-in required to add a phone; a release interrupted
+- **Shipped:** two-step sign-in (optional since 2026-11-19); a release interrupted
   halfway now finishes by itself.
 - **Not built yet:** the block screen (D2), calling the parent from a locked
   phone (P2), weekly report (P8), place alerts (P5), app approval (P6).

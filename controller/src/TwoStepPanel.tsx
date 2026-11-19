@@ -16,12 +16,11 @@ type Stage =
 /**
  * Two-step sign-in with an authenticator app: turning it on (password, scan, first code, then the
  * recovery codes, shown once), moving to a new app (the same steps while it stays on), and off
- * (password and a current code), which the server allows only with no phone in the account.
+ * (password and a current code). Optional, phones or not (2026-11-19).
  */
-export function TwoStepPanel({ api, on, phones, onChanged, onSessionExpired }: {
+export function TwoStepPanel({ api, on, onChanged, onSessionExpired }: {
     api: Api
     on: boolean
-    phones: number
     onChanged: () => void
     onSessionExpired: () => void
 }) {
@@ -56,14 +55,13 @@ export function TwoStepPanel({ api, on, phones, onChanged, onSessionExpired }: {
                             ? t('twoStep.on')
                             : t('twoStep.off')}
                     </p>
-                    {on && phones > 0 && <p class="muted small">{t('twoStep.staysOnWithPhones')}</p>}
                     <div class="actions">
                         {on && (
                             <button type="button" class="ghost" onClick={() => setStage({ kind: 'password' })}>
                                 {t('twoStep.newApp')}
                             </button>
                         )}
-                        {on && phones === 0 && (
+                        {on && (
                             <button type="button" class="ghost danger" onClick={() => setStage({ kind: 'turnOff' })}>
                                 {t('twoStep.turnOff')}
                             </button>

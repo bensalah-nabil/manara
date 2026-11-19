@@ -46,8 +46,6 @@ export function authErrorText(code: string): string {
             return t('err.attestationOutdated')
         case 'unknown_phone_brand':
             return t('err.unknownBrand')
-        case 'two_factor_required':
-            return t('err.twoFactorRequired')
         case 'invalid_browser_rules':
             return t('err.browserRules')
         case 'bad_code':
@@ -56,8 +54,6 @@ export function authErrorText(code: string): string {
             return t('err.invalidChallenge')
         case 'setup_first':
             return t('err.setupFirst')
-        case 'phones_need_two_step':
-            return t('err.phonesNeedTwoStep')
         case 'rate_limited':
             return t('err.rateLimited')
         case 'weak_password':
