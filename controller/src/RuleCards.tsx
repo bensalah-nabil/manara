@@ -8,7 +8,6 @@ import { errorText } from './format.ts'
 import type { Policy } from './policy.ts'
 import { AGES, ageLabel, applyAge, childLines, hourLabel, matchingAge, minutesLabel, readCards, setBedtimeHour, setCard, setMinutes, warningFor } from './ruleCards.ts'
 import type { Age, CardId, CardsState } from './ruleCards.ts'
-import { PrayerChart } from './PrayerChart.tsx'
 import { t } from './i18n.ts'
 
 const ART: Record<CardId, ComponentChildren> = {
@@ -23,9 +22,14 @@ const ART: Record<CardId, ComponentChildren> = {
     report: <><path d="M8 41h32" /><rect x="11" y="24" width="6" height="17" /><rect x="21" y="14" width="6" height="27" /><rect x="31" y="7" width="6" height="34" /></>,
 }
 
-const GROUPS: { title: string; cards: { id: CardId; title: string; text: string }[] }[] = [
+/** One topic per group; its detailed settings open inside it, never in a second place. */
+export type GroupId = 'websites' | 'time' | 'protect'
+
+const GROUPS: { id: GroupId; title: string; more: string; cards: { id: CardId; title: string; text: string }[] }[] = [
     {
-        title: t('rules.group.blocked'),
+        id: 'websites',
+        title: t('rules.group.websites'),
+        more: t('rules.more.websites'),
         cards: [
             { id: 'adult', title: t('rules.card.adult'), text: t('rules.card.adultText') },
             { id: 'ads', title: t('rules.card.ads'), text: t('rules.card.adsText') },
@@ -33,7 +37,9 @@ const GROUPS: { title: string; cards: { id: CardId; title: string; text: string 
         ],
     },
     {
+        id: 'time',
         title: t('rules.group.time'),
+        more: t('rules.more.time'),
         cards: [
             { id: 'social', title: t('rules.card.social'), text: t('rules.card.socialText') },
             { id: 'games', title: t('rules.card.games'), text: t('rules.card.gamesText') },
@@ -41,14 +47,16 @@ const GROUPS: { title: string; cards: { id: CardId; title: string; text: string 
         ],
     },
     {
-        title: t('rules.group.safety'),
+        id: 'protect',
+        title: t('rules.group.protect'),
+        more: t('rules.more.protect'),
         cards: [
             { id: 'protect', title: t('rules.card.protect'), text: t('rules.card.protectText') },
-            { id: 'location', title: t('rules.card.location'), text: t('rules.card.locationText') },
-            { id: 'report', title: t('rules.card.report'), text: t('rules.card.reportText') },
         ],
     },
 ]
+
+const RULE_CARDS: CardId[] = GROUPS.flatMap((group) => group.cards.map((card) => card.id))
 
 const FIXED_LABEL: Partial<Record<CardId, [string, string]>> = {
     adult: [t('rules.value.blocked'), t('rules.value.allowed')],
@@ -174,7 +182,7 @@ function CustomRules({ policy, busy, change }: { policy: Policy; busy: boolean; 
     )
 }
 
-export function RuleCards({ api, device, onSessionExpired, advanced }: Props & { advanced: ComponentChildren }) {
+export function RuleCards({ api, device, onSessionExpired, more }: Props & { more: Record<GroupId, ComponentChildren> }) {
     const [policy, setPolicy] = useState<Policy | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
@@ -220,14 +228,14 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
 
     const state = readCards(policy)
     const age = matchingAge(policy)
-    const onCount = Object.values(state.on).filter(Boolean).length
+    const onCount = RULE_CARDS.filter((id) => state.on[id]).length
     const lines = childLines(state)
 
     return (
         <div class="rules-screen">
             <div class="rules-top">
                 <p>
-                    <b>{t('rules.count', { on: onCount, all: Object.keys(state.on).length })}</b>
+                    <b>{t('rules.count', { on: onCount, all: RULE_CARDS.length })}</b>
                     <span class="muted small rule-status" role="status">{busy ? t('common.saving') : message}</span>
                 </p>
                 <div class="ages">
@@ -243,7 +251,7 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
             <div class="rules-layout">
                 <div class="rule-groups">
                     {GROUPS.map((group) => (
-                        <section key={group.title} class="rule-group">
+                        <section key={group.id} class="rule-group">
                             <h2 class="rule-heading">{group.title}</h2>
                             <div class="rule-cards">
                                 {group.cards.map(({ id, title, text }) => (
@@ -260,14 +268,13 @@ export function RuleCards({ api, device, onSessionExpired, advanced }: Props & {
                                     </article>
                                 ))}
                             </div>
+                            <details class="advanced">
+                                <summary>{group.more}</summary>
+                                <div class="stack">{more[group.id]}</div>
+                            </details>
                         </section>
                     ))}
-                    <PrayerChart api={api} device={device} />
                     <CustomRules policy={policy} busy={busy} change={change} />
-                    <details class="advanced">
-                        <summary>{t('rules.advanced')}</summary>
-                        <div class="stack">{advanced}</div>
-                    </details>
                 </div>
                 <aside class="child-preview" aria-label={t('rules.childSees')}>
                     <h2 class="rule-heading">{t('rules.childSees')}</h2>

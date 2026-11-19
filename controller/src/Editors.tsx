@@ -26,6 +26,9 @@ export interface Props {
     onSessionExpired: () => void
 }
 
+/** A setting under "What you see": whether it's on, shown while closed, and a call once it closes. */
+export type SeenProps = Props & { on?: boolean; onClosed?: () => void }
+
 const limitsSection: Section<LimitsDraft, TimeLimits> = {
     toDraft: limitsDraft,
     validate: (draft) => {
@@ -107,11 +110,11 @@ const callLogSection: Section<CallLogDraft, CallLogPolicy> = {
 type Editor = ReturnType<typeof usePolicyEditor<unknown, unknown>>
 
 /** A setting while closed: a title, what it does, and an Edit button. Nothing is fetched until it opens. */
-function Row({ title, summary, editor }: { title: string; summary: string; editor: Pick<Editor, 'loading' | 'error' | 'load'> }) {
+function Row({ title, summary, editor, on }: { title: string; summary: string; editor: Pick<Editor, 'loading' | 'error' | 'load'>; on?: boolean }) {
     return (
         <section class="card setting">
             <div class="setting-text">
-                <h3>{title}</h3>
+                <h3>{title}{on !== undefined && <> <span class={on ? 'tag ok' : 'tag'}>{on ? t('seen.on') : t('seen.off')}</span></>}</h3>
                 <p class="muted">{summary}</p>
                 {editor.error && <p role="alert" class="error">{editor.error}</p>}
             </div>
@@ -269,11 +272,11 @@ export function ScheduleEditor(props: Props) {
     )
 }
 
-export function LocationEditor(props: Props) {
+export function LocationEditor({ on, onClosed, ...props }: SeenProps) {
     const editor = usePolicyEditor({ ...props, section: locationSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title={t('locationEditor.title')} summary={t('locationEditor.summary')} editor={editor} />
+        return <Row title={t('locationEditor.title')} summary={t('locationEditor.summary')} editor={editor} on={on} />
     }
 
     return (
@@ -286,16 +289,16 @@ export function LocationEditor(props: Props) {
                 {t('locationEditor.interval')}
                 <input inputMode="numeric" value={draft.intervalMinutes} onInput={(event) => setDraft({ ...draft, intervalMinutes: event.currentTarget.value })} />
             </label>
-            <Footer editor={editor} saveLabel={t('locationEditor.save')} />
+            <Footer editor={{ ...editor, close: () => { editor.close(); onClosed?.() } }} saveLabel={t('locationEditor.save')} />
         </Open>
     )
 }
 
-export function CallLogEditor(props: Props) {
+export function CallLogEditor({ on, onClosed, ...props }: SeenProps) {
     const editor = usePolicyEditor({ ...props, section: callLogSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title={t('calls.title')} summary={t('callEditor.summary')} editor={editor} />
+        return <Row title={t('calls.title')} summary={t('callEditor.summary')} editor={editor} on={on} />
     }
 
     return (
@@ -307,16 +310,16 @@ export function CallLogEditor(props: Props) {
                 {t('callEditor.help2')}
             </p>
             <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>{t('callEditor.send')}</Toggle>
-            <Footer editor={editor} saveLabel={t('callEditor.save')} />
+            <Footer editor={{ ...editor, close: () => { editor.close(); onClosed?.() } }} saveLabel={t('callEditor.save')} />
         </Open>
     )
 }
 
-export function UsageReportEditor(props: Props) {
+export function UsageReportEditor({ on, onClosed, ...props }: SeenProps) {
     const editor = usePolicyEditor({ ...props, section: usageReportSection })
     const { draft, policy, setDraft } = editor
     if (draft === null || policy === null) {
-        return <Row title={t('usageEditor.title')} summary={t('usageEditor.summary')} editor={editor} />
+        return <Row title={t('usageEditor.title')} summary={t('usageEditor.summary')} editor={editor} on={on} />
     }
 
     return (
@@ -325,7 +328,7 @@ export function UsageReportEditor(props: Props) {
                 {t('usageEditor.help')}
             </p>
             <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>{t('usageEditor.send')}</Toggle>
-            <Footer editor={editor} saveLabel={t('usageEditor.save')} />
+            <Footer editor={{ ...editor, close: () => { editor.close(); onClosed?.() } }} saveLabel={t('usageEditor.save')} />
         </Open>
     )
 }

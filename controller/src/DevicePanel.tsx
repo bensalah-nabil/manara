@@ -19,7 +19,9 @@ import type { SetupReadiness } from './api.ts'
 import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
 import { InsightsPanel } from './InsightsPanel.tsx'
+import { PrayerChart } from './PrayerChart.tsx'
 import { RuleCards } from './RuleCards.tsx'
+import { readCards } from './ruleCards.ts'
 import { directionText, durationText, groupByDay, numberText, summarizeCalls, timeText } from './callLog.ts'
 import type { CallItem } from './callLog.ts'
 import { appName } from './insights.ts'
@@ -266,12 +268,39 @@ function LockNow({ api, device, onSessionExpired }: Props) {
     )
 }
 
-type Tab = 'activity' | 'rules' | 'sharing' | 'phone'
+/** What the phone sends the parent, each with whether it's on now (read again when a setting closes). */
+function SeenTab(props: Props) {
+    const { api, device, onSessionExpired } = props
+    const [on, setOn] = useState<{ location: boolean; report: boolean; calls: boolean } | null>(null)
+    const [reads, setReads] = useState(0)
+    useEffect(() => {
+        let current = true
+        api.getPolicy(device.deviceId)
+            .then((policy) => {
+                if (!current) return
+                const state = readCards(policy)
+                setOn({ location: state.on.location, report: state.on.report, calls: state.calls })
+            })
+            .catch((caught) => { if (isSessionError(caught)) onSessionExpired() })
+        return () => { current = false }
+    }, [api, device.deviceId, onSessionExpired, reads])
+    const reread = () => setReads((count) => count + 1)
+    return (
+        <>
+            <p class="muted">{t('seen.intro')}</p>
+            <LocationEditor {...props} on={on?.location} onClosed={reread} />
+            <UsageReportEditor {...props} on={on?.report} onClosed={reread} />
+            <CallLogEditor {...props} on={on?.calls} onClosed={reread} />
+        </>
+    )
+}
+
+type Tab = 'activity' | 'rules' | 'seen' | 'phone'
 
 const TABS: { key: Tab; label: string }[] = [
     { key: 'activity', label: t('tab.activity') },
     { key: 'rules', label: t('tab.rules') },
-    { key: 'sharing', label: t('tab.sharing') },
+    { key: 'seen', label: t('tab.seen') },
     { key: 'phone', label: t('tab.phone') },
 ]
 
@@ -341,20 +370,17 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                                 <LimitHistory {...props} />
                             </div>
                         </div>
+                        <PrayerChart api={props.api} device={device} />
                     </>
                 )}
                 {tab === 'rules' && (
                     <RuleCards
                         {...props}
-                        advanced={(
-                            <>
-                                <TimeLimitsEditor {...props} />
-                                <ScheduleEditor {...props} />
-                                <SiteFilterEditor {...props} />
-                                <BrowserEditor {...props} />
-                                <RestrictionsEditor {...props} />
-                            </>
-                        )}
+                        more={{
+                            websites: <><BrowserEditor {...props} /><SiteFilterEditor {...props} /></>,
+                            time: <><TimeLimitsEditor {...props} /><ScheduleEditor {...props} /></>,
+                            protect: <RestrictionsEditor {...props} />,
+                        }}
                     />
                 )}
                 {tab === 'phone' && (
@@ -363,13 +389,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                         <ReleasePanel {...props} />
                     </>
                 )}
-                {tab === 'sharing' && (
-                    <>
-                        <LocationEditor {...props} />
-                        <UsageReportEditor {...props} />
-                        <CallLogEditor {...props} />
-                    </>
-                )}
+                {tab === 'seen' && <SeenTab {...props} />}
             </div>
         </div>
     )
