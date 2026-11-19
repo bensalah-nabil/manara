@@ -105,23 +105,41 @@ Each item says why it matters and how to know it's done.
 1. **Audit log of parent actions.** Who locked, released, changed a rule or
    turned two-step sign-in on or off, and when. Today only policy versions
    exist (threat model, repudiation). Done when every console write leaves a
-   row the parent can read on the Account page.
+   row the parent can read on the Account page. **Done (2026-11-18):**
+   `audit_log` (migration 0016), written by `Handlers.Audited` around every
+   signed-in console write plus each sign-in and password reset, kept 90 days,
+   shown under Account, Recent activity.
 2. **Remove every adb pairing key at the end of guided setup**, not only
    Manara's own. A computer paired during setup by someone on the same Wi-Fi
    would otherwise stay paired (debugging is blocked afterwards, so it can't
    connect, but the key should not survive). Done when the setup flow clears
    the paired-device list and a phone shows none afterwards.
+   **Built (2026-11-18), not yet seen on a phone:** the last setup step runs
+   `service call adb 3` (`IAdbManager.clearDebuggingKeys`, the same on Android
+   11 to 16) before turning wireless debugging off. Read in AOSP
+   android14-release: the shell holds MANAGE_DEBUGGING, and the call empties
+   the paired list and adb_keys. Check on the next guided setup that Settings,
+   Wireless debugging, Paired devices is empty afterwards.
 3. **Make two-step sign-in required for new accounts**, or strongly prompted
    at first sign-in. **Mostly done (2026-11-15):** the server refuses an
    enrollment code (`two_factor_required`) to a parent without it, so no new
    phone joins an account protected by a password alone, and the console asks
    for it before the first step of adding a phone. A parent with phones and
    without it (phones added earlier, or turned off since) sees a banner on
-   every screen. Still open: it can be turned off later with the password and
-   a code, which leaves those phones behind a password alone until it's back on.
+   every screen. **Done (2026-11-18):** it can't be turned off while a phone is
+   in the account (`phones_need_two_step`); a parent who changes phones moves
+   to a new authenticator app instead, which keeps it on throughout.
 4. **Encrypt the authenticator secrets and location rows at rest** with a
    server key (today: Neon's disk encryption only; the secrets are useless
    without the password, location is the most sensitive data Manara holds).
+   **Done (2026-11-18), once `DATA_KEY` is set on Render:** `internal/sealed`
+   (AES-256-GCM, each value bound to its row) seals authenticator secrets and
+   the `location` and `call` events; rows stored before are sealed at start.
+   The server refuses to start with a key that can't open what is sealed, or
+   with none. **Keep a copy of the key outside Render:** without it, sealed
+   locations and calls are lost and every parent with two-step sign-in has to
+   sign in with a recovery code and set it up again. Generate it with
+   `openssl rand -base64 32`; changing it needs a re-sealing step not built yet.
 5. **Rate limits and the alert throttle in Postgres** before a second server
    instance (in memory today; one instance on Render).
 6. **The date and time lock on existing phones**: it is on by default only for

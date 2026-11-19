@@ -15,11 +15,13 @@ type Stage =
 
 /**
  * Two-step sign-in with an authenticator app: turning it on (password, scan, first code, then the
- * recovery codes, shown once) and off (password and a current code).
+ * recovery codes, shown once), moving to a new app (the same steps while it stays on), and off
+ * (password and a current code), which the server allows only with no phone in the account.
  */
-export function TwoStepPanel({ api, on, onChanged, onSessionExpired }: {
+export function TwoStepPanel({ api, on, phones, onChanged, onSessionExpired }: {
     api: Api
     on: boolean
+    phones: number
     onChanged: () => void
     onSessionExpired: () => void
 }) {
@@ -54,9 +56,24 @@ export function TwoStepPanel({ api, on, onChanged, onSessionExpired }: {
                             ? t('twoStep.on')
                             : t('twoStep.off')}
                     </p>
-                    <button type="button" class={on ? 'ghost danger' : 'primary'} onClick={() => setStage({ kind: on ? 'turnOff' : 'password' })}>
-                        {on ? t('twoStep.turnOff') : t('twoStep.turnOn')}
-                    </button>
+                    {on && phones > 0 && <p class="muted small">{t('twoStep.staysOnWithPhones')}</p>}
+                    <div class="actions">
+                        {on && (
+                            <button type="button" class="ghost" onClick={() => setStage({ kind: 'password' })}>
+                                {t('twoStep.newApp')}
+                            </button>
+                        )}
+                        {on && phones === 0 && (
+                            <button type="button" class="ghost danger" onClick={() => setStage({ kind: 'turnOff' })}>
+                                {t('twoStep.turnOff')}
+                            </button>
+                        )}
+                        {!on && (
+                            <button type="button" class="primary" onClick={() => setStage({ kind: 'password' })}>
+                                {t('twoStep.turnOn')}
+                            </button>
+                        )}
+                    </div>
                 </>
             )}
 

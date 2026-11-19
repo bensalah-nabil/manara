@@ -56,6 +56,8 @@ export function authErrorText(code: string): string {
             return t('err.invalidChallenge')
         case 'setup_first':
             return t('err.setupFirst')
+        case 'phones_need_two_step':
+            return t('err.phonesNeedTwoStep')
         case 'rate_limited':
             return t('err.rateLimited')
         case 'weak_password':

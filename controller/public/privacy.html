@@ -34,7 +34,7 @@
   </header>
 
   <h1>Privacy policy</h1>
-  <p class="muted">Last updated 19 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
+  <p class="muted">Last updated 18 November 2026. Applies to the Manara app for Android and the Manara parent console.</p>
 
   <p class="note">
     Manara lets a parent set rules on their own child's phone. The phone always shows that it is managed and what is
@@ -62,6 +62,7 @@
     <table>
       <tr><th>Data</th><th>When</th><th>Kept</th></tr>
       <tr><td>Parent's email address and a hashed password</td><td>To create the parent account</td><td>Until the account is deleted</td></tr>
+      <tr><td>A record of what was done from the parent account: sign-ins, rule changes, commands sent, phones added or removed, two-step sign-in changes (never content, location or an IP address)</td><td>Always, so the parent can see it under Account, Recent activity</td><td>90 days</td></tr>
       <tr><td>The parent's three confirmations, the date, and the phone's brand</td><td>When adding a phone</td><td>As long as the phone is in the account</td></tr>
       <tr><td>Phone model, maker and Android version</td><td>When the phone is connected</td><td>As long as the phone is in the account</td></tr>
       <tr><td>Whether the phone is ready for guided setup: Android version, Wi-Fi on or off, battery level and charging, and whether Developer options and Wireless debugging are on</td><td>While the phone shows its "Get this phone ready" screen, so the console can follow it</td><td>As long as the phone is in the account</td></tr>
@@ -120,7 +121,8 @@
   <section>
     <h2>How it is protected</h2>
     <p>
-      All traffic uses HTTPS. Passwords are stored as bcrypt hashes and device tokens as hashes. On the phone, its token
+      All traffic uses HTTPS. Passwords are stored as bcrypt hashes and device tokens as hashes. Locations, call history
+      and the two-step sign-in secrets are also encrypted in the database with a key kept apart from it. On the phone, its token
       and release key are encrypted with the Android Keystore. Only the parent account a phone belongs to can see its data.
     </p>
   </section>

@@ -113,6 +113,7 @@ func (h *Handlers) ConfirmPasswordReset(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+	h.audit(r.Context(), parentID, "", domain.AuditPasswordReset, "")
 	// A reset proves the email, not the authenticator: two-step sign-in still applies.
 	h.signIn(w, r, parentID)
 }

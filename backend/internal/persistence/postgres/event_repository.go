@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"manara/backend/internal/domain"
@@ -30,6 +31,9 @@ func (s *EventStore) Insert(ctx context.Context, events []*domain.Event) (domain
 		raw, err := json.Marshal(e.Payload)
 		if err != nil {
 			return domain.InsertResult{}, fmt.Errorf("encode event payload: %w", err)
+		}
+		if raw, err = s.sealPayload(e.ID, e.Kind, raw); err != nil {
+			return domain.InsertResult{}, err
 		}
 		tag, err := s.db.Pool.Exec(ctx, `
 			INSERT INTO events (id, device_id, kind, occurred_at, payload_json, received_at)
@@ -84,6 +88,11 @@ func (s *EventStore) ListByDevice(ctx context.Context, deviceID string, kind *do
 			return nil, fmt.Errorf("scan event: %w", err)
 		}
 		e.Kind = domain.EventKind(kindStr)
+		if raw, err = s.openPayload(e.ID, raw); err != nil {
+			// One unreadable row (no key, or the wrong one) must not hide the rest.
+			log.Printf("events: %s payload not opened: %v", e.ID, err)
+			raw = nil
+		}
 		if len(raw) > 0 {
 			if err := json.Unmarshal(raw, &e.Payload); err != nil {
 				return nil, fmt.Errorf("decode event payload: %w", err)
@@ -92,4 +101,33 @@ func (s *EventStore) ListByDevice(ctx context.Context, deviceID string, kind *do
 		events = append(events, &e)
 	}
 	return events, rows.Err()
+}
+
+// sealedKinds are the events sealed at rest: where the child was, and whom they called.
+var sealedKinds = map[domain.EventKind]bool{domain.EventKindLocation: true, domain.EventKindCall: true}
+
+// sealedPayload is how a sealed payload sits in the JSONB column.
+type sealedPayload struct {
+	Sealed string `json:"sealed"`
+}
+
+func eventRow(id string) string { return "event:" + id }
+
+func (s *EventStore) sealPayload(id string, kind domain.EventKind, raw []byte) ([]byte, error) {
+	if s.db.Box == nil || !sealedKinds[kind] {
+		return raw, nil
+	}
+	stored, err := s.db.Box.Seal(raw, eventRow(id))
+	if err != nil {
+		return nil, fmt.Errorf("seal event %s: %w", id, err)
+	}
+	return json.Marshal(sealedPayload{Sealed: stored})
+}
+
+func (s *EventStore) openPayload(id string, raw []byte) ([]byte, error) {
+	var wrapped sealedPayload
+	if len(raw) == 0 || json.Unmarshal(raw, &wrapped) != nil || wrapped.Sealed == "" {
+		return raw, nil // a plain payload
+	}
+	return s.db.Box.Open(wrapped.Sealed, eventRow(id))
 }

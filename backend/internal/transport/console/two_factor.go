@@ -62,6 +62,7 @@ func (h *Handlers) signIn(w http.ResponseWriter, r *http.Request, parentID strin
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+	h.audit(r.Context(), parentID, "", domain.AuditSignedIn, "password")
 	writeJSON(w, http.StatusOK, authResponse{ParentID: parentID, ParentSession: session})
 }
 
@@ -111,6 +112,7 @@ func (h *Handlers) VerifyLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+	h.audit(r.Context(), parentID, "", domain.AuditSignedIn, "two_step")
 	writeJSON(w, http.StatusOK, authResponse{ParentID: parentID, ParentSession: session})
 }
 
@@ -178,11 +180,15 @@ func (h *Handlers) EnableTwoFactor(w http.ResponseWriter, r *http.Request) {
 		log.Printf("console: enable two-step: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 	default:
+		h.audit(r.Context(), parentID, "", domain.AuditTwoStepOn, "")
 		writeJSON(w, http.StatusOK, map[string][]string{"recoveryCodes": codes})
 	}
 }
 
-// DisableTwoFactor needs both the password and a current code (or a recovery code).
+// DisableTwoFactor needs both the password and a current code (or a recovery code), and no phone
+// in the account: a phone may join only an account with two-step sign-in, and turning it off would
+// leave its phones behind a password alone (security.md, item 3). A parent who changes phones moves
+// to a new authenticator app instead (setup again while it is on), and that needs no turning off.
 func (h *Handlers) DisableTwoFactor(w http.ResponseWriter, r *http.Request) {
 	parentID, ok := h.requireParent(w, r)
 	if !ok {
@@ -194,6 +200,17 @@ func (h *Handlers) DisableTwoFactor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.checkPassword(w, r, parentID, req.Password) {
+		return
+	}
+	// Before the code, so a refusal doesn't use it up.
+	phones, err := h.Devices.ListByParent(r.Context(), parentID)
+	if err != nil {
+		log.Printf("console: list phones to disable two-step: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	if len(phones) > 0 {
+		writeError(w, http.StatusConflict, "phones_need_two_step", "remove every phone from the account first")
 		return
 	}
 	if err := h.TwoFactor.Check(r.Context(), parentID, req.Code, time.Now()); err != nil {
@@ -210,5 +227,6 @@ func (h *Handlers) DisableTwoFactor(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+	h.audit(r.Context(), parentID, "", domain.AuditTwoStepOff, "")
 	w.WriteHeader(http.StatusNoContent)
 }

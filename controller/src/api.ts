@@ -1,3 +1,4 @@
+import type { ActivityEntry } from './activity.ts'
 export type DeviceStatus = 'reporting' | 'not_reporting' | 'never_connected'
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
@@ -244,6 +245,13 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         /** Needs the password again. Refused (devices_remain) while any phone is still on the account. */
         async deleteAccount(password: string): Promise<void> {
             await request('DELETE', '/console/account', { password }, true)
+        },
+
+        async listActivity(): Promise<ActivityEntry[]> {
+            const value = (await request('GET', '/console/account/activity', undefined, true)) as { entries?: unknown } | null
+            if (!value || !Array.isArray(value.entries)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            return value.entries.filter((e): e is ActivityEntry =>
+                typeof e === 'object' && e !== null && typeof (e as ActivityEntry).action === 'string' && typeof (e as ActivityEntry).at === 'string')
         },
 
         async listDevices(): Promise<DeviceSummary[]> {

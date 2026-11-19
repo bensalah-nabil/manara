@@ -21,6 +21,7 @@ import (
 	"manara/backend/internal/notify"
 	"manara/backend/internal/notify/fcm"
 	"manara/backend/internal/persistence/postgres"
+	"manara/backend/internal/sealed"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
 	"manara/backend/internal/transport/guard"
@@ -46,6 +47,7 @@ func main() {
 	if err := db.Migrate(ctx); err != nil {
 		log.Fatalf("migrate: %v", err)
 	}
+	openSealedData(ctx, db)
 
 	auth := postgres.NewAuthRepository(db)
 	sessions := postgres.NewParentSessionRepository(db)
@@ -61,6 +63,7 @@ func main() {
 	policies := postgres.NewPolicyRepository(db)
 	commands := postgres.NewCommandQueue(db)
 	events := postgres.NewEventStore(db)
+	audit := postgres.NewAuditRepository(db)
 	setups := postgres.NewSetupRepository(db)
 	releases := postgres.NewReleaseRepository(db)
 	notifier := newNotifier(ctx)
@@ -98,6 +101,7 @@ func main() {
 		TwoFactor:    postgres.NewTwoFactorRepository(db),
 		// 5 code tries per pending sign-in: 5 in a million against a 6-digit code.
 		ChallengeLimiter: guard.NewLimiter(5, domain.ChallengeLifetime),
+		Audit:            audit,
 	}
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
@@ -138,25 +142,26 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/auth/password-reset", limited(consoleHandlers.RequestPasswordReset))
 	mux.HandleFunc("POST /api/v1/console/auth/password-reset/confirm", limited(consoleHandlers.ConfirmPasswordReset))
 	mux.HandleFunc("GET /api/v1/console/account", consoleHandlers.GetAccount)
-	mux.HandleFunc("PATCH /api/v1/console/account", consoleHandlers.UpdateAccount)
+	mux.HandleFunc("PATCH /api/v1/console/account", consoleHandlers.Audited(domain.AuditAccountChanged, console.ChangedFields, consoleHandlers.UpdateAccount))
+	mux.HandleFunc("GET /api/v1/console/account/activity", consoleHandlers.ListActivity)
 	mux.HandleFunc("DELETE /api/v1/console/account", consoleHandlers.DeleteAccount)
-	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.CreateEnrollmentToken)
+	mux.HandleFunc("POST /api/v1/console/enrollment-tokens", consoleHandlers.Audited(domain.AuditPhoneCodeCreated, nil, consoleHandlers.CreateEnrollmentToken))
 	mux.HandleFunc("GET /api/v1/console/devices", consoleHandlers.ListDevices)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/policy", consoleHandlers.GetPolicy)
-	mux.HandleFunc("PUT /api/v1/console/devices/{deviceId}/policy", consoleHandlers.SetPolicy)
-	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.CreateCommand)
+	mux.HandleFunc("PUT /api/v1/console/devices/{deviceId}/policy", consoleHandlers.Audited(domain.AuditRulesChanged, nil, consoleHandlers.SetPolicy))
+	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.Audited(domain.AuditCommandSent, console.CommandType, consoleHandlers.CreateCommand))
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup", consoleHandlers.GetSetup)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup/readiness", consoleHandlers.GetReadiness)
-	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.ClearSetupAccounts)
-	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/pairing-code", consoleHandlers.SendPairingCode)
-	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/finish", consoleHandlers.FinishSetup)
+	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.Audited(domain.AuditSetupAccountsClear, nil, consoleHandlers.ClearSetupAccounts))
+	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/pairing-code", consoleHandlers.Audited(domain.AuditPairingCodeSent, nil, consoleHandlers.SendPairingCode))
+	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/finish", consoleHandlers.Audited(domain.AuditSetupFinished, nil, consoleHandlers.FinishSetup))
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/release-code", consoleHandlers.GetReleaseCode)
-	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.DeleteDevice)
-	mux.HandleFunc("PATCH /api/v1/console/devices/{deviceId}", consoleHandlers.UpdateDevice)
+	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneRemoved, nil, consoleHandlers.DeleteDevice))
+	mux.HandleFunc("PATCH /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneEdited, console.ChangedFields, consoleHandlers.UpdateDevice))
 
 	go runHeartbeatSweep(ctx, commands)
-	go runRetentionSweep(ctx, events, setups)
+	go runRetentionSweep(ctx, events, setups, audit)
 	go func() {
 		for {
 			if n, err := sessions.PurgeExpired(ctx); err != nil {
@@ -281,6 +286,35 @@ func agentUpdate() *domain.AgentUpdate {
 	}
 	log.Printf("agent updates: phones update to %s (%d)", u.VersionName, u.VersionCode)
 	return &u
+}
+
+// openSealedData sets the key that seals authenticator secrets and location and call events
+// (security.md, item 4): DATA_KEY, 32 random bytes in base64. The server refuses to start with a
+// key that can't open what is already sealed, or none when something is. Rows stored plain before
+// the key existed are sealed in the background.
+func openSealedData(ctx context.Context, db *postgres.DB) {
+	if raw := os.Getenv("DATA_KEY"); raw != "" {
+		box, err := sealed.FromBase64(raw)
+		if err != nil {
+			log.Fatalf("DATA_KEY: %v", err)
+		}
+		db.Box = box
+	} else {
+		log.Printf("data at rest: authenticator secrets, location and calls are not sealed (DATA_KEY not set)")
+	}
+	if err := db.CheckKey(ctx); err != nil {
+		log.Fatalf("data at rest: %v", err)
+	}
+	if db.Box == nil {
+		return
+	}
+	go func() {
+		secrets, events, err := db.SealExisting(ctx)
+		if err != nil {
+			log.Printf("data at rest: sealing older rows stopped: %v", err)
+		}
+		log.Printf("data at rest: sealed; %d older secret(s) and %d older event(s) sealed now", secrets, events)
+	}()
 }
 
 // silentAfter is SILENT_PHONE_HOURS, or 12 hours.
@@ -467,7 +501,7 @@ func runHeartbeatSweep(ctx context.Context, commands domain.CommandQueue) {
 // and empties setup account lists after domain.SetupAccountRetention
 // (capability-plan G2: collected data has limited retention). It also runs
 // once at start so a restart does not delay a purge by an hour.
-func runRetentionSweep(ctx context.Context, events domain.EventStore, setups domain.SetupRepository) {
+func runRetentionSweep(ctx context.Context, events domain.EventStore, setups domain.SetupRepository, audit domain.AuditLog) {
 	purge := func() {
 		for _, kind := range domain.AllEventKinds {
 			n, err := events.PurgeOlderThan(ctx, kind, time.Now().Add(-domain.RetentionFor(kind)))
@@ -482,6 +516,11 @@ func runRetentionSweep(ctx context.Context, events domain.EventStore, setups dom
 			log.Printf("retention sweep: %v", err)
 		} else if m > 0 {
 			log.Printf("retention sweep: cleared %d old setup account list(s)", m)
+		}
+		if a, err := audit.PurgeOlderThan(ctx, time.Now().Add(-domain.AuditRetention)); err != nil {
+			log.Printf("retention sweep audit log: %v", err)
+		} else if a > 0 {
+			log.Printf("retention sweep: deleted %d old audit entries", a)
 		}
 	}
 	purge()

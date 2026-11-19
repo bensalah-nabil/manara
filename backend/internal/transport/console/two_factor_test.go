@@ -122,10 +122,29 @@ func TestTurningTwoStepOnAndOff(t *testing.T) {
 	if w := call(h.GetAccount, http.MethodGet, "", "mine"); !strings.Contains(w.Body.String(), `"twoFactor":true`) {
 		t.Fatalf("account: %s", w.Body)
 	}
+	h.Devices = fakeDevices{byID: map[string]*domain.Device{}} // its phones removed first
 	if w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"correct horse","code":"000000"}`, "mine"); w.Code != http.StatusBadRequest || !tf.on["parent-1"] {
 		t.Fatalf("disable with a wrong code: %d", w.Code)
 	}
 	if w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"correct horse","code":"111111"}`, "mine"); w.Code != http.StatusNoContent || tf.on["parent-1"] {
 		t.Fatalf("disable: %d", w.Code)
+	}
+}
+
+func TestTwoStepStaysOnWhilePhonesAreInTheAccount(t *testing.T) {
+	h, tf := twoFactorHandlers(true) // parent-1 has dev-1
+	w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"correct horse","code":"111111"}`, "mine")
+	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "phones_need_two_step") || !tf.on["parent-1"] {
+		t.Fatalf("disable with a phone: %d %s", w.Code, w.Body)
+	}
+	if w := call(h.DisableTwoFactor, http.MethodPost, `{"password":"wrong","code":"111111"}`, "mine"); w.Code != http.StatusForbidden {
+		t.Fatalf("the password is still checked first: %d", w.Code)
+	}
+	// Moving to a new authenticator app needs no turning off.
+	if w := call(h.SetupTwoFactor, http.MethodPost, `{"password":"correct horse"}`, "mine"); w.Code != http.StatusOK {
+		t.Fatalf("new app setup while on: %d", w.Code)
+	}
+	if w := call(h.EnableTwoFactor, http.MethodPost, `{"code":"111111"}`, "mine"); w.Code != http.StatusOK || !tf.on["parent-1"] {
+		t.Fatalf("new app enable while on: %d", w.Code)
 	}
 }

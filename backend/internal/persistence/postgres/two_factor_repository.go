@@ -33,7 +33,11 @@ func (r *TwoFactorRepository) BeginSetup(ctx context.Context, parentID string) (
 	if err != nil {
 		return "", err
 	}
-	if _, err := r.db.Pool.Exec(ctx, `UPDATE parents SET totp_pending = $2 WHERE id = $1`, parentID, secret); err != nil {
+	stored, err := r.db.Box.Seal([]byte(secret), totpRow(parentID))
+	if err != nil {
+		return "", fmt.Errorf("seal pending secret: %w", err)
+	}
+	if _, err := r.db.Pool.Exec(ctx, `UPDATE parents SET totp_pending = $2 WHERE id = $1`, parentID, stored); err != nil {
 		return "", fmt.Errorf("store pending secret: %w", err)
 	}
 	return secret, nil
@@ -47,7 +51,11 @@ func (r *TwoFactorRepository) Enable(ctx context.Context, parentID, code string,
 	if pending == nil {
 		return nil, domain.ErrTwoFactorPending
 	}
-	step, ok := domain.VerifyTOTP(*pending, code, now, 0)
+	plainPending, err := r.db.Box.Open(*pending, totpRow(parentID))
+	if err != nil {
+		return nil, fmt.Errorf("open pending secret: %w", err)
+	}
+	step, ok := domain.VerifyTOTP(string(plainPending), code, now, 0)
 	if !ok {
 		return nil, domain.ErrBadSecondFactor
 	}
@@ -105,7 +113,11 @@ func (r *TwoFactorRepository) Check(ctx context.Context, parentID, code string, 
 	if secret == nil {
 		return domain.ErrBadSecondFactor
 	}
-	step, ok := domain.VerifyTOTP(*secret, code, now, last)
+	plain, err := r.db.Box.Open(*secret, totpRow(parentID))
+	if err != nil {
+		return fmt.Errorf("open secret: %w", err)
+	}
+	step, ok := domain.VerifyTOTP(string(plain), code, now, last)
 	if !ok {
 		return domain.ErrBadSecondFactor
 	}
@@ -171,3 +183,7 @@ func (r *TwoFactorRepository) EndChallenge(ctx context.Context, token string) er
 	}
 	return nil
 }
+
+// totpRow binds a parent's secret to that parent: the pending and active columns share it, since
+// Enable copies one into the other.
+func totpRow(parentID string) string { return "totp:" + parentID }

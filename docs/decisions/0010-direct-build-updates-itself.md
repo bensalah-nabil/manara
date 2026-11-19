@@ -38,6 +38,14 @@ someone installed the new APK by hand. A bug fix or a safety fix would not reach
 - **Direct build only.** Play forbids an app updating itself outside Play, so the code lives in
   `src/direct`; the play build has a stand-in that does nothing.
 
+## Seen on a phone
+
+The A52 (SM-A528B, Android 14), 2026-11-18. It ran 1.0.32, charging, on Wi-Fi. Release v1.0.33 was
+published and the three Render settings set. At its next check-in (22:08:22) the phone logged
+`installing 1.0.33 (33) over 1.0.32`. Android answered `Session installed` at 22:08:38, and the new
+process checked in at 22:08:39. No installer screen appeared. Manara stayed device owner, the managed
+notice came back, and the same three apps stayed paused.
+
 ## Consequences
 
 - GitHub (Microsoft) sees the phone's IP address when it downloads an update. The privacy page says

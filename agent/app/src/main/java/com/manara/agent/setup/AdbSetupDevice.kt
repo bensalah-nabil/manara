@@ -224,8 +224,16 @@ class AdbSetupDevice(
 
     override suspend fun turnOffWirelessDebugging(): Unit = withContext(Dispatchers.IO) {
         try {
+            // First forget every paired computer, Manara's own and any other one paired while the
+            // pairing screen was open (security.md, item 2): `IAdbManager.clearDebuggingKeys`, the
+            // third method on Android 11 to 16 (AOSP `core/java/android/debug/IAdbManager.aidl`),
+            // allowed to the shell by MANAGE_DEBUGGING (`AdbService`, `packages/Shell` manifest).
+            // `AdbDebuggingManager.deleteKeyStore` empties the paired list Settings shows and
+            // adb_keys. The call only queues that work, so turning wireless debugging off right
+            // after still runs; if a restart of adbd cuts in first, DISALLOW_DEBUGGING_FEATURES
+            // turns it off too (`UserRestrictionsUtils`, android14-release).
             // Turning it off drops this very connection, so a missing reply is expected.
-            runCatching { connection().shell("settings put global adb_wifi_enabled 0") }
+            runCatching { connection().shell("service call adb 3; settings put global adb_wifi_enabled 0") }
                 .onFailure { android.util.Log.i(TAG, "connection closed while turning wireless debugging off", it) }
         } finally {
             runCatching { kadb?.close() }.onFailure { android.util.Log.w(TAG, "close failed", it) }

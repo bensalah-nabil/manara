@@ -9,6 +9,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"manara/backend/internal/sealed"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -19,6 +20,9 @@ var migrationsFS embed.FS
 // DB wraps the connection pool every repository in this package shares.
 type DB struct {
 	Pool *pgxpool.Pool
+	// Box seals authenticator secrets and location and call events (security.md, item 4).
+	// Nil: stored plain, as before DATA_KEY existed.
+	Box *sealed.Box
 }
 
 func Connect(ctx context.Context, connString string) (*DB, error) {

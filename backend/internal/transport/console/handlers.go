@@ -53,6 +53,8 @@ type Handlers struct {
 	TwoFactor domain.TwoFactorRepository
 	// ChallengeLimiter caps code tries per pending sign-in.
 	ChallengeLimiter *guard.Limiter
+	// Audit records what each parent account did (security.md, item 1); nil: not recorded.
+	Audit domain.AuditLog
 }
 
 type deviceSummaryDTO struct {

@@ -4,6 +4,7 @@ import type { Account, Api } from './api.ts'
 import { DELETE_WORD, canDelete, phonesLeftText } from './account.ts'
 import { errorText } from './format.ts'
 import { TwoStepPanel } from './TwoStepPanel.tsx'
+import { ActivityCard } from './ActivityCard.tsx'
 import { LanguageSwitch } from './LanguageSwitch.tsx'
 import { t } from './i18n.ts'
 
@@ -97,9 +98,12 @@ export function AccountPanel({ api, onSessionExpired, onDeleted }: { api: Api; o
             <TwoStepPanel
                 api={api}
                 on={account.twoFactor}
+                phones={account.phones}
                 onSessionExpired={onSessionExpired}
                 onChanged={() => { api.getAccount().then(setAccount).catch(() => undefined) }}
             />
+
+            <ActivityCard api={api} onSessionExpired={onSessionExpired} />
 
             <form class="card danger-zone" onSubmit={remove}>
                 <h3>{t('account.deleteTitle')}</h3>

@@ -427,11 +427,55 @@ paths:
         '409':
           description: "`setup_first`: no setup started."
 
+  /console/account/activity:
+    get:
+      tags: [console]
+      summary: What was done from this account, newest first
+      description: >
+        Sign-ins, rule changes, commands sent, phones edited or removed,
+        connection codes, guided setup steps taken from the console, two-step
+        sign-in changes, password resets and account settings. At most 100
+        entries; each is kept 90 days. Never content, location or an IP address.
+      security: [{ parentSession: [] }]
+      responses:
+        '200':
+          description: The log.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries]
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      required: [action, at]
+                      properties:
+                        action:
+                          type: string
+                          enum: [signed_in, password_reset, two_step_on, two_step_off, account_changed,
+                            phone_code_created, rules_changed, command_sent, phone_edited, phone_removed,
+                            setup_accounts_cleared, pairing_code_sent, setup_finished]
+                        deviceId: { type: string, description: The phone, for an action on one; kept after it is removed. }
+                        detail:
+                          type: string
+                          description: >
+                            For command_sent, the command type; for account_changed and
+                            phone_edited, which fields were changed (never their values);
+                            for signed_in, `password` or `two_step`.
+                        at: { type: string, format: date-time }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /console/account/two-factor/disable:
     post:
       tags: [console]
       summary: Turn off two-step sign-in
-      description: Needs the password and a current code or a recovery code. Recovery codes are deleted.
+      description: >
+        Needs the password and a current code or a recovery code, and no phone
+        in the account. Recovery codes are deleted. To move to a new
+        authenticator app, run setup and enable again while it is on.
       security: [{ parentSession: [] }]
       requestBody:
         required: true
@@ -448,6 +492,8 @@ paths:
           description: "`bad_code`."
         '403':
           description: "`wrong_password`."
+        '409':
+          description: "`phones_need_two_step`: a phone is still in the account. Checked before the code, which isn't used up."
 
   /console/auth/password-reset:
     post:
