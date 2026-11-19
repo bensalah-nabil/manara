@@ -23,6 +23,7 @@ const (
 	AuditSetupAccountsClear AuditAction = "setup_accounts_cleared"
 	AuditPairingCodeSent    AuditAction = "pairing_code_sent"
 	AuditSetupFinished      AuditAction = "setup_finished"
+	AuditChangeCancelled    AuditAction = "change_cancelled" // a change waiting out the cooling-off delay
 )
 
 // AuditRetention is how long the log is kept, like the phones' own activity (EventRetention).

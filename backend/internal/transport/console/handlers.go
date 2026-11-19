@@ -55,6 +55,8 @@ type Handlers struct {
 	ChallengeLimiter *guard.Limiter
 	// Audit records what each parent account did (security.md, item 1); nil: not recorded.
 	Audit domain.AuditLog
+	// Pending holds loosenings waiting out a phone's cooling-off delay; nil: no delay anywhere.
+	Pending domain.PendingRepository
 }
 
 type deviceSummaryDTO struct {
@@ -495,22 +497,47 @@ func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_lock_schedule", err.Error())
 		return
 	}
+	if err := policy.ChangeDelay.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_change_delay", err.Error())
+		return
+	}
+	// A loosening waits out the phone's cooling-off delay, measured against what the phone has now.
+	current, err := h.currentPolicy(r.Context(), deviceID)
+	if err != nil {
+		log.Printf("console: read policy before saving: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	if h.queueIfDelayed(w, r, deviceID, current, domain.PendingChange{Kind: domain.PendingPolicy, Policy: &policy, Loosens: domain.Loosens(current, policy)}) {
+		return
+	}
 	stored, err := h.Policies.Set(r.Context(), deviceID, policy)
 	if err != nil {
 		log.Printf("console: set policy: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+	// A waiting change was a whole document based on the rules before this one: applied later,
+	// it would undo this change. It is dropped, and the parent is told to make it again.
+	cancelled := false
+	if h.Pending != nil {
+		if cancelled, err = h.Pending.Cancel(r.Context(), deviceID, domain.PendingPolicy); err != nil {
+			log.Printf("console: drop waiting change: %v", err)
+		}
+	}
 	// A new bedtime or limit used to wait for the phone's next check-in, up to
 	// 15 minutes or longer on an idle phone. The policy is stored first, so a
 	// failed push only means the phone gets it at that check-in instead.
-	writeJSON(w, http.StatusOK, savedPolicyDTO{Policy: stored, Woken: h.wake(r, device, "policy v"+strconv.Itoa(stored.Version))})
+	writeJSON(w, http.StatusOK, savedPolicyDTO{Policy: stored, Woken: h.wake(r, device, "policy v"+strconv.Itoa(stored.Version)), CancelledPending: cancelled})
 }
 
-// savedPolicyDTO is the stored policy plus whether a push woke the phone to fetch it.
+// savedPolicyDTO is the stored policy plus whether a push woke the phone to fetch it. When the
+// change waits (202), it is the phone's current policy and Pending says when the change lands.
 type savedPolicyDTO struct {
 	domain.Policy
-	Woken bool `json:"woken"`
+	Woken            bool        `json:"woken"`
+	Pending          *pendingDTO `json:"pending,omitempty"`
+	CancelledPending bool        `json:"cancelledPending,omitempty"`
 }
 
 // wake asks the phone to check in now. Best-effort, by domain.PushNotifier's
@@ -553,6 +580,17 @@ func (h *Handlers) CreateCommand(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, code, err.Error())
 		return
 	}
+	if commandType == domain.CommandTypeRelease {
+		current, err := h.currentPolicy(r.Context(), deviceID)
+		if err != nil {
+			log.Printf("console: read policy before release: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+		if h.queueIfDelayed(w, r, deviceID, current, domain.PendingChange{Kind: domain.PendingRelease, ReleaseParams: req.Params, Loosens: []string{domain.LoosensRelease}}) {
+			return
+		}
+	}
 	command, err := h.Commands.Enqueue(r.Context(), deviceID, commandType, req.Params)
 	if err != nil {
 		log.Printf("console: enqueue command: %v", err)
@@ -591,6 +629,28 @@ func (h *Handlers) GetReleaseCode(w http.ResponseWriter, r *http.Request) {
 	deviceID := r.PathValue("deviceId")
 	if _, ok := h.ownsDevice(w, r, parentID, deviceID); !ok {
 		return
+	}
+	// With a cooling-off delay, the offline code would skip it: it's shown only once a release
+	// has waited its time.
+	if h.Pending != nil {
+		current, err := h.currentPolicy(r.Context(), deviceID)
+		if err != nil {
+			log.Printf("console: read policy before release code: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal", "")
+			return
+		}
+		if current.Delay() > 0 {
+			waited, err := h.Pending.ReleaseApplied(r.Context(), deviceID, time.Now().Add(-releaseCodeWindow))
+			if err != nil {
+				log.Printf("console: check waited release: %v", err)
+				writeError(w, http.StatusInternalServerError, "internal", "")
+				return
+			}
+			if !waited {
+				writeError(w, http.StatusConflict, "release_waits", "ask to release the phone first; the code is shown once the wait is over")
+				return
+			}
+		}
 	}
 	secret, confirmed, err := h.Releases.Secret(r.Context(), deviceID)
 	if err != nil {

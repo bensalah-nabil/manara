@@ -3,6 +3,15 @@ export type DeviceStatus = 'reporting' | 'not_reporting' | 'never_connected'
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
 import type { DeviceSetup } from './setup.ts'
+import type { PendingChange } from './pending.ts'
+
+/** A save: the policy now on the phone, and when the change waits, what is waiting. */
+export interface SavedPolicy {
+    policy: Policy
+    woken: boolean
+    pending: PendingChange | null
+    cancelledPending: boolean
+}
 
 /** The parent's own account, as the Account page shows it. */
 export interface Account {
@@ -147,6 +156,12 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         return `/console/devices/${encodeURIComponent(deviceId)}/${leaf}`
     }
 
+    function toPending(value: unknown): PendingChange | null {
+        const fields = value as Partial<PendingChange> | null | undefined
+        if (!fields || typeof fields !== 'object' || (fields.kind !== 'policy' && fields.kind !== 'release') || typeof fields.applyAt !== 'string') return null
+        return { kind: fields.kind, loosens: Array.isArray(fields.loosens) ? fields.loosens.filter((x): x is string => typeof x === 'string') : [], requestedAt: String(fields.requestedAt ?? ''), applyAt: fields.applyAt }
+    }
+
     function toPolicy(value: unknown): Policy {
         const fields = value as { version?: unknown } | null
         if (!fields || typeof fields !== 'object' || typeof fields.version !== 'number') {
@@ -280,9 +295,20 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         },
 
         /** The stored policy, and whether a push woke the phone to fetch it now. */
-        async setPolicy(deviceId: string, policy: Policy): Promise<{ policy: Policy; woken: boolean }> {
-            const { woken, ...stored } = toPolicy(await request('PUT', devicePath(deviceId, 'policy'), policy, true)) as Policy & { woken?: unknown }
-            return { policy: stored as Policy, woken: woken === true }
+        async setPolicy(deviceId: string, policy: Policy): Promise<SavedPolicy> {
+            const { woken, pending, cancelledPending, ...stored } = toPolicy(await request('PUT', devicePath(deviceId, 'policy'), policy, true)) as Policy & { woken?: unknown; pending?: unknown; cancelledPending?: unknown }
+            return { policy: stored as Policy, woken: woken === true, pending: toPending(pending), cancelledPending: cancelledPending === true }
+        },
+
+        /** Changes waiting out the phone's cooling-off delay, soonest first. */
+        async listPending(deviceId: string): Promise<PendingChange[]> {
+            const value = await request('GET', devicePath(deviceId, 'pending'), undefined, true)
+            if (!Array.isArray(value)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
+            return value.map(toPending).filter((item): item is PendingChange => item !== null)
+        },
+
+        async cancelPending(deviceId: string, kind: PendingChange['kind']): Promise<void> {
+            await request('DELETE', devicePath(deviceId, `pending/${kind}`), undefined, true)
         },
 
         /** The child's name and color for this phone. */
@@ -337,8 +363,9 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         },
 
         /** Asks the phone to leave this account: `transfer` keeps it set up for another account, `remove` ends management. */
-        async release(deviceId: string, mode: ReleaseMode): Promise<void> {
-            await request('POST', devicePath(deviceId, 'commands'), { type: 'release', params: { mode } }, true)
+        async release(deviceId: string, mode: ReleaseMode): Promise<PendingChange | null> {
+            const value = (await request('POST', devicePath(deviceId, 'commands'), { type: 'release', params: { mode } }, true)) as { pending?: unknown } | null
+            return toPending(value?.pending)
         },
 
         /** The code a parent types on a phone that can't be reached. */

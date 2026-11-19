@@ -29,6 +29,7 @@ const ACTIONS: Record<string, MessageKey> = {
     setup_accounts_cleared: 'activity.setupAccountsCleared',
     pairing_code_sent: 'activity.pairingCode',
     setup_finished: 'activity.setupFinished',
+    change_cancelled: 'activity.changeCancelled',
 }
 
 /**

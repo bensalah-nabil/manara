@@ -21,6 +21,10 @@ one can resume an app another still blocks (docs/roadmap.md, "Where the build ru
    `docker compose up -d --build server`: a stale image drops the new field silently.
 3. Agent: the section in `agent/app/src/main/java/com/manara/agent/policy/Policy.kt` with defaults that
    mean "off", so an older server or a missing field changes nothing.
+4. The cooling-off delay (ADR-0012): if turning the rule off or making it weaker lets the phone do
+   more, add that case to `domain.Loosens` in `backend/internal/domain/cooling_off.go`, with a test in
+   `cooling_off_test.go`, a `LoosensX` code, and its wording in `controller/src/pending.ts`. A rule
+   left out of `Loosens` can be switched off at once, skipping the wait a parent chose.
 
 ## 2. The decision (pure, tested)
 

@@ -9,6 +9,7 @@ import type { Policy } from './policy.ts'
 import { AGES, ageLabel, applyAge, childLines, hourLabel, matchingAge, minutesLabel, readCards, setBedtimeHour, setCard, setMinutes, warningFor } from './ruleCards.ts'
 import type { Age, CardId, CardsState } from './ruleCards.ts'
 import { t } from './i18n.ts'
+import { pendingChanged, queuedText } from './pending.ts'
 
 const ART: Record<CardId, ComponentChildren> = {
     adult: <><circle cx="24" cy="24" r="15" /><path d="M9 24h30M24 9c-9 9-9 21 0 30M24 9c9 9 9 21 0 30" /><path d="m13 13 22 22" stroke-width="3.4" /></>,
@@ -212,9 +213,11 @@ export function RuleCards({ api, device, onSessionExpired, more }: Props & { mor
                 setPolicy(latest)
                 return
             }
-            const { policy: stored, woken } = await api.setPolicy(device.deviceId, updated)
+            const { policy: stored, woken, pending, cancelledPending } = await api.setPolicy(device.deviceId, updated)
             setPolicy(stored)
-            setMessage(woken ? t('rules.savedWoken') : t('rules.savedLater'))
+            const saved = woken ? t('rules.savedWoken') : t('rules.savedLater')
+            setMessage(pending ? queuedText(pending) : cancelledPending ? saved + ' ' + t('pending.dropped') : saved)
+            pendingChanged()
         } catch (caught) {
             fail(caught)
         } finally {

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
-import { BrowserEditor, CallLogEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
+import { BrowserEditor, CallLogEditor, ChangeDelayEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
+import { PendingBanner } from './PendingBanner.tsx'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText, statusText } from './format.ts'
 import { summarizeProtection } from './protection.ts'
@@ -338,6 +339,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
             {/* Before guided setup starts, the steps for this exact phone; then the live timeline. */}
             {(setup === null || setup?.step === 'linked') && <PhoneReady {...props} onReadiness={onReadiness} />}
             <SetupProgress {...props} onSetup={onSetup} watch={readiness !== null && setup === null} />
+            <PendingBanner {...props} />
 
             <div class="tabs" role="tablist" aria-label={t('tab.label')}>
                 {TABS.map(({ key, label }) => (
@@ -379,7 +381,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                         more={{
                             websites: <><BrowserEditor {...props} /><SiteFilterEditor {...props} /></>,
                             time: <><TimeLimitsEditor {...props} /><ScheduleEditor {...props} /></>,
-                            protect: <RestrictionsEditor {...props} />,
+                            protect: <><ChangeDelayEditor {...props} /><RestrictionsEditor {...props} /></>,
                         }}
                     />
                 )}

@@ -802,6 +802,69 @@ paths:
                   - type: object
                     properties:
                       woken: { type: boolean }
+                      cancelledPending:
+                        type: boolean
+                        description: >
+                          A change that was waiting out the cooling-off delay was
+                          dropped: it was based on the rules before this one and
+                          would have undone this change. Make it again if wanted.
+        '202':
+          description: >
+            The change loosens the phone's rules and the phone has a cooling-off
+            delay (`changeDelay`), so it waits. The body is the phone's current
+            policy, unchanged, with `pending`. A later loosening replaces the
+            waiting change and restarts the wait; a change that only tightens
+            applies at once and drops it.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Policy' }
+                  - type: object
+                    properties:
+                      pending: { $ref: '#/components/schemas/PendingChange' }
+        '400':
+          description: >
+            `invalid_browser_rules`, `invalid_lock_schedule`, or
+            `invalid_change_delay` (hours other than 0, 1, 24, 48 or 168).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /console/devices/{deviceId}/pending:
+    get:
+      tags: [console]
+      summary: List the changes waiting out the phone's cooling-off delay
+      security: [{ parentSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/DeviceId' }]
+      responses:
+        '200':
+          description: Soonest first; at most one of each kind.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PendingChange' }
+
+  /console/devices/{deviceId}/pending/{kind}:
+    delete:
+      tags: [console]
+      summary: Cancel a waiting change (never waits itself)
+      security: [{ parentSession: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/DeviceId' }
+        - name: kind
+          in: path
+          required: true
+          schema: { type: string, enum: [policy, release] }
+      responses:
+        '204':
+          description: Cancelled; the phone's rules stay as they are.
+        '404':
+          description: Nothing of that kind is waiting.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /console/devices/{deviceId}/commands:
     post:
@@ -821,10 +884,20 @@ paths:
                 params: { type: object, additionalProperties: true }
       responses:
         '202':
-          description: Command queued (pending until the device picks it up).
+          description: >
+            Command queued (pending until the device picks it up). A `release`
+            on a phone with a cooling-off delay is not queued yet: the answer is
+            `{pending: PendingChange}` instead, and the release is sent when the
+            wait is over. The offline release code (`GET .../release-code`) is
+            refused with 409 `release_waits` until then.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Command' }
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/Command' }
+                  - type: object
+                    properties:
+                      pending: { $ref: '#/components/schemas/PendingChange' }
 
   /console/devices/{deviceId}/events:
     get:
@@ -1098,6 +1171,21 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    PendingChange:
+      type: object
+      description: A change that loosens a phone's rules, waiting out its cooling-off delay.
+      required: [kind, loosens, requestedAt, applyAt]
+      properties:
+        kind: { type: string, enum: [policy, release] }
+        loosens:
+          type: array
+          description: What it loosens.
+          items:
+            type: string
+            enum: [site_filter, chrome, sites, time_limits, bedtime, bedtime_apps, restrictions, change_delay, release]
+        requestedAt: { type: string, format: date-time }
+        applyAt: { type: string, format: date-time }
+
 
     Error:
       type: object
@@ -1315,6 +1403,16 @@ components:
             30 days.
           properties:
             enabled: { type: boolean }
+        changeDelay:
+          type: object
+          description: >
+            Optional cooling-off delay. With hours above 0, a change that
+            loosens the rules (and a release) waits that long before reaching
+            the phone, and can be cancelled meanwhile; tightening applies at
+            once. Lowering it is itself a loosening. Server and console only:
+            the phone ignores it.
+          properties:
+            hours: { type: integer, enum: [0, 1, 24, 48, 168] }
         browser:
           type: object
           description: >

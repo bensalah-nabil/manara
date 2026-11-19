@@ -24,6 +24,8 @@ type Policy struct {
 	Restrictions *Restrictions  `json:"restrictions,omitempty"`
 	UsageReport  *UsageReport   `json:"usageReport,omitempty"`
 	Browser      *Browser       `json:"browser,omitempty"`
+	// ChangeDelay makes a loosening wait (cooling_off.go). The phone doesn't use it.
+	ChangeDelay *ChangeDelay `json:"changeDelay,omitempty"`
 }
 
 // Browser is Chrome's managed configuration, which the phone sets as a device

@@ -5,6 +5,7 @@ import type { Props } from './Editors.tsx'
 import { errorText } from './format.ts'
 import { minutesLeft, releaseCodeText } from './release.ts'
 import { t } from './i18n.ts'
+import { pendingChanged, queuedText } from './pending.ts'
 
 const CONFIRM: Record<ReleaseMode, string> = {
     transfer:
@@ -36,8 +37,9 @@ export function ReleasePanel({ api, device, onSessionExpired, onRemoved }: Props
         setError('')
         setMessage('')
         try {
-            await api.release(device.deviceId, mode)
-            setMessage(SENT[mode])
+            const pending = await api.release(device.deviceId, mode)
+            setMessage(pending ? queuedText(pending) : SENT[mode])
+            pendingChanged()
         } catch (caught) {
             fail(caught)
         } finally {

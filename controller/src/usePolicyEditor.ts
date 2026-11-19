@@ -4,6 +4,7 @@ import { isSessionError } from './api.ts'
 import { errorText } from './format.ts'
 import type { Policy } from './policy.ts'
 import { t } from './i18n.ts'
+import { pendingChanged, queuedText } from './pending.ts'
 
 export type Validation<V> = { ok: true; value: V } | { ok: false; errors: string[] }
 
@@ -80,10 +81,17 @@ export function usePolicyEditor<D, V>({ api, device, onSessionExpired, section }
         try {
             // The save replaces the whole policy, so re-read it first: another change may have landed since this panel opened.
             const latest = await api.getPolicy(device.deviceId)
-            const { policy: stored, woken } = await api.setPolicy(device.deviceId, section.apply(latest, result.value))
+            const { policy: stored, woken, pending, cancelledPending } = await api.setPolicy(device.deviceId, section.apply(latest, result.value))
             setPolicy(stored)
-            setDraftState(section.toDraft(stored))
-            setSaved(savedText(stored.version, woken))
+            if (pending) {
+                // Waiting: the phone keeps its rules, and the draft keeps what the parent asked for.
+                setSaved(queuedText(pending))
+            } else {
+                setDraftState(section.toDraft(stored))
+                const saved = savedText(stored.version, woken)
+                setSaved(cancelledPending ? saved + ' ' + t('pending.dropped') : saved)
+            }
+            pendingChanged()
         } catch (caught) {
             fail(caught)
         } finally {

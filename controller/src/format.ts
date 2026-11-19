@@ -48,6 +48,10 @@ export function authErrorText(code: string): string {
             return t('err.unknownBrand')
         case 'invalid_browser_rules':
             return t('err.browserRules')
+        case 'release_waits':
+            return t('err.releaseWaits')
+        case 'invalid_change_delay':
+            return t('err.invalidChangeDelay')
         case 'bad_code':
             return t('err.badCode')
         case 'invalid_challenge':

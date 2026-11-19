@@ -68,6 +68,7 @@ func main() {
 	setups := postgres.NewSetupRepository(db)
 	releases := postgres.NewReleaseRepository(db)
 	notifier := newNotifier(ctx)
+	pending := postgres.NewPendingRepository(db)
 	_, pushOff := notifier.(notify.Noop)
 	parents := postgres.NewParentRepository(db)
 	accounts := postgres.NewAccountRepository(db)
@@ -105,6 +106,7 @@ func main() {
 		// 5 code tries per pending sign-in: 5 in a million against a 6-digit code.
 		ChallengeLimiter: guard.NewLimiter(5, domain.ChallengeLifetime).Persist("two-step-challenge", rates),
 		Audit:            audit,
+		Pending:          pending,
 	}
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
@@ -160,6 +162,8 @@ func main() {
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/pairing-code", consoleHandlers.Audited(domain.AuditPairingCodeSent, nil, consoleHandlers.SendPairingCode))
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/setup/finish", consoleHandlers.Audited(domain.AuditSetupFinished, nil, consoleHandlers.FinishSetup))
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/release-code", consoleHandlers.GetReleaseCode)
+	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/pending", consoleHandlers.ListPending)
+	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/pending/{kind}", consoleHandlers.Audited(domain.AuditChangeCancelled, nil, consoleHandlers.CancelPending))
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneRemoved, nil, consoleHandlers.DeleteDevice))
 	mux.HandleFunc("PATCH /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneEdited, console.ChangedFields, consoleHandlers.UpdateDevice))
 
@@ -170,6 +174,7 @@ func main() {
 	}
 
 	go runHeartbeatSweep(ctx, commands)
+	go runPendingSweep(ctx, &domain.PendingApplier{Pending: pending, Policies: policies, Commands: commands, Devices: devices, Notifier: notifier})
 	go runRetentionSweep(ctx, db, events, setups, audit)
 	go func() {
 		for {
@@ -530,6 +535,21 @@ func adminVerifier() *admin.Verifier {
 	return &admin.Verifier{TenantID: tenant, ClientID: client, Allowed: allowed}
 }
 
+// runPendingSweep delivers changes that have waited out a cooling-off delay, at start (a free
+// Render server sleeps, and wakes on the next request) and then every minute.
+func runPendingSweep(ctx context.Context, applier *domain.PendingApplier) {
+	for {
+		if err := applier.ApplyDue(ctx, time.Now()); err != nil {
+			log.Printf("cooling-off sweep: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute):
+		}
+	}
+}
+
 func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.EventStore, setups domain.SetupRepository, audit domain.AuditLog) {
 	purge := func() {
 		for _, kind := range domain.AllEventKinds {
@@ -555,6 +575,9 @@ func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.Event
 			log.Printf("retention sweep admin log: %v", err)
 		} else if a > 0 {
 			log.Printf("retention sweep: deleted %d old admin log entries", a)
+		}
+		if _, err := postgres.NewPendingRepository(db).PurgeAppliedBefore(ctx, time.Now().Add(-8*24*time.Hour)); err != nil {
+			log.Printf("retention sweep waiting changes: %v", err)
 		}
 		if _, err := db.PurgeLimitsOlderThan(ctx, time.Now().Add(-24*time.Hour)); err != nil {
 			log.Printf("retention sweep rate limits: %v", err)

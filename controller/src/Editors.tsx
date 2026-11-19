@@ -19,6 +19,7 @@ import type { Section } from './usePolicyEditor.ts'
 import { applyUsageReport, toDraft as usageReportDraft, USAGE_REPORT_WARNING } from './usageReport.ts'
 import type { Draft as UsageReportDraft, UsageReportPolicy } from './usageReport.ts'
 import { t } from './i18n.ts'
+import { DELAY_CHOICES, delayHours, delayLabel, withDelay } from './pending.ts'
 
 export interface Props {
     api: Api
@@ -375,6 +376,34 @@ export function RestrictionsEditor(props: Props) {
                 </Toggle>
             ))}
             <Footer editor={editor} saveLabel={t('restrictEditor.save')} />
+        </Open>
+    )
+}
+
+const delaySection: Section<{ hours: number }, { hours: number }> = {
+    toDraft: (policy) => ({ hours: delayHours(policy) }),
+    validate: (draft) => ({ ok: true, value: draft }),
+    apply: (policy, value) => withDelay(policy, value.hours),
+    confirm: (before, after) => (after.hours > before.hours ? t('delayEditor.confirm', { delay: delayLabel(after.hours) }) : null),
+}
+
+/** The cooling-off delay: how long a loosening waits before it reaches the phone. */
+export function ChangeDelayEditor(props: Props) {
+    const editor = usePolicyEditor({ ...props, section: delaySection })
+    const { draft, policy, setDraft } = editor
+    if (draft === null || policy === null) {
+        return <Row title={t('delayEditor.title')} summary={t('delayEditor.summary')} editor={editor} />
+    }
+    return (
+        <Open title={t('delayEditor.title')} version={policy.version}>
+            <p class="muted">{t('delayEditor.help')}</p>
+            <label>
+                {t('delayEditor.label')}
+                <select value={draft.hours} onChange={(event) => setDraft({ hours: Number(event.currentTarget.value) })}>
+                    {DELAY_CHOICES.map((hours) => <option key={hours} value={hours}>{delayLabel(hours)}</option>)}
+                </select>
+            </label>
+            <Footer editor={editor} saveLabel={t('delayEditor.save')} />
         </Open>
     )
 }

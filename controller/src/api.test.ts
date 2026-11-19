@@ -6,11 +6,11 @@ function jsonResponse(status: number, body: unknown): Response {
     return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 }
 
-function recorder(respond: () => Response | Promise<Response>) {
+function recorder(respond: (url: string) => Response | Promise<Response>) {
     const calls: { url: string; init: RequestInit }[] = []
     const fetchImpl = (async (url: string, init: RequestInit) => {
         calls.push({ url, init })
-        return respond()
+        return respond(url)
     }) as unknown as typeof fetch
     return { calls, fetchImpl }
 }
@@ -86,7 +86,7 @@ test('getPolicy and setPolicy use the policy path, encode the id, and keep unkno
     assert.deepEqual(await api.getPolicy('a/b'), policy)
     assert.equal(calls[0].url, 'http://x/console/devices/a%2Fb/policy')
     assert.equal(calls[0].init.method, 'GET')
-    assert.deepEqual(await api.setPolicy('d1', policy), { policy, woken: false })
+    assert.deepEqual(await api.setPolicy('d1', policy), { policy, woken: false, pending: null, cancelledPending: false })
     assert.equal(calls[1].init.method, 'PUT')
     assert.equal(calls[1].init.body, JSON.stringify(policy))
     assert.equal((calls[1].init.headers as Record<string, string>).Authorization, 'Bearer tok')
@@ -251,7 +251,25 @@ test('updateDevice patches that device with the name and color', async () => {
 test('setPolicy reports a push wake-up without putting it in the policy', async () => {
     const { fetchImpl } = recorder(() => jsonResponse(200, { version: 5, lock: {}, woken: true }))
     const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
-    assert.deepEqual(await api.setPolicy('d1', { version: 4 }), { policy: { version: 5, lock: {} }, woken: true })
+    assert.deepEqual(await api.setPolicy('d1', { version: 4 }), { policy: { version: 5, lock: {} }, woken: true, pending: null, cancelledPending: false })
+})
+
+test('a change that waits returns the phone current rules and what is waiting, kept out of the policy', async () => {
+    const pending = { kind: 'policy', loosens: ['site_filter'], requestedAt: '2026-11-20T12:00:00Z', applyAt: '2026-11-21T12:00:00Z' }
+    const { fetchImpl } = recorder(() => jsonResponse(202, { version: 5, siteFilter: { enabled: true }, woken: false, pending }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    assert.deepEqual(await api.setPolicy('d1', { version: 5 }), { policy: { version: 5, siteFilter: { enabled: true } }, woken: false, pending, cancelledPending: false })
+})
+
+test('a release that waits says so, and the pending list and cancel use that phone', async () => {
+    const pending = { kind: 'release', loosens: ['release'], requestedAt: '2026-11-20T12:00:00Z', applyAt: '2026-11-21T12:00:00Z' }
+    const { calls, fetchImpl } = recorder((url) => url.endsWith('/pending') ? jsonResponse(200, [pending, { bad: true }]) : url.includes('/pending/') ? new Response(null, { status: 204 }) : jsonResponse(202, { pending }))
+    const api = createApi({ baseUrl: 'http://x', getToken: () => 'tok', fetchImpl })
+    assert.deepEqual(await api.release('d1', 'remove'), pending)
+    assert.deepEqual(await api.listPending('d1'), [pending])
+    await api.cancelPending('d1', 'release')
+    assert.equal(calls[2].url, 'http://x/console/devices/d1/pending/release')
+    assert.equal(calls[2].init.method, 'DELETE')
 })
 
 test('logout ends the session on the server', async () => {
