@@ -60,6 +60,25 @@ jobs:
       - name: Known vulnerabilities in what ships
         run: npm audit --omit=dev --audit-level=moderate
 
+  admin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - name: Known vulnerabilities in what ships
+        run: npm audit --omit=dev --audit-level=moderate
+
   agent:
     runs-on: ubuntu-latest
     defaults:

@@ -22,6 +22,7 @@ import (
 	"manara/backend/internal/notify/fcm"
 	"manara/backend/internal/persistence/postgres"
 	"manara/backend/internal/sealed"
+	"manara/backend/internal/transport/admin"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
 	"manara/backend/internal/transport/guard"
@@ -161,6 +162,12 @@ func main() {
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/release-code", consoleHandlers.GetReleaseCode)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneRemoved, nil, consoleHandlers.DeleteDevice))
 	mux.HandleFunc("PATCH /api/v1/console/devices/{deviceId}", consoleHandlers.Audited(domain.AuditPhoneEdited, console.ChangedFields, consoleHandlers.UpdateDevice))
+
+	// The admin console's API (docs/admin-console.md): only when Entra ID is configured.
+	if v := adminVerifier(); v != nil {
+		admin.Routes(mux, &admin.Handlers{Verifier: v, Store: postgres.NewAdminRepository(db), SilentAfter: silentAfter()})
+		log.Printf("admin console: on, %d admin(s)", len(v.Allowed))
+	}
 
 	go runHeartbeatSweep(ctx, commands)
 	go runRetentionSweep(ctx, db, events, setups, audit)
@@ -503,6 +510,26 @@ func runHeartbeatSweep(ctx context.Context, commands domain.CommandQueue) {
 // and empties setup account lists after domain.SetupAccountRetention
 // (capability-plan G2: collected data has limited retention). It also runs
 // once at start so a restart does not delay a purge by an hour.
+// adminVerifier reads the Entra ID settings of the admin console. All three or none: a half-set
+// configuration stops the server rather than leaving the console open or silently off.
+func adminVerifier() *admin.Verifier {
+	tenant := strings.TrimSpace(os.Getenv("ADMIN_ENTRA_TENANT_ID"))
+	client := strings.TrimSpace(os.Getenv("ADMIN_ENTRA_CLIENT_ID"))
+	var allowed []string
+	for _, id := range strings.Split(os.Getenv("ADMIN_ALLOWED_OIDS"), ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			allowed = append(allowed, id)
+		}
+	}
+	switch {
+	case tenant == "" && client == "" && len(allowed) == 0:
+		return nil
+	case tenant == "" || client == "" || len(allowed) == 0:
+		log.Fatalf("admin console: set ADMIN_ENTRA_TENANT_ID, ADMIN_ENTRA_CLIENT_ID and ADMIN_ALLOWED_OIDS together, or none of them")
+	}
+	return &admin.Verifier{TenantID: tenant, ClientID: client, Allowed: allowed}
+}
+
 func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.EventStore, setups domain.SetupRepository, audit domain.AuditLog) {
 	purge := func() {
 		for _, kind := range domain.AllEventKinds {
@@ -523,6 +550,11 @@ func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.Event
 			log.Printf("retention sweep audit log: %v", err)
 		} else if a > 0 {
 			log.Printf("retention sweep: deleted %d old audit entries", a)
+		}
+		if a, err := postgres.NewAdminRepository(db).PurgeAdminLogOlderThan(ctx, time.Now().Add(-365*24*time.Hour)); err != nil {
+			log.Printf("retention sweep admin log: %v", err)
+		} else if a > 0 {
+			log.Printf("retention sweep: deleted %d old admin log entries", a)
 		}
 		if _, err := db.PurgeLimitsOlderThan(ctx, time.Now().Add(-24*time.Hour)); err != nil {
 			log.Printf("retention sweep rate limits: %v", err)
