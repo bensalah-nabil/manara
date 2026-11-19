@@ -419,7 +419,7 @@ export const en = {
     'lock.sending': 'Sending…',
     'lock.button': 'Lock now',
     'tab.activity': 'Activity',
-    'common.brand': "Manara",
+    'common.brand': "Manara · منارة",
     'pending.loosens.siteFilter': "the website filter is turned off or blocks less",
     'pending.loosens.chrome': "Chrome's protections are lowered",
     'pending.loosens.sites': "blocked websites are unblocked",

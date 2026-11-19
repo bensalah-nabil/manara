@@ -417,7 +417,7 @@ export const fr: Record<MessageKey, string> = {
     'lock.sending': 'Envoi…',
     'lock.button': 'Verrouiller maintenant',
     'tab.activity': 'Activité',
-    'common.brand': "Manara",
+    'common.brand': "Manara · منارة",
     'pending.loosens.siteFilter': "le filtre des sites est désactivé ou bloque moins",
     'pending.loosens.chrome': "les protections de Chrome sont réduites",
     'pending.loosens.sites': "des sites bloqués sont débloqués",
