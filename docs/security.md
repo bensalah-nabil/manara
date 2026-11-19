@@ -136,7 +136,8 @@ Each item says why it matters and how to know it's done.
    (AES-256-GCM, each value bound to its row) seals authenticator secrets and
    the `location` and `call` events; rows stored before are sealed at start.
    The server refuses to start with a key that can't open what is sealed, or
-   with none. **Keep a copy of the key outside Render:** without it, sealed
+   with none. Set on Render 2026-11-19: the first start sealed 1 older secret
+   and 218 older events. **Keep a copy of the key outside Render:** without it, sealed
    locations and calls are lost and every parent with two-step sign-in has to
    sign in with a recovery code and set it up again. Generate it with
    `openssl rand -base64 32`; changing it needs a re-sealing step not built yet.

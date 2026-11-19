@@ -153,7 +153,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
             </form>
             <a href="/decouvrir.html" class="ghost button-link">{t('auth.about')}</a>
             <p class="muted small">
-                <a href="/privacy.html">{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
+                <a href={t('auth.privacyHref')}>{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/guide.html">{t('auth.guide')}</a>
             </p>
         </div>
     )

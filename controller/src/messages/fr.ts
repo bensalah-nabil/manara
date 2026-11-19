@@ -53,6 +53,7 @@ export const fr: Record<MessageKey, string> = {
     'auth.haveAccount': "J'ai déjà un compte",
     'auth.forgot': 'Mot de passe oublié ?',
     'auth.privacy': 'Politique de confidentialité',
+    'auth.privacyHref': '/privacy-fr.html',
     'auth.deleteLink': 'Supprimer votre compte',
     'auth.about': 'Découvrir Manara',
     'auth.guide': 'Guide des parents',

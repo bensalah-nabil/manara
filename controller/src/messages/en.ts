@@ -55,6 +55,7 @@ export const en = {
     'auth.haveAccount': 'I already have an account',
     'auth.forgot': 'Forgot your password?',
     'auth.privacy': 'Privacy policy',
+    'auth.privacyHref': '/privacy.html',
     'auth.deleteLink': 'Delete your account',
     'auth.about': 'About Manara',
     'auth.guide': 'Parent guide',

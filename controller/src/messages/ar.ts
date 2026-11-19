@@ -58,6 +58,7 @@ export const ar: Record<MessageKey, string> = {
     'auth.haveAccount': 'لديّ حساب بالفعل',
     'auth.forgot': 'نسيت كلمة المرور؟',
     'auth.privacy': 'سياسة الخصوصية',
+    'auth.privacyHref': '/privacy-ar.html',
     'auth.deleteLink': 'حذف حسابك',
     'auth.about': 'تعرّف على منارة',
     'auth.guide': 'دليل أولياء الأمور',

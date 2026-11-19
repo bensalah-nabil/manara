@@ -12,25 +12,28 @@
   @media (prefers-color-scheme: dark) { :root { --bg:#0d1418; --surface:#141d23; --ink:#e6edf1; --muted:#93a3ad; --line:#25323b; --brand:#5cb3c4; --soft:#16323a; color-scheme: dark; } }
   body { margin: 0; background: var(--bg); }
   main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-  header a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; display: flex; gap: 10px; align-items: center; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 8px; }
+  header > a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; display: flex; gap: 10px; align-items: center; }
   h1 { font-size: 1.8rem; margin: 24px 0 4px; }
   h2 { font-size: 1.15rem; margin: 32px 0 8px; }
   p, li { color: var(--ink); }
   .muted { color: var(--muted); }
   section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 16px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th, td { text-align: start; padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; }
   .wrap { overflow-x: auto; }
   .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
   a { color: var(--brand); }
+  .langs { margin-inline-start: auto; font-size: 0.95rem; }
+  .langs a, .langs strong { margin-inline-start: 10px; font-weight: 400; font-size: 0.95rem; }
 </style>
 </head>
 <body>
 <main>
   <header>
     <a href="/"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0f4c5c"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2a93b"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>Manara</a>
+    <nav class="langs" aria-label="Language"><strong>English</strong><a href="/privacy-fr.html" lang="fr" hreflang="fr">Français</a><a href="/privacy-ar.html" lang="ar" hreflang="ar">العربية</a></nav>
   </header>
 
   <h1>Privacy policy</h1>

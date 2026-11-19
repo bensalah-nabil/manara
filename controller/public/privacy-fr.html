@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Manara · Politique de confidentialité</title>
+<style>
+  :root { --bg:#f4f6f8; --surface:#fff; --ink:#12202a; --muted:#5a6a76; --line:#e1e6ea; --brand:#0f4c5c; --soft:#e3f0f2;
+    color-scheme: light; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1418; --surface:#141d23; --ink:#e6edf1; --muted:#93a3ad; --line:#25323b; --brand:#5cb3c4; --soft:#16323a; color-scheme: dark; } }
+  body { margin: 0; background: var(--bg); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 8px; }
+  header > a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.15rem; display: flex; gap: 10px; align-items: center; }
+  h1 { font-size: 1.8rem; margin: 24px 0 4px; }
+  h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 16px; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  th, td { text-align: start; padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .wrap { overflow-x: auto; }
+  .note { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  a { color: var(--brand); }
+  .langs { margin-inline-start: auto; font-size: 0.95rem; }
+  .langs a, .langs strong { margin-inline-start: 10px; font-weight: 400; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a href="/"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0f4c5c"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2a93b"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>Manara</a>
+    <nav class="langs" aria-label="Langue"><a href="/privacy.html" lang="en" hreflang="en">English</a><strong>Français</strong><a href="/privacy-ar.html" lang="ar" hreflang="ar">العربية</a></nav>
+  </header>
+
+  <h1>Politique de confidentialité</h1>
+  <p class="muted">Mise à jour le 19 novembre 2026. S'applique à l'application Manara pour Android et à la console parent
+    Manara. Traduction de la <a href="/privacy.html" hreflang="en">version anglaise</a>, qui fait foi en cas de différence.</p>
+
+  <p class="note">
+    Manara permet à un parent de fixer des règles sur le téléphone de son propre enfant. Le téléphone indique toujours
+    qu'il est géré et ce qui est partagé ; Manara n'a aucun mode caché. Manara ne collecte jamais les messages, les
+    photos, les contacts, ce qui est dit pendant un appel, l'historique de navigation ni les mots de passe. L'historique
+    des appels est facultatif, désactivé par défaut, et n'existe que dans la version de Manara installée en dehors de
+    Google Play.
+  </p>
+
+  <section>
+    <h2>Qui est responsable</h2>
+    <p>
+      Manara est exploité par <strong>Nabil Ben Salah</strong>, en Tunisie. Questions, demandes pour consulter ou
+      supprimer des données, et réclamations : <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a>.
+    </p>
+    <p>
+      Le parent qui connecte un téléphone décide de ce qui est collecté sur l'enfant qui l'utilise. En le connectant, il
+      confirme qu'il est le parent ou le tuteur légal de l'enfant, que l'enfant est mineur, et que l'enfant sera informé
+      que le téléphone est géré. Manara traite les données de l'enfant pour le compte de ce parent, et uniquement dans ce
+      but.
+    </p>
+  </section>
+
+  <section>
+    <h2>Ce qui est collecté, et pendant combien de temps</h2>
+    <div class="wrap">
+    <table>
+      <tr><th>Donnée</th><th>Quand</th><th>Conservée</th></tr>
+      <tr><td>L'adresse e-mail du parent et son mot de passe haché</td><td>Pour créer le compte parent</td><td>Jusqu'à la suppression du compte</td></tr>
+      <tr><td>Un historique de ce qui a été fait depuis le compte parent : connexions, changements de règles, commandes envoyées, téléphones ajoutés ou retirés, changements de la connexion en deux étapes (jamais de contenu, de position ni d'adresse IP)</td><td>Toujours, pour que le parent puisse le consulter dans Compte, Activité récente</td><td>90 jours</td></tr>
+      <tr><td>Les trois confirmations du parent, la date et la marque du téléphone</td><td>À l'ajout d'un téléphone</td><td>Tant que le téléphone est dans le compte</td></tr>
+      <tr><td>Le modèle, le fabricant et la version d'Android du téléphone</td><td>À la connexion du téléphone</td><td>Tant que le téléphone est dans le compte</td></tr>
+      <tr><td>Si le téléphone est prêt pour la configuration guidée : version d'Android, Wi-Fi activé ou non, niveau et charge de la batterie, et si les Options pour les développeurs et le Débogage sans fil sont activés</td><td>Pendant que le téléphone affiche son écran « Préparer ce téléphone », pour que la console puisse suivre</td><td>Tant que le téléphone est dans le compte</td></tr>
+      <tr><td>La position du téléphone (coordonnées et précision)</td><td>Seulement si le parent active le partage de position ; le téléphone affiche une notification tant qu'il est actif</td><td>30 jours</td></tr>
+      <tr><td>Les minutes passées dans chaque application aujourd'hui (par nom de paquet, les 30 premières)</td><td>Seulement si le parent active le rapport d'utilisation quotidien</td><td>30 jours</td></tr>
+      <tr><td>Quelle limite quotidienne d'application a été atteinte, et quand</td><td>Seulement si le parent fixe des limites d'applications</td><td>90 jours</td></tr>
+      <tr><td>Si les protections de Manara fonctionnent (par exemple « L'accès aux données d'utilisation est désactivé »)</td><td>Toujours, tant que le téléphone est géré</td><td>90 jours</td></tr>
+      <tr><td>Les noms et types des comptes présents sur le téléphone (jamais les mots de passe)</td><td>Pendant la configuration guidée, pour que le parent sache à quoi se reconnecter</td><td>7 jours, ou moins si le parent les supprime</td></tr>
+      <tr><td>Un jeton de notification, un jeton d'appareil et une clé de libération</td><td>Pour pouvoir joindre le téléphone, signer ses requêtes, et permettre au parent de le libérer</td><td>Tant que le téléphone est dans le compte</td></tr>
+    </table>
+    </div>
+    <p>
+      Retirer un téléphone du compte supprime tout ce qui est stocké à son sujet. L'utilisation des applications est
+      mesurée sur le téléphone avec l'accès aux données d'utilisation d'Android ; les limites de temps et l'horaire de
+      verrouillage sont appliqués sur le téléphone lui-même.
+    </p>
+  </section>
+
+  <section>
+    <h2>Ce qui n'est pas collecté</h2>
+    <p>
+      Les messages, e-mails, photos, vidéos, fichiers, contacts, l'audio des appels, le microphone ou la caméra,
+      l'historique de navigation, ce qui est saisi au clavier, et les mots de passe. La version Google Play ne lit jamais
+      les appels. Dans la version installée en dehors de Google Play, un parent peut activer l'historique des appels : le
+      numéro, le sens, l'heure et la durée de chaque appel à partir de ce moment, affiché sur le téléphone de l'enfant
+      tant qu'il est actif et supprimé après 30 jours. L'autre personne de l'appel n'en est pas informée. Si le parent
+      active aussi l'accès aux notifications sur le téléphone de l'enfant, les appels WhatsApp, Messenger, Telegram et
+      Viber sont notés à partir de leurs notifications d'appel : quelle application, quand et à peu près combien de temps,
+      jamais qui a appelé. Manara ne regarde les notifications que pour repérer ces appels et n'en garde rien d'autre. Le
+      filtrage des sites web fonctionne en dirigeant le téléphone vers un service DNS familial choisi par le parent (par
+      exemple AdGuard Family) ; c'est ce service, et non Manara, qui répond aux requêtes DNS du téléphone, selon sa propre
+      politique de confidentialité.
+    </p>
+  </section>
+
+  <section>
+    <h2>Qui traite les données</h2>
+    <ul>
+      <li>Render (hébergement du serveur, Francfort, Allemagne) et Neon (base de données, Francfort, Allemagne).</li>
+      <li>Vercel (héberge ce site et la console parent), et Netlify (une copie plus ancienne des deux, toujours en ligne).</li>
+      <li>Google Firebase Cloud Messaging, pour réveiller le téléphone quand le parent envoie une commande ou change une
+        règle. Le message ne contient aucune donnée, seulement « vérifie maintenant ».</li>
+      <li>Brevo (e-mail), pour envoyer au parent un lien de réinitialisation du mot de passe, des alertes comme un
+        téléphone qui ne donne plus de nouvelles, et le lundi un message indiquant que le rapport de la semaine passée
+        est prêt (envoyé seulement si un téléphone a transmis son utilisation quotidienne des applications cette
+        semaine-là ; le parent peut le désactiver dans Compte). Brevo reçoit l'adresse e-mail du parent et le texte de
+        l'e-mail. Un e-mail d'alerte dit seulement qu'un téléphone demande de l'attention, et depuis quand ; l'e-mail
+        hebdomadaire seulement les dates de la semaine. Aucun des deux ne contient le nom du téléphone, la protection
+        concernée, ni la position, les appels ou l'utilisation des applications de l'enfant. La console montre le reste.</li>
+      <li>Les services Google Play sur le téléphone, pour la position et pour lire le code QR de connexion.</li>
+      <li>GitHub, qui héberge le fichier de l'application Manara. Quand la version de Manara installée depuis ce site se
+        met à jour, le téléphone télécharge la nouvelle version depuis GitHub, qui voit l'adresse IP du téléphone. Rien
+        d'autre n'est envoyé.</li>
+    </ul>
+    <p>
+      Le serveur et la base de données sont en Allemagne : les données sont donc envoyées du téléphone et de la console
+      vers l'Union européenne. Les données ne sont jamais vendues, jamais utilisées pour de la publicité, et jamais
+      partagées avec qui que ce soit d'autre.
+    </p>
+  </section>
+
+  <section>
+    <h2>Comment elles sont protégées</h2>
+    <p>
+      Toutes les communications passent par HTTPS. Les mots de passe sont stockés sous forme de hachages bcrypt et les
+      jetons d'appareil sous forme de hachages. Les positions, l'historique des appels et les secrets de la connexion en
+      deux étapes sont en plus chiffrés dans la base de données, avec une clé conservée séparément. Sur le téléphone, son
+      jeton et sa clé de libération sont chiffrés avec l'Android Keystore. Seul le compte parent auquel appartient un
+      téléphone peut voir ses données.
+    </p>
+  </section>
+
+  <section>
+    <h2>Du côté de l'enfant</h2>
+    <p>
+      Le téléphone affiche toujours une notification « Cet appareil est géré », et une autre tant que la position est
+      partagée. Ouvrir Manara sur le téléphone montre exactement ce que le parent peut voir et quelles règles sont
+      actives. Seul le parent peut libérer le téléphone, depuis la console ou avec un code de libération.
+    </p>
+  </section>
+
+  <section>
+    <h2>Vos choix et vos droits</h2>
+    <p>
+      Un parent peut désactiver toute collecte à tout moment, supprimer les listes de comptes enregistrées, retirer un
+      téléphone, ce qui supprime ses données, et supprimer tout le compte parent depuis la console
+      (<a href="/delete-account.html">comment supprimer votre compte</a>). Pour consulter, corriger ou supprimer des
+      données, écrivez à <a href="mailto:nabil.bsalah0@gmail.com">nabil.bsalah0@gmail.com</a> ; nous répondons sous
+      30 jours. Vous pouvez aussi saisir votre autorité de protection des données : en Tunisie, l'Instance Nationale de
+      Protection des Données Personnelles (INPDP).
+    </p>
+  </section>
+
+  <section>
+    <h2>Modifications</h2>
+    <p>Si cette politique change, la date en haut de la page change avec elle.</p>
+  </section>
+</main>
+</body>
+</html>
