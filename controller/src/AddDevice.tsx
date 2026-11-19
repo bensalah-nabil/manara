@@ -23,13 +23,13 @@ const DOWNLOAD_PATH = '/download.html'
  * Only the phone in use has to install Manara first: QR setup installs it by itself, and a phone
  * being moved already has it.
  */
-function stepsFor(way: Way): [Step, string][] {
+function stepsFor(way: Way | null): [Step, string][] {
     return way === 'inUse'
         ? [['consent', t('add.step1')], ['how', t('add.stepHow')], ['install', t('add.stepInstall')], ['code', t('add.stepConnectAfterInstall')]]
         : [['consent', t('add.step1')], ['how', t('add.stepHow')], ['code', t('add.stepConnect')]]
 }
 
-function Steps({ current, way }: { current: Step; way: Way }) {
+function Steps({ current, way }: { current: Step; way: Way | null }) {
     return (
         <ol class="steps" aria-label={t('add.stepsLabel')}>
             {stepsFor(way).map(([step, title]) => (
@@ -49,7 +49,9 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     const [step, setStep] = useState<Step>('consent')
     const [attestation, setAttestation] = useState<Attestation>(noAttestation)
     const qrOffered = qrSetupAvailable(MANARA_APK_URL)
-    const [way, setWay] = useState<Way>('inUse')
+    // No default: the two paths differ too much (erase the phone, or remove its accounts for a
+    // moment) for the console to pick one for the parent.
+    const [way, setWay] = useState<Way | null>(null)
     const [token, setToken] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
@@ -143,22 +145,22 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 <>
                     <fieldset class="group">
                         <legend>{t('add.howQuestion')}</legend>
-                        <label class="check">
-                            <input type="radio" name="way" checked={way === 'inUse'} onChange={() => setWay('inUse')} />
-                            <span>
-                                {t('add.howInUse')}
-                                <span class="muted small"> {t('add.howInUseHelp')}</span>
-                            </span>
-                        </label>
                         {qrOffered && (
-                            <label class="check">
+                            <label class="check choice">
                                 <input type="radio" name="way" checked={way === 'fresh'} onChange={() => setWay('fresh')} />
                                 <span>
-                                    {t('add.pathQr')}
+                                    <strong>{t('add.pathQr')}</strong> <span class="tag ok">{t('add.pathFreshTag')}</span>
                                     <span class="muted small"> {t('add.pathQrHelp')}</span>
                                 </span>
                             </label>
                         )}
+                        <label class="check choice">
+                            <input type="radio" name="way" checked={way === 'inUse'} onChange={() => setWay('inUse')} />
+                            <span>
+                                <strong>{t('add.howInUse')}</strong> <span class="tag">{t('add.pathInUseTag')}</span>
+                                <span class="muted small"> {t('add.howInUseHelp')}</span>
+                            </span>
+                        </label>
                         <label class="check">
                             <input type="radio" name="way" checked={way === 'move'} onChange={() => setWay('move')} />
                             <span>
@@ -173,10 +175,21 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                             <p>{t('add.resetText')}</p>
                         </div>
                     )}
+                    {way === 'inUse' && (
+                        <div class="notice stack" role="group" aria-labelledby="ready-title">
+                            <strong id="ready-title">{t('add.inUseNeedTitle')}</strong>
+                            <ul class="guide">
+                                <li>{t('add.inUseNeed.google')}</li>
+                                <li>{t('add.inUseNeed.samsung')}</li>
+                                <li>{t('add.inUseNeed.power')}</li>
+                                <li>{t('add.inUseNeed.time')}</li>
+                            </ul>
+                        </div>
+                    )}
                     <p role="alert" class="error">{error}</p>
                     <div class="actions">
                         <button type="button" class="ghost" onClick={() => setStep('consent')}>{t('common.back')}</button>
-                        <button type="button" class="primary" disabled={busy} onClick={way === 'inUse' ? () => setStep('install') : createCode}>
+                        <button type="button" class="primary" disabled={busy || way === null} onClick={way === 'inUse' ? () => setStep('install') : createCode}>
                             {busy ? t('common.pleaseWait') : t('common.continue')}
                         </button>
                     </div>
