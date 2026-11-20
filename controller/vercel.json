@@ -7,7 +7,10 @@
   "rewrites": [
     { "source": "/beta", "destination": "/beta.html" },
     { "source": "/beta-ar", "destination": "/beta-ar.html" },
-    { "source": "/beta-en", "destination": "/beta-en.html" }
+    { "source": "/beta-en", "destination": "/beta-en.html" },
+    { "source": "/features", "destination": "/features.html" },
+    { "source": "/features-ar", "destination": "/features-ar.html" },
+    { "source": "/features-en", "destination": "/features-en.html" }
   ],
   "headers": [
     {

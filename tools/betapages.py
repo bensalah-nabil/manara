@@ -21,7 +21,7 @@ LOGO = ('<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rec
 
 PAGES = {
     'fr': {
-        'file': 'beta.html', 'dir': 'ltr',
+        'file': 'beta.html', 'dir': 'ltr', 'featuresLink': 'Voir ce que fait Manara, en vidéo →', 'featuresHref': '/features',
         'title': 'Manara · Devenez une famille pionnière',
         'desc': "Testez gratuitement Manara, le contrôle parental transparent et respectueux de nos valeurs. Installé avec vous par appel, en français, en arabe ou en anglais.",
         'langs': 'Langue',
@@ -60,7 +60,7 @@ PAGES = {
         'last': 'Prêt à essayer ?',
     },
     'ar': {
-        'file': 'beta-ar.html', 'dir': 'rtl',
+        'file': 'beta-ar.html', 'dir': 'rtl', 'featuresLink': 'شاهد ماذا تفعل منارة بالفيديو ←', 'featuresHref': '/features-ar',
         'title': 'منارة · كن من العائلات الرائدة',
         'desc': 'جرّب منارة مجانًا: رقابة أبوية واضحة تحترم قيمنا. نثبّتها معك في مكالمة، بالعربية أو الفرنسية أو الإنجليزية.',
         'langs': 'اللغة',
@@ -99,7 +99,7 @@ PAGES = {
         'last': 'مستعد للتجربة؟',
     },
     'en': {
-        'file': 'beta-en.html', 'dir': 'ltr',
+        'file': 'beta-en.html', 'dir': 'ltr', 'featuresLink': 'See what Manara does, on video →', 'featuresHref': '/features-en',
         'title': 'Manara · Become a founding family',
         'desc': 'Try Manara for free: open parental controls that respect our values. Set up with you on a call, in French, Arabic or English.',
         'langs': 'Language',
@@ -241,6 +241,7 @@ for code, p in PAGES.items():
       <ul class="chips">{chips}</ul>
       <a class="button" href="{href}">{esc(p['cta'])}</a>
       <p class="note">{esc(p['note'])}</p>
+      <p class="note"><a href="{p['featuresHref']}">{esc(p['featuresLink'])}</a></p>
     </div>
     <figure>
       <video controls preload="none" playsinline poster="/guide-video/manara-setup-{code}.jpg">
