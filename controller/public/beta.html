@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="Testez gratuitement Manara, le contrôle parental transparent et respectueux de nos valeurs. Installé avec vous par appel, en français, en arabe ou en anglais." />
+<meta property="og:title" content="Manara · Devenez une famille pionnière" />
+<meta property="og:description" content="Testez gratuitement Manara, le contrôle parental transparent et respectueux de nos valeurs. Installé avec vous par appel, en français, en arabe ou en anglais." />
+<meta property="og:image" content="/guide-video/manara-setup-fr.jpg" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="alternate" hreflang="fr" href="/beta.html" />
+<link rel="alternate" hreflang="ar" href="/beta-ar.html" />
+<link rel="alternate" hreflang="en" href="/beta-en.html" />
+<title>Manara · Devenez une famille pionnière</title>
+<!-- Generated from one template (docs/marketing/familles-pionnieres.md); change all three pages together. -->
+<style>
+  :root { --bg:#f6f1e6; --surface:#fffdf8; --ink:#1b2a24; --muted:#5b675f; --line:#e5dac3; --brand:#0e5a43; --brand-ink:#ffffff; --soft:#e2efe8; --gold:#8a6a12;
+    color-scheme: light; font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif; color: var(--ink); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0a1511; --surface:#10201a; --ink:#ede6d4; --muted:#a9a48d; --line:#24392f; --brand:#d8b24a; --brand-ink:#1a1406; --soft:#2a2a17; --gold:#d8b24a; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23b99328' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='4'/%3E%3C/g%3E%3C/svg%3E") repeat; }
+  [lang="ar"] { font-family: 'Segoe UI', 'Noto Kufi Arabic', 'Noto Sans Arabic', Tahoma, system-ui, sans-serif; line-height: 1.85; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 20px 64px; }
+  a { color: var(--brand); }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-block: 8px 4px; }
+  header > a { color: var(--ink); text-decoration: none; font-weight: 800; font-size: 1.2rem; display: flex; gap: 10px; align-items: center; }
+  header .ar { color: var(--gold); font-weight: 700; }
+  .langs { margin-inline-start: auto; font-size: 0.95rem; }
+  .langs a, .langs strong { margin-inline-start: 12px; }
+  .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 36px; align-items: center; padding-block: 28px 40px; }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12; margin: 0 0 12px; font-weight: 800; }
+  .lead { font-size: 1.2rem; margin: 0 0 20px; color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; padding: 0; list-style: none; }
+  .chips li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-size: 0.92rem; }
+  .button { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 12px 28px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); text-decoration: none; font-weight: 700; font-size: 1.05rem; }
+  .button:hover { filter: brightness(1.1); }
+  .button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .note { color: var(--muted); font-size: 0.92rem; margin: 10px 0 0; }
+  figure { margin: 0; }
+  video { width: 100%; max-width: 360px; display: block; margin-inline: auto; border-radius: 22px; border: 1px solid var(--line); background: #000; }
+  figcaption { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+  h2 { font-size: 1.45rem; margin: 40px 0 16px; }
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; border-inline-start: 4px solid var(--brand); }
+  .card h3 { margin: 0 0 6px; font-size: 1.08rem; }
+  .card p { margin: 0; color: var(--muted); }
+  .steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; counter-reset: step; }
+  .steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; counter-increment: step; }
+  .steps li::before { content: counter(step); display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--soft); color: var(--brand); font-weight: 800; margin-bottom: 8px; }
+  .steps strong { display: block; margin-bottom: 4px; }
+  .steps span { color: var(--muted); }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 700; }
+  details p { margin: 8px 0 2px; color: var(--muted); }
+  .last { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 20px; margin-top: 40px; }
+  .last h2 { margin: 0 0 14px; }
+  footer { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 32px; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .cards, .steps { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a href="/"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0e5a43"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#d8b24a"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>Manara <span class="ar" lang="ar">منارة</span></a>
+    <nav class="langs" aria-label="Langue"><strong lang="fr">Français</strong><a href="/beta-ar.html" lang="ar" hreflang="ar">العربية</a><a href="/beta-en.html" lang="en" hreflang="en">English</a></nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Devenez une famille pionnière</h1>
+      <p class="lead">Protégez votre enfant sur Internet, en toute transparence et selon nos valeurs.</p>
+      <ul class="chips"><li>Gratuit pendant le test</li><li>Installé avec vous par appel</li><li>Limité à 20 familles</li></ul>
+      <a class="button" href="mailto:nabil.bsalah0@gmail.com?subject=Famille%20pionni%C3%A8re%20Manara&amp;body=Bonjour%2C%0A%0AJe%20souhaite%20tester%20Manara.%0APr%C3%A9nom%20%3A%0APays%20et%20ville%20%3A%0ALangue%20pour%20l%27appel%20%28fran%C3%A7ais%2C%20arabe%2C%20anglais%29%20%3A%0AMarque%20et%20mod%C3%A8le%20du%20t%C3%A9l%C3%A9phone%20de%20l%27enfant%20%3A%0A%C3%82ge%20de%20l%27enfant%20%3A%0A%0AJe%20confirme%20qu%27il%20s%27agit%20de%20mon%20propre%20enfant%20mineur%2C%20et%20qu%27il%20saura%20que%20son%20t%C3%A9l%C3%A9phone%20est%20prot%C3%A9g%C3%A9.">Je m’inscris</a>
+      <p class="note">Android 11 ou plus récent · pas encore d’iPhone</p>
+    </div>
+    <figure>
+      <video controls preload="none" playsinline poster="/guide-video/manara-setup-fr.jpg">
+        <source src="/guide-video/manara-setup-fr.mp4" type="video/mp4" />
+      </video>
+      <figcaption>Voir l’installation en 1 minute</figcaption>
+    </figure>
+  </section>
+
+  <h2>Ce que Manara fait pour votre famille</h2>
+  <div class="cards"><div class="card"><h3>Rien de caché</h3><p>Votre enfant sait que son téléphone est protégé et voit ce que vous voyez.</p></div><div class="card"><h3>Des nuits calmes, les devoirs d’abord</h3><p>À l’heure du coucher, les applications se mettent en pause ; le Coran, WhatsApp et les appels restent ouverts.</p></div><div class="card"><h3>Moins de contenus choquants, moins d’inconnus</h3><p>Sites pour adultes bloqués, recherche Google sécurisée, et une alerte quand un numéro inconnu appelle votre enfant.</p></div><div class="card"><h3>On l’installe avec vous</h3><p>Un appel avec le fondateur, en français, en arabe ou en anglais. Sur le téléphone que votre enfant utilise déjà, sans le réinitialiser.</p></div></div>
+
+  <h2>Comment se passe le test</h2>
+  <ol class="steps"><li><strong>Vous vous inscrivez</strong><span>Quelques questions sur le téléphone et vos disponibilités.</span></li><li><strong>On l’installe ensemble</strong><span>Un appel d’environ 20 minutes, je vous guide pas à pas.</span></li><li><strong>Vous l’utilisez deux semaines</strong><span>Puis vous me dites franchement ce qui marche et ce qui ne marche pas.</span></li></ol>
+
+  <h2>Questions fréquentes</h2>
+  <details><summary>C’est pour quels téléphones ?</summary><p>Android 11 ou plus récent. Testé sur Samsung et Xiaomi. Pas encore sur iPhone.</p></details><details><summary>Mon enfant le saura-t-il ?</summary><p>Oui, toujours. Le téléphone affiche en permanence qu’il est protégé et ce que vous pouvez voir. Manara ne lit jamais les messages et n’écoute jamais les appels.</p></details><details><summary>Que devient notre vie privée ?</summary><p>Rien n’est vendu ni utilisé pour la publicité. Vous pouvez tout arrêter et supprimer votre compte à tout moment.</p></details><details><summary>Et après le test ?</summary><p>Vous gardez Manara si vous le souhaitez. Le prix après le test reste à fixer, et les familles pionnières seront prévenues avant.</p></details><details><summary>Pour qui est-ce ?</summary><p>Pour un parent et son propre enfant mineur. Jamais pour surveiller un autre adulte.</p></details>
+
+  <section class="last">
+    <h2>Prêt à essayer ?</h2>
+    <a class="button" href="mailto:nabil.bsalah0@gmail.com?subject=Famille%20pionni%C3%A8re%20Manara&amp;body=Bonjour%2C%0A%0AJe%20souhaite%20tester%20Manara.%0APr%C3%A9nom%20%3A%0APays%20et%20ville%20%3A%0ALangue%20pour%20l%27appel%20%28fran%C3%A7ais%2C%20arabe%2C%20anglais%29%20%3A%0AMarque%20et%20mod%C3%A8le%20du%20t%C3%A9l%C3%A9phone%20de%20l%27enfant%20%3A%0A%C3%82ge%20de%20l%27enfant%20%3A%0A%0AJe%20confirme%20qu%27il%20s%27agit%20de%20mon%20propre%20enfant%20mineur%2C%20et%20qu%27il%20saura%20que%20son%20t%C3%A9l%C3%A9phone%20est%20prot%C3%A9g%C3%A9.">Je m’inscris</a>
+    <p class="note">Android 11 ou plus récent · pas encore d’iPhone</p>
+  </section>
+
+  <footer>Manara est fait en Tunisie. · <a href="/privacy-fr.html">Politique de confidentialité</a></footer>
+</main>
+</body>
+</html>

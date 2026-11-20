@@ -7,6 +7,13 @@ are in [`pending-verifications.md`](pending-verifications.md); the product order
 
 Last updated 2026-11-20.
 
+## New features (paused 2026-11-20)
+
+The owner paused new features to bring Manara to parents and find families to test it. Fixes to
+what exists, and what testers report, still go ahead. Paused with it: the prayer-time pause (P14),
+phone pick-ups (W3), requests from the child (D3), the self-control track (S1 to S5), and the
+Xiaomi changes not built yet (X2, X11, X13, resuming setup mid-way).
+
 ## Google Play (paused 2026-11-19 and 2026-11-20)
 
 | Item | Where it stopped | Next step | Document |
