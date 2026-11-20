@@ -61,6 +61,11 @@ export const ar: Record<MessageKey, string> = {
     'auth.privacyHref': '/privacy-ar.html',
     'auth.deleteLink': 'حذف حسابك',
     'auth.about': 'تعرّف على منارة',
+    'auth.newVisitor': 'جديد على منارة؟',
+    'auth.videos': '▶ شاهد منارة بالفيديو',
+    'auth.videosHref': '/features-ar',
+    'auth.beta': 'كن من العائلات الرائدة (مجانًا)',
+    'auth.betaHref': '/beta-ar',
     'auth.guide': 'دليل أولياء الأمور',
     // TODO-REVIEW: "two-step sign-in" rendered as "تسجيل الدخول بخطوتين"
     'auth.twoStepTitle': 'تسجيل الدخول بخطوتين',

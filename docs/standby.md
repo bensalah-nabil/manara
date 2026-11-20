@@ -43,6 +43,14 @@ Xiaomi changes not built yet (X2, X11, X13, resuming setup mid-way).
 | Remove this PC from the SM-A045F's paired devices | Left from the 2026-11-19 test |
 | Offer 1.0.36 to the phones | After testing it on the owner's phone (admin console, Releases) |
 
+## To change when the beta is full
+
+The beta ("Familles pionnières") is capped at 20 families. When they are reached, switch every
+"Devenir famille pionnière" link to a waiting list, or take it out: the sign-in page
+(`auth.beta`, `auth.betaHref` in `controller/src/messages`), `decouvrir.html` (top, bottom, footer),
+`/features*` (`tools/featurepages.py`), and the beta page itself (`tools/betapages.py`). The price is
+not decided (owner, 2026-11-20): every page says "free during the test"; change them together when it is.
+
 ## Waiting on an answer from the owner
 
 | Item | Question |

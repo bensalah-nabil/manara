@@ -152,6 +152,14 @@ function AuthForm({ onSubmit, onForgot, notice }: {
                 </button>
                 {mode === 'login' && <button type="button" class="link" onClick={() => switchTo('forgot')}>{t('auth.forgot')}</button>}
             </form>
+            {/* For a parent arriving here first: what Manara does, and the beta (features and beta pages). */}
+            <div class="visitor stack">
+                <strong>{t('auth.newVisitor')}</strong>
+                <div class="visitor-links">
+                    <a href={t('auth.videosHref')} class="primary button-link">{t('auth.videos')}</a>
+                    <a href={t('auth.betaHref')} class="ghost button-link">{t('auth.beta')}</a>
+                </div>
+            </div>
             <a href="/decouvrir.html" class="ghost button-link">{t('auth.about')}</a>
             <p class="muted small">
                 <a href={t('auth.privacyHref')}>{t('auth.privacy')}</a> · <a href="/delete-account.html">{t('auth.deleteLink')}</a> · <a href="/guide.html">{t('auth.guide')}</a>

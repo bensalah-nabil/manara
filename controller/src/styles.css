@@ -666,3 +666,7 @@ label.check.choice.danger:has(input:checked) { border-color: var(--danger); box-
 .notice-banner { margin: 12px 20px 0; }
 .notice-banner.warn { background: var(--warn-soft); color: var(--warn); }
 @media (max-width: 760px) { .notice-banner { margin: 10px 16px 0; } }
+
+/* Sign-in page: the way in for a parent who doesn't have an account yet. */
+.visitor { padding: 14px 16px; border-radius: 12px; background: var(--brand-soft); text-align: center; }
+.visitor-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
