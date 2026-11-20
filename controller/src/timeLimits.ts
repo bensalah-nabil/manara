@@ -4,7 +4,8 @@ import { t } from './i18n.ts'
 
 export interface TimeLimitRule {
     category: string
-    packages: string[]
+    /** Absent when empty: the server leaves out an empty list (a Games rule has none). */
+    packages?: string[]
     dailyMinutes: number
     /** Also covers every app on the phone that says it is a game. */
     allGames?: boolean
@@ -39,7 +40,8 @@ export function toDraft(policy: Policy): Draft {
         enabled: limits?.enabled ?? false,
         rules: (limits?.rules ?? []).map((rule) => ({
             category: rule.category,
-            packages: rule.packages.join('\n'),
+            // The server leaves out an empty list (omitempty): a Games rule (allGames) comes back with none.
+            packages: (rule.packages ?? []).join('\n'),
             dailyMinutes: String(rule.dailyMinutes),
             ...(rule.allGames ? { allGames: true } : {}),
         })),

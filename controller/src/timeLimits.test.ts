@@ -83,3 +83,12 @@ test('helpers: package parsing, new rule defaults, and the immediate-block warni
     assert.equal(blocksImmediately({ enabled: false, rules: [rule('a', 'com.a.b', '0')] }), false)
     assert.equal(blocksImmediately({ enabled: true, rules: [rule('a', 'com.a.b', '10')] }), false)
 })
+
+test('a Games rule the server sends without its empty app list still opens', () => {
+    // domain.TimeLimitRule has packages,omitempty: the Games card's rule comes back with no list at all.
+    const policy = { version: 4, timeLimits: { enabled: true, rules: [{ category: 'Games', dailyMinutes: 60, allGames: true }] } } as unknown as Policy
+    const draft = toDraft(policy)
+    assert.equal(draft.rules.length, 1)
+    assert.equal(draft.rules[0].packages, '')
+    assert.equal(draft.rules[0].allGames, true)
+})
