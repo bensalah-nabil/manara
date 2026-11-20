@@ -653,6 +653,13 @@ body {
 
 /* A call from a number the parent doesn't know (roadmap W2). */
 .tag.warn { background: var(--warn-soft); color: var(--warn); }
+/* The reset way (AddDevice): it erases a phone in use, so it reads as dangerous at a glance. */
+.tag.danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; font-weight: 700; }
+label.check.choice.danger:has(input:checked) { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+.erase-warning { display: grid; gap: 10px; padding: 14px 16px; border-radius: 10px; background: var(--danger-soft); border: 2px solid var(--danger); }
+.erase-warning h3 { color: var(--danger); margin: 0; }
+.erase-warning p { margin: 0; }
+.erase-confirm { font-weight: 600; }
 
 /* The notice from whoever runs Manara, above the console (admin console, part 1). */
 .shell.with-notice { grid-template-rows: auto auto 1fr; }

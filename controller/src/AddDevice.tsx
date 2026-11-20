@@ -52,6 +52,8 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
     // No default: the two paths differ too much (erase the phone, or remove its accounts for a
     // moment) for the console to pick one for the parent.
     const [way, setWay] = useState<Way | null>(null)
+    // The reset way erases the phone: Continue waits until the parent ticks that they understand.
+    const [eraseOk, setEraseOk] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
@@ -126,22 +128,25 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 <>
                     <fieldset class="group">
                         <legend>{t('add.howQuestion')}</legend>
+                        {/* The phone already in use first: it keeps everything. The reset way second and
+                            marked as dangerous, because on a phone in use it deletes the child's photos and
+                            chats for good (owner's request, 2026-11-20). */}
+                        <label class="check choice">
+                            <input type="radio" name="way" checked={way === 'inUse'} onChange={() => { setWay('inUse'); setEraseOk(false) }} />
+                            <span>
+                                <strong>{t('add.howInUse')}</strong> <span class="tag ok">{t('add.pathInUseTag')}</span>
+                                <span class="muted small"> {t('add.howInUseHelp')}</span>
+                            </span>
+                        </label>
                         {qrOffered && (
-                            <label class="check choice">
+                            <label class="check choice danger">
                                 <input type="radio" name="way" checked={way === 'fresh'} onChange={() => setWay('fresh')} />
                                 <span>
-                                    <strong>{t('add.pathQr')}</strong> <span class="tag ok">{t('add.pathFreshTag')}</span>
+                                    <strong>{t('add.pathQr')}</strong> <span class="tag danger">{t('add.pathFreshTag')}</span>
                                     <span class="muted small"> {t('add.pathQrHelp')}</span>
                                 </span>
                             </label>
                         )}
-                        <label class="check choice">
-                            <input type="radio" name="way" checked={way === 'inUse'} onChange={() => setWay('inUse')} />
-                            <span>
-                                <strong>{t('add.howInUse')}</strong> <span class="tag">{t('add.pathInUseTag')}</span>
-                                <span class="muted small"> {t('add.howInUseHelp')}</span>
-                            </span>
-                        </label>
                         <label class="check">
                             <input type="radio" name="way" checked={way === 'move'} onChange={() => setWay('move')} />
                             <span>
@@ -151,9 +156,13 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                         </label>
                     </fieldset>
                     {byQr && (
-                        <div class="consent stack" role="group" aria-labelledby="reset-title">
+                        <div class="erase-warning stack" role="alert" aria-labelledby="reset-title">
                             <h3 id="reset-title">{t('add.resetTitle')}</h3>
                             <p>{t('add.resetText')}</p>
+                            <label class="check erase-confirm">
+                                <input type="checkbox" checked={eraseOk} onChange={(e) => setEraseOk((e.target as HTMLInputElement).checked)} />
+                                <span>{t('add.resetConfirm')}</span>
+                            </label>
                         </div>
                     )}
                     {way === 'inUse' && (
@@ -171,7 +180,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                     <p role="alert" class="error">{error}</p>
                     <div class="actions">
                         <button type="button" class="ghost" onClick={() => setStep('consent')}>{t('common.back')}</button>
-                        <button type="button" class="primary" disabled={busy || way === null} onClick={way === 'inUse' ? () => setStep('install') : createCode}>
+                        <button type="button" class="primary" disabled={busy || way === null || (byQr && !eraseOk)} onClick={way === 'inUse' ? () => setStep('install') : createCode}>
                             {busy ? t('common.pleaseWait') : t('common.continue')}
                         </button>
                     </div>
