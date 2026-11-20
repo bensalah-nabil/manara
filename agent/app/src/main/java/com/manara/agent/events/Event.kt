@@ -25,7 +25,10 @@ enum class EventKind {
     usage, location, call, lock, boot, heartbeat, enforcement,
 
     /** Wire name matches the API's `usage_report`; Kotlin serialization uses the entry name. */
-    usage_report
+    usage_report,
+
+    /** An app installed or removed, while the parent has `appChanges` on (roadmap W1). */
+    app_change
 }
 
 /**

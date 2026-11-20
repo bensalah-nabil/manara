@@ -11,13 +11,14 @@ func TestEveryEventKindHasALimitedRetention(t *testing.T) {
 		EventKindLocation:    30 * 24 * time.Hour,
 		EventKindEnforcement: 90 * 24 * time.Hour,
 		EventKindUsage:       90 * 24 * time.Hour,
+		EventKindAppChange:   30 * 24 * time.Hour,
 	}
 	for kind, d := range want {
 		if got := RetentionFor(kind); got != d {
 			t.Errorf("%s kept %v, want %v", kind, got, d)
 		}
 	}
-	if len(AllEventKinds) != 8 {
+	if len(AllEventKinds) != 9 {
 		t.Errorf("AllEventKinds has %d kinds; a new kind needs adding there", len(AllEventKinds))
 	}
 	for _, kind := range AllEventKinds {

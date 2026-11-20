@@ -9,6 +9,7 @@
     <string name="summary_filter">Filtrage des sites demandé</string>
     <string name="summary_location">Partage de la position demandé, toutes les %1$s min</string>
     <string name="summary_usage">L\'utilisation quotidienne des applications est envoyée à ton parent</string>
+    <string name="summary_app_changes">Les applications installées ou supprimées sont signalées à ton parent</string>
     <string name="summary_lock">Plages de coucher, où les applications sont en pause mais les appels, les SMS, WhatsApp et le Coran restent possibles : %1$s</string>
     <string name="summary_restrictions">Réglages bloqués demandés : %1$s</string>
     <string name="summary_chrome">Règles Chrome définies par ton parent</string>
@@ -99,6 +100,8 @@
     <string name="seen_location_detail">Envoyé toutes les %1$s minutes. Un avis s\'affiche tant que c\'est activé.</string>
     <string name="seen_usage_title">Le temps passé dans chaque application</string>
     <string name="seen_usage_detail">Minutes par application aujourd\'hui, envoyées environ une fois par heure.</string>
+    <string name="seen_apps_title">Applications installées ou supprimées</string>
+    <string name="seen_apps_detail">Le nom de chaque application ajoutée ou supprimée, et quand. Jamais ce qu\'elle contient.</string>
     <string name="seen_limit_title">Quand une limite de temps est atteinte</string>
     <string name="seen_limit_detail">Quelle limite, pas ce que tu faisais.</string>
     <string name="seen_calls_title">Tes appels</string>

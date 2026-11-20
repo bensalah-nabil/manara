@@ -20,6 +20,10 @@ import { applyUsageReport, toDraft as usageReportDraft, USAGE_REPORT_WARNING } f
 import type { Draft as UsageReportDraft, UsageReportPolicy } from './usageReport.ts'
 import { t } from './i18n.ts'
 import { DELAY_CHOICES, delayHours, delayLabel, withDelay } from './pending.ts'
+import { applyAppChanges, toDraft as appChangesDraft } from './appChanges.ts'
+import type { Draft as AppChangesDraft } from './appChanges.ts'
+import { applyCallAlerts, toDraft as callAlertsDraft, validateDraft as validateCallAlerts } from './callAlerts.ts'
+import type { Draft as CallAlertsDraft } from './callAlerts.ts'
 
 export interface Props {
     api: Api
@@ -99,6 +103,19 @@ const usageReportSection: Section<UsageReportDraft, UsageReportPolicy> = {
     validate: (draft) => ({ ok: true, value: { enabled: draft.enabled } }),
     apply: applyUsageReport,
     confirm: (before, after) => (after.enabled && !before.enabled ? USAGE_REPORT_WARNING : null),
+}
+
+const appChangesSection: Section<AppChangesDraft, AppChangesDraft> = {
+    toDraft: appChangesDraft,
+    validate: (draft) => ({ ok: true, value: draft }),
+    apply: applyAppChanges,
+    confirm: (before, after) => (after.enabled && !before.enabled ? t('appChangesEditor.confirm') : null),
+}
+
+const callAlertsSection: Section<CallAlertsDraft, { enabled: boolean; knownNumbers: string[] }> = {
+    toDraft: callAlertsDraft,
+    validate: validateCallAlerts,
+    apply: applyCallAlerts,
 }
 
 const callLogSection: Section<CallLogDraft, CallLogPolicy> = {
@@ -312,6 +329,45 @@ export function CallLogEditor({ on, onClosed, ...props }: SeenProps) {
             </p>
             <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>{t('callEditor.send')}</Toggle>
             <Footer editor={{ ...editor, close: () => { editor.close(); onClosed?.() } }} saveLabel={t('callEditor.save')} />
+        </Open>
+    )
+}
+
+/** Apps installed or removed (roadmap W1): name and time, listed on the child's notice while on. */
+export function AppChangesEditor({ on, onClosed, ...props }: SeenProps) {
+    const editor = usePolicyEditor({ ...props, section: appChangesSection })
+    const { draft, policy, setDraft } = editor
+    if (draft === null || policy === null) {
+        return <Row title={t('appChanges.title')} summary={t('appChangesEditor.summary')} editor={editor} on={on} />
+    }
+
+    return (
+        <Open title={t('appChanges.title')} version={policy.version}>
+            <p class="muted">{t('appChangesEditor.help')}</p>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ enabled })}>{t('appChangesEditor.send')}</Toggle>
+            <Footer editor={{ ...editor, close: () => { editor.close(); onClosed?.() } }} saveLabel={t('appChangesEditor.save')} />
+        </Open>
+    )
+}
+
+/** Calls from numbers the parent doesn't know (roadmap W2): the parent types the known ones. */
+export function CallAlertsEditor({ on, onClosed, ...props }: SeenProps) {
+    const editor = usePolicyEditor({ ...props, section: callAlertsSection })
+    const { draft, policy, setDraft } = editor
+    if (draft === null || policy === null) {
+        return <Row title={t('callAlerts.title')} summary={t('callAlerts.summary')} editor={editor} on={on} />
+    }
+
+    return (
+        <Open title={t('callAlerts.title')} version={policy.version}>
+            <p class="muted">{t('callAlerts.help')}</p>
+            <Toggle checked={draft.enabled} onChange={(enabled) => setDraft({ ...draft, enabled })}>{t('callAlerts.send')}</Toggle>
+            <label>
+                {t('callAlerts.numbers')}
+                <textarea rows={6} dir="ltr" inputMode="tel" spellcheck={false} placeholder={'+216 22 123 456\n71 123 456'} value={draft.numbersText} onInput={(event) => setDraft({ ...draft, numbersText: event.currentTarget.value })} />
+                <span class="muted small">{t('callAlerts.numbersHelp')}</span>
+            </label>
+            <Footer editor={{ ...editor, close: () => { editor.close(); onClosed?.() } }} saveLabel={t('callAlerts.save')} />
         </Open>
     )
 }

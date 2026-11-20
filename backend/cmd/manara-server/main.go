@@ -94,7 +94,7 @@ func main() {
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
-		Alerts: newAlertService(db, devices, alertSenders), AgentUpdate: agentUpdate(),
+		Alerts: newAlertService(db, devices, policies, alertSenders), AgentUpdate: agentUpdate(),
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
@@ -448,7 +448,7 @@ func newAlertSenders(email *notify.ParentEmailAlerts) notify.Fanout {
 }
 
 // newAlertService is nil without a destination, and nothing alerts.
-func newAlertService(db *postgres.DB, devices domain.DeviceRepository, senders notify.Fanout) *domain.AlertService {
+func newAlertService(db *postgres.DB, devices domain.DeviceRepository, policies domain.PolicyRepository, senders notify.Fanout) *domain.AlertService {
 	if len(senders) == 0 {
 		return nil
 	}
@@ -456,6 +456,7 @@ func newAlertService(db *postgres.DB, devices domain.DeviceRepository, senders n
 		Devices:  devices,
 		Notifier: senders,
 		Throttle: postgres.NewAlertThrottleRepository(db, 6*time.Hour),
+		Policies: policies,
 		Now:      time.Now,
 	}
 }

@@ -26,6 +26,16 @@ type Policy struct {
 	Browser      *Browser       `json:"browser,omitempty"`
 	// ChangeDelay makes a loosening wait (cooling_off.go). The phone doesn't use it.
 	ChangeDelay *ChangeDelay `json:"changeDelay,omitempty"`
+	// AppChanges opts in to apps installed or removed being reported (roadmap W1). Absent means off.
+	AppChanges *AppChanges `json:"appChanges,omitempty"`
+	// CallAlerts: an alert for a call from a number the parent doesn't know (unknown_caller.go).
+	// Server and console only: ForPhone removes it before the phone gets its policy.
+	CallAlerts *CallAlerts `json:"callAlerts,omitempty"`
+}
+
+// AppChanges: the phone reports each app installed or removed, by name and time, never what is in it.
+type AppChanges struct {
+	Enabled bool `json:"enabled"`
 }
 
 // Browser is Chrome's managed configuration, which the phone sets as a device

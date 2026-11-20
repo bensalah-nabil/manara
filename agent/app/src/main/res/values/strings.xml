@@ -13,6 +13,7 @@
     <string name="summary_filter">Site filtering requested</string>
     <string name="summary_location">Location sharing requested, every %1$s min</string>
     <string name="summary_usage">Daily app usage is reported to your parent</string>
+    <string name="summary_app_changes">Apps installed or removed are reported to your parent</string>
     <string name="summary_lock">Bedtime windows, when apps pause but calls, texts, WhatsApp and Quran apps still work: %1$s</string>
     <string name="summary_restrictions">Settings restrictions requested: %1$s</string>
     <string name="summary_chrome">Chrome rules set by your parent</string>
@@ -109,6 +110,8 @@
     <string name="seen_location_detail">Sent every %1$s minutes. A notice shows while it\'s on.</string>
     <string name="seen_usage_title">Time spent in each app</string>
     <string name="seen_usage_detail">Minutes per app today, sent about once an hour.</string>
+    <string name="seen_apps_title">Apps installed or removed</string>
+    <string name="seen_apps_detail">The name of each app added or removed, and when. Never what is inside it.</string>
     <string name="seen_limit_title">When a time limit is reached</string>
     <string name="seen_limit_detail">Which limit, not what you were doing.</string>
     <string name="seen_calls_title">Your calls</string>

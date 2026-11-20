@@ -183,6 +183,8 @@ type AlertService struct {
 	Devices  DeviceRepository
 	Notifier AlertNotifier
 	Throttle AlertGate
+	// Policies gives each phone's known numbers, for calls from unknown numbers; nil: no such alerts.
+	Policies PolicyRepository
 	Now      func() time.Time
 	// SendTimeout bounds one delivery; zero means 10 seconds.
 	SendTimeout time.Duration
@@ -215,7 +217,8 @@ func (s *AlertService) HandleNewEvents(ctx context.Context, deviceID string, eve
 			problems = append(problems, e)
 		}
 	}
-	if len(problems) == 0 {
+	callers := s.unknownCallers(ctx, deviceID, ordered)
+	if len(problems) == 0 && len(callers) == 0 {
 		return
 	}
 
@@ -228,15 +231,58 @@ func (s *AlertService) HandleNewEvents(ctx context.Context, deviceID string, eve
 	if timeout == 0 {
 		timeout = 10 * time.Second
 	}
-	for _, e := range problems {
-		if !s.Throttle.Allow(ctx, ProblemKey(e), s.Now()) {
-			continue
-		}
-		alert, _ := AlertFor(device, e)
+	send := func(alert Alert) {
 		sendCtx, cancel := context.WithTimeout(ctx, timeout)
 		if err := s.Notifier.Send(sendCtx, alert); err != nil {
 			log.Printf("alerts: send for device %s: %v", deviceID, err)
 		}
 		cancel()
 	}
+	for _, e := range problems {
+		if !s.Throttle.Allow(ctx, ProblemKey(e), s.Now()) {
+			continue
+		}
+		alert, _ := AlertFor(device, e)
+		send(alert)
+	}
+	for key, e := range callers {
+		// Once per number per throttle window: a stranger who calls ten times is one alert.
+		if !s.Throttle.Allow(ctx, deviceID+"|unknown-call|"+key, s.Now()) {
+			continue
+		}
+		send(UnknownCallerAlert(device, e))
+	}
+}
+
+// unknownCallers returns, per number, the newest call from a number the parent doesn't know, when
+// the phone's policy has call alerts on.
+func (s *AlertService) unknownCallers(ctx context.Context, deviceID string, events []*Event) map[string]*Event {
+	if s.Policies == nil {
+		return nil
+	}
+	hasCall := false
+	for _, e := range events {
+		if e.Kind == EventKindCall {
+			hasCall = true
+			break
+		}
+	}
+	if !hasCall {
+		return nil
+	}
+	policy, err := s.Policies.Get(ctx, deviceID)
+	if err != nil {
+		log.Printf("alerts: policy for %s: %v", deviceID, err)
+		return nil
+	}
+	if policy == nil || policy.CallAlerts == nil || !policy.CallAlerts.Enabled {
+		return nil
+	}
+	out := map[string]*Event{}
+	for _, e := range events {
+		if key, unknown := UnknownCaller(e, policy.CallAlerts.KnownNumbers); unknown {
+			out[key] = e
+		}
+	}
+	return out
 }

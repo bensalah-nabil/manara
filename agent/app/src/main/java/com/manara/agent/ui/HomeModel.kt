@@ -71,6 +71,9 @@ object ChildView {
         if (policy?.usageReport?.enabled == true) {
             add(Line(words.get(R.string.seen_usage_title), words.get(R.string.seen_usage_detail)))
         }
+        if (policy?.appChanges?.enabled == true) {
+            add(Line(words.get(R.string.seen_apps_title), words.get(R.string.seen_apps_detail)))
+        }
         if (policy?.timeLimits?.enabled == true && policy.timeLimits.rules.isNotEmpty()) {
             add(Line(words.get(R.string.seen_limit_title), words.get(R.string.seen_limit_detail)))
         }

@@ -15,6 +15,7 @@ object NoticeSummary {
         if (policy.siteFilter.enabled) lines += words.get(R.string.summary_filter)
         if (policy.location.enabled) lines += words.get(R.string.summary_location, policy.location.intervalMinutes)
         if (policy.usageReport.enabled) lines += words.get(R.string.summary_usage)
+        if (policy.appChanges.enabled) lines += words.get(R.string.summary_app_changes)
         val windows = policy.lockSchedule?.takeIf { it.enabled }?.windows?.size ?: 0
         if (windows > 0) lines += words.get(R.string.summary_lock, windows)
         with(policy.restrictions) {

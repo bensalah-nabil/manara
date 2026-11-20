@@ -16,6 +16,7 @@
     <string name="summary_filter">حجب المواقع مطلوب</string>
     <string name="summary_location">مشاركة الموقع مطلوبة، كل %1$s دقيقة</string>
     <string name="summary_usage">يُرسَل استخدام التطبيقات اليومي إلى ولي أمرك</string>
+    <string name="summary_app_changes">تُبلَّغ التطبيقات المثبَّتة أو المحذوفة إلى وليّ أمرك</string>
     <!-- TODO-REVIEW: bedtime wording (P2) -->
     <string name="summary_lock">فترات وقت النوم، تتوقف فيها التطبيقات وتبقى المكالمات والرسائل وواتساب وتطبيقات القرآن ممكنة: %1$s</string>
     <string name="summary_restrictions">الإعدادات المقيَّدة المطلوبة: %1$s</string>
@@ -113,6 +114,8 @@
     <string name="seen_location_detail">يُرسَل كل %1$s دقيقة. يظهر إشعار ما دام ذلك مفعّلًا.</string>
     <string name="seen_usage_title">الوقت الذي تقضيه في كل تطبيق</string>
     <string name="seen_usage_detail">الدقائق لكل تطبيق اليوم، وتُرسَل مرة كل ساعة تقريبًا.</string>
+    <string name="seen_apps_title">التطبيقات المثبَّتة أو المحذوفة</string>
+    <string name="seen_apps_detail">اسم كل تطبيق أُضيف أو حُذف، ومتى. ولا شيء ممّا بداخله أبدًا.</string>
     <string name="seen_limit_title">متى يُبلَغ حدّ زمني</string>
     <string name="seen_limit_detail">أيّ حدّ، لا ما كنت تفعله.</string>
     <string name="seen_calls_title">مكالماتك</string>

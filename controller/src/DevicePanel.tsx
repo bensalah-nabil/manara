@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
-import { BrowserEditor, CallLogEditor, ChangeDelayEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
+import { AppChangesEditor, BrowserEditor, CallAlertsEditor, CallLogEditor, ChangeDelayEditor, LocationEditor, RestrictionsEditor, ScheduleEditor, SiteFilterEditor, TimeLimitsEditor, UsageReportEditor } from './Editors.tsx'
 import { PendingBanner } from './PendingBanner.tsx'
 import type { Props } from './Editors.tsx'
 import { agoText, deviceName, errorText, lastSeenText, statusText } from './format.ts'
@@ -23,6 +23,9 @@ import { InsightsPanel } from './InsightsPanel.tsx'
 import { PrayerChart } from './PrayerChart.tsx'
 import { RuleCards } from './RuleCards.tsx'
 import { readCards } from './ruleCards.ts'
+import { actionText, summarizeAppChanges, whenText } from './appChanges.ts'
+import type { AppChangeItem } from './appChanges.ts'
+import { alertsOn, isUnknownCaller, knownNumbers } from './callAlerts.ts'
 import { directionText, durationText, groupByDay, numberText, summarizeCalls, timeText } from './callLog.ts'
 import type { CallItem } from './callLog.ts'
 import { appName } from './insights.ts'
@@ -125,9 +128,48 @@ function ProtectionStatus(props: Props & { notBefore: number }) {
 // The panel shows 7 days; ask for a little more so a phone in another time zone still has its 7th day.
 const USAGE_WINDOW_MS = 9 * 24 * 60 * 60 * 1000
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
+/** Apps installed or removed, newest first (roadmap W1). */
+function AppChangesPanel(props: Props) {
+    const { value: changes, error, reload } = useEvents<AppChangeItem[]>(props, 'app_change', summarizeAppChanges, THIRTY_DAYS_MS)
+    const { shown, more } = useFirst(changes, 8)
+    return (
+        <Panel title={t('appChanges.title')} onRefresh={reload} error={error} footnote={t('appChanges.footnote')}>
+            {changes === null ? (
+                !error && <p class="muted">{t('common.loading')}</p>
+            ) : changes.length === 0 ? (
+                <p class="muted">{t('appChanges.none')}</p>
+            ) : (
+                <>
+                    <ul class="call-list app-changes">
+                        {shown.map((item) => (
+                            <li key={item.id}>
+                                <b title={item.packageName}>{item.label}</b>
+                                <span class="muted">{actionText(item)}</span>
+                                <span class="call-time">{whenText(item.occurredAt)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                    {more}
+                </>
+            )}
+        </Panel>
+    )
+}
+
 function CallHistoryPanel(props: Props) {
     const { value: calls, error, reload } = useEvents<CallItem[]>(props, 'call', summarizeCalls)
     const { shown, more } = useFirst(calls, 8)
+    // With call alerts on, a call from a number the parent doesn't know is marked (roadmap W2).
+    const [known, setKnown] = useState<string[] | null>(null)
+    useEffect(() => {
+        let current = true
+        props.api.getPolicy(props.device.deviceId)
+            .then((policy) => { if (current) setKnown(alertsOn(policy) ? knownNumbers(policy) : null) })
+            .catch(() => undefined)
+        return () => { current = false }
+    }, [props.api, props.device.deviceId])
     return (
         <Panel title={t('calls.title')} onRefresh={reload} error={error} footnote={t('calls.footnote')}>
             {calls === null ? (
@@ -144,7 +186,7 @@ function CallHistoryPanel(props: Props) {
                                     <li key={call.id} class={call.direction === 'missed' ? 'missed' : undefined}>
                                         <span class="call-time">{timeText(call.occurredAt)}</span>
                                         <b>{numberText(call)}</b>
-                                        <span class="muted">{directionText(call.direction)}{durationText(call) && `${t('common.listSeparator')}${durationText(call)}`}</span>
+                                        <span class="muted">{directionText(call.direction)}{durationText(call) && `${t('common.listSeparator')}${durationText(call)}`}{known !== null && isUnknownCaller(call, known) && <> <span class="tag warn">{t('callAlerts.unknownTag')}</span></>}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -272,7 +314,7 @@ function LockNow({ api, device, onSessionExpired }: Props) {
 /** What the phone sends the parent, each with whether it's on now (read again when a setting closes). */
 function SeenTab(props: Props) {
     const { api, device, onSessionExpired } = props
-    const [on, setOn] = useState<{ location: boolean; report: boolean; calls: boolean } | null>(null)
+    const [on, setOn] = useState<{ location: boolean; report: boolean; calls: boolean; apps: boolean; strangers: boolean } | null>(null)
     const [reads, setReads] = useState(0)
     useEffect(() => {
         let current = true
@@ -280,7 +322,7 @@ function SeenTab(props: Props) {
             .then((policy) => {
                 if (!current) return
                 const state = readCards(policy)
-                setOn({ location: state.on.location, report: state.on.report, calls: state.calls })
+                setOn({ location: state.on.location, report: state.on.report, calls: state.calls, apps: state.apps, strangers: alertsOn(policy) })
             })
             .catch((caught) => { if (isSessionError(caught)) onSessionExpired() })
         return () => { current = false }
@@ -292,6 +334,8 @@ function SeenTab(props: Props) {
             <LocationEditor {...props} on={on?.location} onClosed={reread} />
             <UsageReportEditor {...props} on={on?.report} onClosed={reread} />
             <CallLogEditor {...props} on={on?.calls} onClosed={reread} />
+            <CallAlertsEditor {...props} on={on?.strangers} onClosed={reread} />
+            <AppChangesEditor {...props} on={on?.apps} onClosed={reread} />
         </>
     )
 }
@@ -366,6 +410,7 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
                             <div class="stack">
                                 <ProtectionStatus {...props} notBefore={setupDoneAt} />
                                 <CallHistoryPanel {...props} />
+                                <AppChangesPanel {...props} />
                             </div>
                             <div class="stack">
                                 <DailyUsagePanel {...props} />

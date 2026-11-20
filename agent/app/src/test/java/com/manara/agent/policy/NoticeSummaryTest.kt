@@ -21,6 +21,13 @@ class NoticeSummaryTest {
     }
 
     @Test
+    fun theChildIsToldWhileAppChangesAreReported() {
+        val line = "Apps installed or removed are reported to your parent"
+        assertTrue(NoticeSummary.lines(English, Policy(version = 1, appChanges = Policy.AppChanges(enabled = true))).contains(line))
+        assertFalse(NoticeSummary.lines(English, Policy(version = 1)).contains(line))
+    }
+
+    @Test
     fun configuredFeaturesAreCountedNotNamed() {
         val lines = NoticeSummary.lines(English, Policy(
             version = 1,

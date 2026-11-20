@@ -298,7 +298,9 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 	if policy != nil && policy.Version != req.PolicyVersion {
 		resp.PolicyChanged = true
-		resp.Policy = policy
+		// The parent's known numbers never go to the child's phone (roadmap W2).
+		forPhone := policy.ForPhone()
+		resp.Policy = &forPhone
 	}
 
 	writeJSON(w, http.StatusOK, resp)

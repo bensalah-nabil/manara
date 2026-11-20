@@ -20,8 +20,15 @@ data class Policy(
     val lockSchedule: LockSchedule? = null,
     val restrictions: Restrictions = Restrictions(),
     val usageReport: UsageReport = UsageReport(),
-    val browser: Browser = Browser()
+    val browser: Browser = Browser(),
+    val appChanges: AppChanges = AppChanges()
 ) {
+    /** Opt-in: apps installed or removed are reported. Shown on the notice and status screen while on. */
+    @Serializable
+    data class AppChanges(
+        val enabled: Boolean = false
+    )
+
     /**
      * Chrome's managed configuration (capability-plan.md B2). All off by default, so Chrome is
      * left alone. [youtube] is "off", "moderate" or "strict"; anything else counts as off.

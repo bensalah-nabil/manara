@@ -52,6 +52,8 @@ export function authErrorText(code: string): string {
             return t('err.releaseWaits')
         case 'invalid_change_delay':
             return t('err.invalidChangeDelay')
+        case 'invalid_call_alerts':
+            return t('err.invalidCallAlerts')
         case 'bad_code':
             return t('err.badCode')
         case 'invalid_challenge':

@@ -19,7 +19,8 @@ fun defaultEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegist
         UsageReportEnforcer(context),
         BrowserPolicyEnforcer(context),
         BrowserBlockEnforcer(context),
-        CallLogEnforcer(context)
+        CallLogEnforcer(context),
+        AppChangesEnforcer(context)
     ),
     isManaged = { isManaged(context) },
 )

@@ -1403,6 +1403,33 @@ components:
             30 days.
           properties:
             enabled: { type: boolean }
+        callAlerts:
+          type: object
+          description: >
+            Optional, off when omitted. An alert to the parent when a number not
+            in `knownNumbers` calls the child (incoming, missed or rejected), or
+            a hidden number; calls in messaging apps give no number and are not
+            checked. The last 8 digits are compared, so any prefix matches. The
+            comparison runs on the server, on call events it already receives.
+            **Never sent to the phone**: `/agent/sync` strips this section.
+            Refused with 400 `invalid_call_alerts` for more than 100 numbers or
+            a line that is not a phone number.
+          properties:
+            enabled: { type: boolean }
+            knownNumbers:
+              type: array
+              maxItems: 100
+              items: { type: string, maxLength: 30 }
+        appChanges:
+          type: object
+          description: >
+            Optional, off when omitted. While `enabled`, the phone sends an
+            `app_change` event for each app installed or removed. This is data
+            leaving the device, so the phone lists it on its own notice and
+            status screen while it is on, and the server keeps those events for
+            30 days.
+          properties:
+            enabled: { type: boolean }
         changeDelay:
           type: object
           description: >
@@ -1480,7 +1507,12 @@ components:
         totalMinutes, apps: [{package, minutes}]}`, the busiest 30 apps with at
         least one minute. Later snapshots of the same date supersede earlier
         ones. Package names only, no labels and no content.
-      enum: [usage, location, call, lock, boot, heartbeat, enforcement, usage_report]
+        `app_change` is an app installed or removed, sent only while the
+        policy's `appChanges` is on. Its payload is `{action: installed|removed,
+        package, label}`: the app's name and package, never its content.
+        `occurredAt` is the install time Android gives, or the moment the
+        phone saw a removal.
+      enum: [usage, location, call, lock, boot, heartbeat, enforcement, usage_report, app_change]
 
     Event:
       type: object

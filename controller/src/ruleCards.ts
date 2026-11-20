@@ -18,6 +18,8 @@ export interface CardsState {
     bedtimeCustom: boolean
     /** Set under Sharing, never by a card or an age, but the child still sees it. */
     calls: boolean
+    /** Apps installed or removed are reported (What you see); the child sees it too. */
+    apps: boolean
 }
 
 interface Rule {
@@ -107,6 +109,7 @@ export function readCards(policy: Policy): CardsState {
         bedtimeHour: hour ?? 21,
         bedtimeCustom: hasWindows && hour === null,
         calls: section(policy, 'callLog').enabled === true,
+        apps: section(policy, 'appChanges').enabled === true,
     }
 }
 
@@ -265,5 +268,6 @@ export function childLines(state: CardsState): string[] {
     if (on.location) lines.push(t('rules.child.location'))
     if (on.report) lines.push(t('rules.child.report'))
     if (state.calls) lines.push(t('rules.child.calls'))
+    if (state.apps) lines.push(t('rules.child.apps'))
     return lines
 }

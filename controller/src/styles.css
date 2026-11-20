@@ -625,3 +625,10 @@ body {
 .brand span { color: var(--brand); }
 .rule-heading { color: var(--brand); }
 .rule-card { border-top: 3px solid color-mix(in srgb, var(--lamp) 55%, transparent); }
+
+/* Apps installed or removed: the name and what happened, the date below (it's longer than a call's time). */
+.call-list.app-changes li { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+.call-list.app-changes li .call-time { grid-column: 1 / -1; font-size: 0.85rem; }
+
+/* A call from a number the parent doesn't know (roadmap W2). */
+.tag.warn { background: var(--warn-soft); color: var(--warn); }

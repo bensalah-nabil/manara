@@ -20,6 +20,9 @@ const (
 	// EventKindUsageReport: a snapshot of today's minutes per app, sent only
 	// while the policy's usageReport is on (payload: date, totalMinutes, apps).
 	EventKindUsageReport EventKind = "usage_report"
+	// EventKindAppChange: an app installed or removed, sent only while the policy's
+	// appChanges is on (payload: action installed|removed, package, label).
+	EventKindAppChange EventKind = "app_change"
 )
 
 // UsageReportRetention is how long usage_report events are kept (capability-plan G2).
@@ -31,6 +34,10 @@ const LocationRetention = 30 * 24 * time.Hour
 // CallRetention is how long call events are kept (ADR-0008).
 const CallRetention = 30 * 24 * time.Hour
 
+// AppChangeRetention is how long apps installed or removed are kept, like the other things
+// the parent sees (roadmap W1).
+const AppChangeRetention = 30 * 24 * time.Hour
+
 // EventRetention is how long every other kind of event is kept: limit hits,
 // protection reports, locks.
 const EventRetention = 90 * 24 * time.Hour
@@ -38,7 +45,7 @@ const EventRetention = 90 * 24 * time.Hour
 // AllEventKinds lists every kind, so retention can't miss one.
 var AllEventKinds = []EventKind{
 	EventKindUsage, EventKindLocation, EventKindCall, EventKindLock, EventKindBoot,
-	EventKindHeartbeat, EventKindEnforcement, EventKindUsageReport,
+	EventKindHeartbeat, EventKindEnforcement, EventKindUsageReport, EventKindAppChange,
 }
 
 // RetentionFor is how long events of a kind are kept before the sweep deletes them.
@@ -51,6 +58,8 @@ func RetentionFor(kind EventKind) time.Duration {
 		return LocationRetention
 	case EventKindCall:
 		return CallRetention
+	case EventKindAppChange:
+		return AppChangeRetention
 	default:
 		return EventRetention
 	}

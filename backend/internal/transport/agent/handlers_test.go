@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -283,5 +284,29 @@ func TestSyncTellsThePhoneTheVersionToRunOnlyWhenOneIsSet(t *testing.T) {
 	resp := postSync(t, h, map[string]any{"policyVersion": 0, "events": []any{}})
 	if resp.AgentUpdate == nil || *resp.AgentUpdate != u {
 		t.Fatalf("update = %+v, want %+v", resp.AgentUpdate, u)
+	}
+}
+
+type policyWithNumbers struct{ fakePolicies }
+
+func (policyWithNumbers) Get(context.Context, string) (*domain.Policy, error) {
+	return &domain.Policy{Version: 4, CallAlerts: &domain.CallAlerts{Enabled: true, KnownNumbers: []string{"+216 22 123 456"}}}, nil
+}
+
+// The parent's known numbers are for the server's alert only: the child's phone never gets them (roadmap W2).
+func TestThePhoneNeverReceivesTheParentsKnownNumbers(t *testing.T) {
+	h := newHandlers(nil)
+	h.Policies = policyWithNumbers{}
+	raw, _ := json.Marshal(map[string]any{"policyVersion": 0, "events": []any{}, "hasReleaseSecret": true})
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/agent/sync", bytes.NewReader(raw))
+	r.Header.Set("Authorization", "Bearer good")
+	w := httptest.NewRecorder()
+	h.Sync(w, r)
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.Contains(body, `"policyChanged":true`) {
+		t.Fatalf("status %d body %s", w.Code, body)
+	}
+	if strings.Contains(body, "callAlerts") || strings.Contains(body, "22 123 456") {
+		t.Fatalf("the phone got the numbers: %s", body)
 	}
 }
