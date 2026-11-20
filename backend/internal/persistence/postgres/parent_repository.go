@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"manara/backend/internal/domain"
@@ -77,14 +78,17 @@ func (r *AuthRepository) SignUp(ctx context.Context, email, password string) (*d
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
+	// Stored lowercased (domain.NormalizeEmail), and refused when the address exists in any case:
+	// accounts made before this was enforced may still hold capitals.
 	p := &domain.Parent{
 		ID:           uuid.NewString(),
-		Email:        email,
+		Email:        domain.NormalizeEmail(email),
 		PasswordHash: string(hash),
 		CreatedAt:    time.Now().UTC(),
 	}
-	_, err = r.db.Pool.Exec(ctx,
-		`INSERT INTO parents (id, email, password_hash, created_at) VALUES ($1, $2, $3, $4)`,
+	tag, err := r.db.Pool.Exec(ctx,
+		`INSERT INTO parents (id, email, password_hash, created_at)
+		 SELECT $1, $2, $3, $4 WHERE NOT EXISTS (SELECT 1 FROM parents WHERE lower(email) = $2)`,
 		p.ID, p.Email, p.PasswordHash, p.CreatedAt,
 	)
 	if err != nil {
@@ -93,6 +97,9 @@ func (r *AuthRepository) SignUp(ctx context.Context, email, password string) (*d
 		}
 		return nil, fmt.Errorf("insert parent: %w", err)
 	}
+	if tag.RowsAffected() == 0 {
+		return nil, domain.ErrEmailTaken
+	}
 	return p, nil
 }
 
@@ -100,7 +107,10 @@ func (r *AuthRepository) Login(ctx context.Context, email, password string) (*do
 	var p domain.Parent
 	var suspended bool
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, created_at, suspended_at IS NOT NULL FROM parents WHERE email = $1`, email,
+		// Any case matches. Should two old accounts differ only in case, the one typed exactly wins.
+		`SELECT id, email, password_hash, created_at, suspended_at IS NOT NULL FROM parents
+		 WHERE lower(email) = $1 ORDER BY (email = $2) DESC, created_at LIMIT 1`,
+		domain.NormalizeEmail(email), strings.TrimSpace(email),
 	).Scan(&p.ID, &p.Email, &p.PasswordHash, &p.CreatedAt, &suspended)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Same bcrypt work as a real account, so the answer's timing doesn't

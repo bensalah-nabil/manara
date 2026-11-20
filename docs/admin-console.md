@@ -12,6 +12,7 @@ page an admin opened. Parents never see it. Decision: ADR-0011.
 | Each phone's brand, model, Android and Manara versions, last check-in | The child's name the parent typed (the phone's label) |
 | The guided-setup step, status and error message | Location, calls, app usage, rules, events, anything else the phone reports |
 | The admin log | |
+| Totals on the dashboard: per day, per version, per brand, per setup stage, per alert kind | Which phone or family is behind a total |
 
 Every request is checked and **written to `admin_log` before anything is read or done**. If the
 log can't be written, the server answers with an error and shows nothing. Entries are kept for a
@@ -45,6 +46,32 @@ change or release a phone; send a command. The privacy page says so (en, fr, ar)
 | Data minimisation (GDPR art. 5, law 2004-63) | No child data is readable or changeable; the parent's known phone numbers never reach the child's phone |
 | Integrity of what phones install | A version is offered only after the server has downloaded the release and matched its SHA-256 |
 | Re-authentication for sensitive steps | Not built: Entra access tokens carry no reliable sign-in time. The typed confirmation and the reason are the compensating control |
+
+## The dashboard (part 2, 2026-11-20)
+
+On the Overview, under "Needs attention": `GET /api/v1/admin/stats?days=` (7 to 365, 90 by
+default; logged as `viewed_stats`). Totals only. Days are counted in Tunisia time.
+
+| Chart | What it counts | From |
+|---|---|---|
+| Phones checking in per day (line) | Distinct phones that sent anything that day | `events` |
+| New accounts and phones per week (columns, two series) | Accounts and phones created, weeks from Monday | `parents`, `devices` |
+| Manara versions, Android versions, brands (bars, top 12) | Phones by what they last reported | `devices` |
+| How far setup went (bars with share of phones added) | Phones added, guided setup started, finished, waiting for the parent, still running, failed | `devices`, `device_setup` |
+| Why setups failed (bars, top 8) | The phone's last message for each failed setup | `device_setup` |
+| Alerts sent (small multiples, one per kind, same scale) | Alerts per day by kind, and those not delivered to every destination | `alert_log` |
+| Email failing (status line, with ⚠ and a label) | Parents owed an alert email that keeps failing (the Brevo case, CLAUDE.md) | `alert_emails` |
+
+`alert_log` (migration 0021) is new: kind, phone id, time, delivered or not; never the alert's
+text. `domain.RecordingNotifier` writes it after each send. A log that can't be written is
+reported in the server log and never stops the alert. It is kept 90 days, so the alert panels
+show at most 90 days whatever the range. The privacy page lists it (en, fr, ar).
+
+The charts follow the dataviz method: the form chosen before colour, two series colours
+validated against both admin surfaces (light and dark) for colour-blind separation and
+contrast, 2px lines, rounded data ends, one axis, a hover tooltip on every mark, a legend for
+two series, and "Show as a table" under every chart. Bars are HTML, not SVG, so their text keeps
+its size in narrow cards; axis labels are drawn larger on a phone. Plain SVG, no chart library.
 
 ## Sign-in: Microsoft Entra ID
 
@@ -155,10 +182,25 @@ include `http://localhost:5174`.
   attention" list rendered. The data behind it was invented, from a temporary server with the
   real token check in front of a fake store.
 
+- **The SQL against Postgres 16 (2026-11-20):** every `internal/persistence/postgres` test,
+  in a throwaway `postgres:16-alpine` container on this PC: the dashboard query, suspension,
+  settings, and the rest. It found that suspension's test signed up with capitals and signed in
+  lowercased, which led to the email fix below.
+- **The dashboard's look:** rendered with invented totals (a temporary preview, not committed),
+  light and dark, at 1240px and 400px; hover tooltips checked in the page itself.
+
+### Email addresses in any case (found 2026-11-20)
+
+Sign-up stored the address as typed and sign-in matched it exactly, although
+`domain.NormalizeEmail` says addresses are compared lowercased; only the password reset did.
+"Sara@x.com" could not sign in as "sara@x.com", and both could be separate accounts. Now
+sign-up stores it lowercased and refuses it in any case; sign-in matches any case (the exact
+spelling first, should two old accounts differ only in case). Accounts already stored with
+capitals keep working.
+
 ## Not verified yet
 
-- The SQL behind the pages runs only in CI's Postgres (`admin_repository_test.go`). This PC has
-  no database.
+- The dashboard against real data: the live server has no `alert_log` rows until it is deployed.
 - The deployed site: its own Vercel project, its HTTPS redirect URI in the app registration,
   and the settings on Render.
 - A refused sign-in from a real account that isn't on the list (unit-tested only).

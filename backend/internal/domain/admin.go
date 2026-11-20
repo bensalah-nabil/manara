@@ -81,4 +81,7 @@ type AdminStore interface {
 	SetSuspended(ctx context.Context, accountID string, suspended bool, now time.Time) (found bool, err error)
 	// DeleteSetup forgets a phone's guided-setup record, so the parent can start setup again.
 	DeleteSetup(ctx context.Context, deviceID string) (found bool, err error)
+
+	// Stats are the dashboard's totals over the last days days.
+	Stats(ctx context.Context, now time.Time, days int) (AdminStats, error)
 }

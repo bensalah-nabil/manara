@@ -55,3 +55,44 @@ export const ACTION_TEXT: Record<string, string> = {
     set_notice: 'Showed a notice',
     cleared_notice: 'Removed the notice',
 }
+
+/** One week of the dashboard: starts on Monday, sums what the days hold. */
+export interface WeekTotal {
+    week: string
+    newAccounts: number
+    newPhones: number
+}
+
+/** Days (YYYY-MM-DD, oldest first) grouped into weeks starting on Monday. */
+export function weekly(days: { date: string; newAccounts: number; newPhones: number }[]): WeekTotal[] {
+    const weeks = new Map<string, WeekTotal>()
+    for (const day of days) {
+        const d = new Date(day.date + 'T12:00:00Z')
+        const monday = new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86_400_000).toISOString().slice(0, 10)
+        const w = weeks.get(monday) ?? { week: monday, newAccounts: 0, newPhones: 0 }
+        w.newAccounts += day.newAccounts
+        w.newPhones += day.newPhones
+        weeks.set(monday, w)
+    }
+    return [...weeks.values()]
+}
+
+/** A round top for an axis: 1, 2 or 5 times a power of ten, at least the largest value. */
+export function niceMax(value: number): number {
+    if (value <= 0) return 1
+    const power = 10 ** Math.floor(Math.log10(value))
+    for (const step of [1, 2, 5, 10]) if (step * power >= value) return step * power
+    return 10 * power
+}
+
+export function share(part: number, whole: number): string {
+    if (whole <= 0) return '–'
+    return `${Math.round((part / whole) * 100)}%`
+}
+
+export const ALERT_KIND_TEXT: Record<string, string> = {
+    tamper: 'A protection stopped working',
+    silent_phone: 'A phone stopped checking in',
+    unknown_call: 'A call from an unknown number',
+    other: 'Other alerts',
+}

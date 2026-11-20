@@ -12,6 +12,8 @@ import (
 // Alert is a message for a parent about one of their children's devices.
 // It never carries user content: only which protection broke and when.
 type Alert struct {
+	// Kind is one of the AlertKind constants, for the admin dashboard's count.
+	Kind       string
 	ParentID   string
 	DeviceID   string
 	Title      string
@@ -127,6 +129,7 @@ func AlertFor(d *Device, e *Event) (Alert, bool) {
 		sentence = "A problem was reported."
 	}
 	return Alert{
+		Kind:       AlertKindTamper,
 		ParentID:   d.ParentID,
 		DeviceID:   d.ID,
 		Title:      deviceName(d) + ": " + title + " needs attention",

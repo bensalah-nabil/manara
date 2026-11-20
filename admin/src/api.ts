@@ -55,6 +55,17 @@ export interface ActionBody {
     notice?: SiteNotice
 }
 
+export interface AdminStats {
+    days: { date: string; newAccounts: number; newPhones: number; activePhones: number }[]
+    versions: { label: string; count: number }[]
+    android: { label: string; count: number }[]
+    brands: { label: string; count: number }[]
+    funnel: { phones: number; setupStarted: number; inProgress: number; waitingForParent: number; finished: number; failed: number }
+    failures: { label: string; count: number }[]
+    alerts: { date: string; kind: string; sent: number; undelivered: number }[]
+    emailsFailing: number
+}
+
 export class ActionError extends Error {
     readonly code: string
     constructor(code: string, message: string) {
@@ -131,6 +142,7 @@ export function createApi(token: () => Promise<string>) {
         accounts: (query: string) => get<Account[]>(`/admin/accounts?q=${encodeURIComponent(query)}`),
         phones: (accountId = '') => get<Phone[]>(`/admin/phones?account=${encodeURIComponent(accountId)}`),
         log: () => get<LogEntry[]>('/admin/log'),
+        stats: (days: number) => get<AdminStats>(`/admin/stats?days=${days}`),
     }
 }
 

@@ -103,6 +103,7 @@ type SilenceRepository interface {
 // SilenceAlert is the alert for a phone that stopped checking in.
 func SilenceAlert(d *Device) Alert {
 	return Alert{
+		Kind:     AlertKindSilentPhone,
 		ParentID: d.ParentID,
 		DeviceID: d.ID,
 		Title:    deviceName(d) + " has stopped checking in",

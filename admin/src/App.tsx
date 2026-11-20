@@ -5,6 +5,7 @@ import { createApi, NotAdmin } from './api.ts'
 import type { Account, Api, LogEntry, Overview, Phone } from './api.ts'
 import { ACTION_TEXT, agoText, PROBLEM_TEXT, phoneProblem } from './model.ts'
 import { AccountActions, NoticeView, PhoneActions, ReleasesView } from './actions.tsx'
+import { Dashboard } from './dashboard.tsx'
 
 type View = 'overview' | 'accounts' | 'phones' | 'releases' | 'notice' | 'log'
 
@@ -137,6 +138,7 @@ function OverviewView({ api }: { api: Api }) {
             </div>
             <h2>Needs attention</h2>
             {phones.value === null ? <Loading error={phones.error} /> : attention.length === 0 ? <p class="muted">Nothing: every phone is reporting and no setup is failing.</p> : <PhoneTable phones={attention} now={now} />}
+            <Dashboard api={api} />
         </>
     )
 }

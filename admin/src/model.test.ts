@@ -34,3 +34,23 @@ test('ago text', () => {
     assert.equal(agoText('2026-11-19T06:00:00Z', now), '6 h ago')
     assert.equal(agoText('2026-11-10T12:00:00Z', now), '9 days ago')
 })
+
+test('days are summed into weeks starting on Monday', async () => {
+    const { weekly } = await import('./model.ts')
+    const weeks = weekly([
+        { date: '2026-11-15', newAccounts: 1, newPhones: 0 }, // Sunday
+        { date: '2026-11-16', newAccounts: 2, newPhones: 1 }, // Monday
+        { date: '2026-11-20', newAccounts: 1, newPhones: 3 }, // Friday
+    ])
+    assert.deepEqual(weeks, [
+        { week: '2026-11-09', newAccounts: 1, newPhones: 0 },
+        { week: '2026-11-16', newAccounts: 3, newPhones: 4 },
+    ])
+})
+
+test('axis tops are round numbers', async () => {
+    const { niceMax, share } = await import('./model.ts')
+    assert.deepEqual([0, 1, 3, 7, 12, 48, 230].map(niceMax), [1, 1, 5, 10, 20, 50, 500])
+    assert.equal(share(1, 4), '25%')
+    assert.equal(share(1, 0), '–')
+})

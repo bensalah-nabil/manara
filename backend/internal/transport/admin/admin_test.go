@@ -170,6 +170,9 @@ func (f *fakeStore) RecordAdmin(_ context.Context, e domain.AdminLogEntry) error
 	return nil
 }
 func (f *fakeStore) AdminLog(context.Context, int) ([]domain.AdminLogEntry, error) { return f.log, nil }
+func (f *fakeStore) Stats(_ context.Context, _ time.Time, days int) (domain.AdminStats, error) {
+	return domain.AdminStats{Days: make([]domain.DayStat, days)}, nil
+}
 
 type fixedVerifier struct{}
 

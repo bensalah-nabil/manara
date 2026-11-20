@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ func Routes(mux *http.ServeMux, h *Handlers) {
 	mux.HandleFunc("GET /api/v1/admin/accounts", h.Accounts)
 	mux.HandleFunc("GET /api/v1/admin/phones", h.Phones)
 	mux.HandleFunc("GET /api/v1/admin/log", h.Log)
+	mux.HandleFunc("GET /api/v1/admin/stats", h.Stats)
 }
 
 const listLimit = 200
@@ -148,6 +150,29 @@ func (h *Handlers) Log(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, list)
+}
+
+// Stats serves the dashboard's totals (part 2): ?days=7..365, 90 by default.
+func (h *Handlers) Stats(w http.ResponseWriter, r *http.Request) {
+	days := 90
+	if raw := r.URL.Query().Get("days"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 7 || n > 365 {
+			writeError(w, http.StatusBadRequest, "bad_request", "days must be 7 to 365")
+			return
+		}
+		days = n
+	}
+	if _, ok := h.admin(w, r, "viewed_stats", strconv.Itoa(days)+" days"); !ok {
+		return
+	}
+	s, err := h.Store.Stats(r.Context(), h.now(), days)
+	if err != nil {
+		log.Printf("admin: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return
+	}
+	writeJSON(w, s)
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

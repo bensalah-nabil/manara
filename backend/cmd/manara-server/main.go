@@ -91,13 +91,14 @@ func main() {
 		}
 	}
 	alertSenders := newAlertSenders(emailAlerts)
+	alertLog := postgres.NewAlertLogRepository(db)
 
 	// Rate limits are counted in Postgres, shared by every instance and kept across restarts.
 	rates := postgres.NewRateStore(db)
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
-		Alerts: newAlertService(db, devices, policies, alertSenders), AgentUpdates: updates,
+		Alerts: newAlertService(db, devices, policies, alertSenders, alertLog), AgentUpdates: updates,
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
@@ -116,7 +117,7 @@ func main() {
 	}
 	if len(alertSenders) > 0 {
 		go watchSilentPhones(ctx, &domain.SilenceWatcher{
-			Repo: postgres.NewSilenceRepository(db), Notifier: alertSenders,
+			Repo: postgres.NewSilenceRepository(db), Notifier: &domain.RecordingNotifier{Next: alertSenders, Log: alertLog},
 			After: silentAfter(), Now: time.Now,
 		})
 	}
@@ -463,13 +464,14 @@ func newAlertSenders(email *notify.ParentEmailAlerts) notify.Fanout {
 }
 
 // newAlertService is nil without a destination, and nothing alerts.
-func newAlertService(db *postgres.DB, devices domain.DeviceRepository, policies domain.PolicyRepository, senders notify.Fanout) *domain.AlertService {
+func newAlertService(db *postgres.DB, devices domain.DeviceRepository, policies domain.PolicyRepository, senders notify.Fanout, alertLog domain.AlertLog) *domain.AlertService {
 	if len(senders) == 0 {
 		return nil
 	}
 	return &domain.AlertService{
-		Devices:  devices,
-		Notifier: senders,
+		Devices: devices,
+		// Each alert is logged with its kind, for the admin dashboard.
+		Notifier: &domain.RecordingNotifier{Next: senders, Log: alertLog},
 		Throttle: postgres.NewAlertThrottleRepository(db, 6*time.Hour),
 		Policies: policies,
 		Now:      time.Now,
@@ -594,6 +596,9 @@ func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.Event
 		}
 		if _, err := postgres.NewPendingRepository(db).PurgeAppliedBefore(ctx, time.Now().Add(-8*24*time.Hour)); err != nil {
 			log.Printf("retention sweep waiting changes: %v", err)
+		}
+		if _, err := postgres.NewAlertLogRepository(db).PurgeOlderThan(ctx, time.Now().Add(-90*24*time.Hour)); err != nil {
+			log.Printf("retention sweep alert log: %v", err)
 		}
 		if _, err := db.PurgeLimitsOlderThan(ctx, time.Now().Add(-24*time.Hour)); err != nil {
 			log.Printf("retention sweep rate limits: %v", err)

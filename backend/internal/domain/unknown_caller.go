@@ -100,6 +100,7 @@ func UnknownCaller(e *Event, known []string) (key string, unknown bool) {
 // number, which the console shows.
 func UnknownCallerAlert(d *Device, e *Event) Alert {
 	return Alert{
+		Kind:       AlertKindUnknownCall,
 		ParentID:   d.ParentID,
 		DeviceID:   d.ID,
 		Title:      deviceName(d) + ": a call from a number you don't know",

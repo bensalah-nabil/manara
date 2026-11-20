@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -242,5 +243,24 @@ func TestAnEnrollmentCodeExpiresAfterADay(t *testing.T) {
 	}
 	if _, ok, _ := tokens.Consume(ctx, fresh); ok {
 		t.Fatal("a code used twice")
+	}
+}
+
+func TestAnEmailIsOneAccountInAnyCase(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	auth := NewAuthRepository(db)
+	email := uniqueEmail("Case")
+	p := newParent(t, db, " "+email+" ", "a password")
+	if p.Email != domain.NormalizeEmail(email) {
+		t.Fatalf("stored %q, want it lowercased and trimmed", p.Email)
+	}
+	for _, typed := range []string{email, strings.ToLower(email), strings.ToUpper(email), " " + email} {
+		if got, err := auth.Login(ctx, typed, "a password"); err != nil || got.ID != p.ID {
+			t.Fatalf("sign in as %q: %v", typed, err)
+		}
+	}
+	if _, err := auth.SignUp(ctx, strings.ToUpper(email), "another password"); !errors.Is(err, domain.ErrEmailTaken) {
+		t.Fatalf("a second account for the same address in capitals: %v", err)
 	}
 }
