@@ -162,6 +162,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                             <ul class="guide">
                                 <li>{t('add.inUseNeed.google')}</li>
                                 <li>{t('add.inUseNeed.samsung')}</li>
+                                <li>{t('add.inUseNeed.xiaomi')}</li>
                                 <li>{t('add.inUseNeed.power')}</li>
                                 <li>{t('add.inUseNeed.time')}</li>
                             </ul>

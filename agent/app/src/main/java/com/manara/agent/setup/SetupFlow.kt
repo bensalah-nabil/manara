@@ -389,8 +389,13 @@ object SetupFlow {
                 "Check in the console how you'll get back in, then tap Open accounts and remove them. " +
                 "Don't uninstall any app: the apps and their data stay.",
         )
-        // A second user (e.g. Secure Folder) also blocks device owner, even with no accounts.
-        if (otherUsers > 0) add("Remove Secure Folder and any other user or profile on the phone.")
+        // A second user also blocks device owner, even with no accounts (AOSP android15-release,
+        // DevicePolicyManagerService.nonTestNonPrecreatedUsersExist counts every user): Samsung's Secure
+        // Folder, or Xiaomi's Dual apps and Second space (user 999 "XSpace", seen on a Redmi Pad 2).
+        if (otherUsers > 0) add(
+            "Remove any other user or profile on the phone: Secure Folder on Samsung, " +
+                "Dual apps and Second space on Xiaomi.",
+        )
     }.joinToString(" ")
 
     private fun finished(state: State, accounts: List<Account>?) = Transition(

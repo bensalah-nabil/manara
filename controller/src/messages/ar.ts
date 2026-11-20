@@ -215,6 +215,8 @@ export const ar: Record<MessageKey, string> = {
     'add.inUseNeedTitle': 'قبل أن تبدأ، جهّز ما يلي',
     'add.inUseNeed.google': 'طريقة للعودة إلى حساب Google على الهاتف: كلمة مروره، أو هاتف يستقبل رموز تسجيل الدخول الخاصة به.',
     'add.inUseNeed.samsung': 'على هاتف سامسونج: كلمة مرور حساب سامسونج.',
+    // TODO-REVIEW: Xiaomi "Dual apps" and "Second space" names (as on an Arabic HyperOS?), added 2026-11-20
+    'add.inUseNeed.xiaomi': 'على هاتف Xiaomi أو Redmi أو POCO: إيقاف التطبيقات المزدوجة والمساحة الثانية (الإعدادات، التطبيقات، التطبيقات المزدوجة). تُحذف النسخة الثانية من التطبيق مع بياناتها، ويبقى التطبيق الأصلي.',
     'add.inUseNeed.power': 'الهاتف مشحون أو موصول بالشاحن، ومتصل بشبكة Wi-Fi.',
     'add.inUseNeed.time': 'وقت كافٍ لإكمال الإعداد دفعة واحدة: تُزال الحسابات من الهاتف لبضع دقائق في المنتصف.',
     'add.resetTitle': 'إعادة الضبط تمحو الهاتف',
@@ -298,6 +300,7 @@ export const ar: Record<MessageKey, string> = {
     // TODO-REVIEW: Samsung "Secure Folder" rendered as "المجلد الآمن"
     'enroll.note.secureFolder': 'إذا كان على الهاتف «المجلد الآمن»، فيجب إزالته أولًا. يُحذف كل ما بداخله، فانقل ما تحتاج إليه إلى خارجه.',
     'enroll.note.xiaomiAccount': 'سيبقى من اللازم إزالة حساب Xiaomi لاحقًا، قبل ربط الهاتف بمنارة.',
+    'enroll.note.xiaomiDual': 'إذا كانت التطبيقات المزدوجة أو المساحة الثانية مستخدمة (نسخة ثانية من WhatsApp أو Messenger مثلًا)، فأوقفها أولًا من الإعدادات، التطبيقات، التطبيقات المزدوجة. تُحذف النسخة الثانية وبياناتها، ويبقى التطبيق الأصلي وبياناته. يرفض Android منارة ما دامت مفعّلة.',
     // TODO-REVIEW: "pause the apps" rendered as "إيقاف التطبيقات مؤقتًا"
     'enroll.accounts.paused': 'على هذا الهاتف، يُفترض أن يكتفي الإعداد بإيقاف التطبيقات التي تحمل حسابًا مؤقتًا لبضع ثوانٍ: لا يُزال أي حساب ولا حاجة إلى تسجيل الدخول من جديد.',
     'enroll.accounts.pausedUntested': 'لم يُختبَر ذلك على هذا النوع بعد، فكن مستعدًّا لاحتمال حدوثه.',

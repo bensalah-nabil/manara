@@ -106,7 +106,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
             t('enroll.step.xiaomiUsb'),
             SEARCH_TIP,
         ],
-        notes: [t('enroll.note.xiaomiAccount')],
+        notes: [t('enroll.note.xiaomiDual'), t('enroll.note.xiaomiAccount')],
     },
     {
         brand: 'oppo-realme',
