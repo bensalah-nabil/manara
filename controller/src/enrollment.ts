@@ -27,9 +27,10 @@ export function attestationComplete(attestation: Attestation): boolean {
  * What setup does with the phone's accounts on this brand (ADR-0006): "paused" means the apps holding
  * them are paused for a few seconds and nothing is removed; "removed" means the accounts themselves
  * have to be removed for a moment and signed back in (every Samsung tested so far); "unknown" means
- * not tested yet, so either can happen.
+ * not tested yet, so either can happen; "googleRemoved" means most apps are paused but the Google
+ * account (and Google Meet's) has to be removed for a moment (a Redmi Pad 2, HyperOS 2, 2026-11-20).
  */
-export type AccountHandling = 'paused' | 'removed' | 'unknown'
+export type AccountHandling = 'paused' | 'googleRemoved' | 'removed' | 'unknown'
 
 export interface PhoneGuide {
     brand: string
@@ -97,8 +98,10 @@ export const PHONE_GUIDES: PhoneGuide[] = [
     {
         brand: 'xiaomi',
         name: t('enroll.brand.xiaomi'),
-        tested: false,
-        accounts: 'unknown',
+        // Redmi Pad 2, HyperOS 2, Android 15 (docs/enrollment-xiaomi.md): Facebook and Messenger paused,
+        // Google and Google Meet removed, device owner, a restart survived with Autostart on.
+        tested: true,
+        accounts: 'googleRemoved',
         developerOptions: [
             t('enroll.step.aboutPhone'),
             t('enroll.step.xiaomiVersion'),
@@ -106,7 +109,7 @@ export const PHONE_GUIDES: PhoneGuide[] = [
             t('enroll.step.xiaomiUsb'),
             SEARCH_TIP,
         ],
-        notes: [t('enroll.note.xiaomiDual'), t('enroll.note.xiaomiAccount')],
+        notes: [t('enroll.note.xiaomiDual'), t('enroll.note.xiaomiAutostart'), t('enroll.note.xiaomiAccount')],
     },
     {
         brand: 'oppo-realme',
@@ -183,6 +186,8 @@ export function accountsText(guide: PhoneGuide): string {
     switch (guide.accounts) {
         case 'paused':
             return `${t('enroll.accounts.paused')} ${guide.tested ? '' : t('enroll.accounts.pausedUntested')}`.trim()
+        case 'googleRemoved':
+            return t('enroll.accounts.googleRemoved', { brand: guide.name })
         case 'removed':
             return t('enroll.accounts.removed', { brand: guide.name })
         case 'unknown':

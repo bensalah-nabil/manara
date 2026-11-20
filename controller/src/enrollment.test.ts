@@ -26,10 +26,11 @@ test('the version is a date, matching the server constant format', () => {
     assert.match(ATTESTATION_VERSION, /^\d{4}-\d{2}-\d{2}$/)
 })
 
-test('brands match the server list, and only Samsung is marked tested', () => {
+test('brands match the server list, and only Samsung and Xiaomi are marked tested', () => {
     // Keep in step with domain.PhoneBrands in backend/internal/domain/parent.go.
     assert.deepEqual(PHONE_GUIDES.map((g) => g.brand).sort(), ['google', 'motorola', 'oneplus', 'oppo-realme', 'other', 'samsung', 'xiaomi'])
-    assert.deepEqual(PHONE_GUIDES.filter((g) => g.tested).map((g) => g.brand), ['samsung'])
+    // Xiaomi since the Redmi Pad 2 (docs/enrollment-xiaomi.md).
+    assert.deepEqual(PHONE_GUIDES.filter((g) => g.tested).map((g) => g.brand), ['samsung', 'xiaomi'])
 })
 
 test('every guide turns on wireless debugging and ends with the Settings search fallback', () => {
@@ -62,4 +63,13 @@ test('every picture is a file in public/guide-img, with a description', async ()
             assert.ok(picture.alt.length > 10 && picture.caption.length > 5, picture.src)
         }
     }
+})
+
+test('Xiaomi parents hear that only the Google account is removed, and to allow Autostart', () => {
+    const xiaomi = guideFor('xiaomi')!
+    assert.equal(xiaomi.tested, true)
+    assert.match(accountsText(xiaomi), /Google account/)
+    assert.match(accountsText(xiaomi), /No app is uninstalled/)
+    assert.ok(xiaomi.notes.some((note) => /Autostart/.test(note)))
+    assert.ok(xiaomi.notes.some((note) => /Dual apps/.test(note)))
 })
