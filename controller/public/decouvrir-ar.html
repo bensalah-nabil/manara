@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light" />
+<meta name="description" content="منارة: رقابة أبوية يراها طفلك ويفهمها. مجانية خلال التجربة، مفتوحة المصدر، صُنعت في تونس." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>منارة · رقابة أبوية يراها طفلك ويفهمها</title>
+<style>
+  :root {
+    --bg: #f6f1e6; --card: #fffdf8; --line: #e5dac3; --ink: #0e3b2c; --text: #1b2a24; --muted: #5b675f;
+    --amber: #8a6a12; --lamp: #d8b24a; --brand: #0e5a43; --brand-ink: #ffffff; --soft: #e2efe8;
+    color-scheme: light;
+    font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+    color: var(--text); background: var(--bg);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23b99328' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='4'/%3E%3C/g%3E%3C/svg%3E") repeat; }
+  [lang="ar"] { font-family: 'Segoe UI', 'Noto Kufi Arabic', 'Noto Sans Arabic', Tahoma, system-ui, sans-serif; line-height: 1.8; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; }
+  a { color: var(--brand); }
+
+  /* Top bar */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 1.25rem; }
+  .brand span[lang="ar"] { color: var(--amber); font-weight: 700; }
+  .logo { width: 40px; height: 40px; flex: none; }
+  .top nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.95rem; }
+  .top nav a { color: var(--ink); text-decoration: none; font-weight: 600; }
+
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; padding-block: 32px 56px; }
+  h1 { color: var(--ink); font-size: clamp(2rem, 4.6vw, 3.1rem); line-height: 1.12; margin: 0 0 12px; letter-spacing: -0.01em; font-weight: 800; }
+  .hero .ar-title { color: var(--amber); font-size: clamp(1.5rem, 3.4vw, 2.2rem); font-weight: 700; margin: 0 0 20px; }
+  .lead { font-size: 1.1rem; margin: 0 0 8px; max-width: 34em; }
+  .lead[lang="ar"] { color: var(--muted); }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; align-items: center; }
+  .button { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 24px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); text-decoration: none; font-weight: 700; }
+  .button:hover { filter: brightness(1.12); }
+  .button.ghost { background: transparent; color: var(--brand); box-shadow: inset 0 0 0 2px var(--brand); }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; color: var(--muted); font-size: 0.9rem; }
+
+  /* Phone mock-up: what the child sees */
+  .phone { justify-self: center; width: min(300px, 100%); aspect-ratio: 9 / 18.5; border-radius: 38px; background: #0b1512; padding: 12px; box-shadow: 0 30px 60px -24px rgba(10, 70, 52, 0.45); }
+  .screen { height: 100%; border-radius: 28px; background: #10201a; color: #ede6d4; padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-size: 0.82rem; }
+  .screen .head { display: flex; align-items: center; gap: 10px; }
+  .screen .head b { font-size: 1.05rem; line-height: 1.2; }
+  .screen .head small { display: block; color: #a9a48d; }
+  .screen .box { border: 1px solid #24392f; border-radius: 14px; padding: 10px 12px; display: grid; gap: 6px; }
+  .screen .box strong { font-size: 0.9rem; }
+  .screen .box span { color: #a9a48d; }
+  .screen .promise { color: #d8b24a; }
+
+  /* The ad video, beside the figure it opens with */
+  .why { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: center; background: #0a2a20; color: #f6f1e6; border-radius: 28px; padding: 36px; }
+  .why .big { font-size: clamp(3.5rem, 9vw, 6rem); font-weight: 800; line-height: 1; color: var(--lamp); }
+  .why .big small { font-size: 0.38em; color: #f6f1e6; font-weight: 700; }
+  .why h2 { color: #f6f1e6; margin-top: 10px; }
+  .why h2 + .ar { color: var(--lamp); }
+  .why .source { color: #a9c2b6; font-size: 0.9rem; margin: 0; }
+  .why p { margin: 0 0 12px; }
+  .why video { display: block; width: 100%; max-width: 300px; margin-inline: auto; aspect-ratio: 9 / 16; border-radius: 22px; background: #000; box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.6); }
+  .why figure { margin: 0; justify-self: center; }
+  .why figcaption { color: #a9c2b6; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+  .why figcaption a { color: #d8b24a; }
+
+  /* Sections */
+  section { padding-block: 40px; }
+  h2 { color: var(--ink); font-size: clamp(1.5rem, 3vw, 2rem); margin: 0 0 4px; line-height: 1.2; }
+  h2 + .ar { color: var(--amber); font-size: 1.25rem; font-weight: 700; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-content: start; }
+  .card svg { grid-row: span 3; width: 30px; height: 30px; color: var(--ink); margin-top: 2px; }
+  .card h3 { margin: 0; color: var(--ink); font-size: 1.05rem; }
+  .card p { margin: 0; font-size: 0.95rem; }
+  .card p[lang="ar"] { color: var(--amber); font-weight: 600; }
+
+  .promise-band { background: var(--brand); color: var(--brand-ink); border-radius: 28px; padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .promise-band h2 { color: var(--brand-ink); }
+  .promise-band h2 + .ar { color: var(--lamp); }
+  .promise-band ul { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 8px; }
+  .promise-band li span[lang="ar"] { display: block; color: #cfe3d9; font-size: 0.95rem; }
+
+  .steps { counter-reset: step; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
+  .step::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--lamp); color: var(--ink); font-weight: 800; margin-bottom: 10px; }
+  .step h3 { margin: 0 0 6px; color: var(--ink); font-size: 1.05rem; }
+  .step p { margin: 0; font-size: 0.95rem; }
+  .step p[lang="ar"] { color: var(--amber); margin-top: 6px; }
+
+  .honest { background: var(--soft); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; }
+  .honest ul { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 8px; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+  details p { margin: 10px 0 0; }
+
+  .final { text-align: center; padding-block: 48px 64px; }
+  .final .cta { justify-content: center; }
+  footer { border-top: 1px solid var(--line); padding-block: 22px 40px; color: var(--muted); font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .hero > *, .promise-band > *, .why > *, .grid > *, .steps > * { min-width: 0; }
+  .button { white-space: normal; text-align: center; justify-content: center; }
+  @media (max-width: 860px) {
+    .hero, .promise-band, .why { grid-template-columns: minmax(0, 1fr); }
+    .grid, .steps { grid-template-columns: minmax(0, 1fr); }
+    .phone { width: min(260px, 80%); }
+  }
+  @media (max-width: 640px) {
+    .top nav a:not(:last-child) { display: none; }
+    .promise-band, .why { padding: 24px 20px; }
+    .cta .button { width: 100%; }
+    .button .also { display: none; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .button { transition: filter .15s; } }
+  body { font-family: 'Segoe UI', 'Noto Kufi Arabic', 'Noto Sans Arabic', Tahoma, system-ui, sans-serif; line-height: 1.85; }
+  h1 { line-height: 1.35; }
+  h2 { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/decouvrir-ar.html" aria-label="منارة، الصفحة الرئيسية">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0e5a43"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#d8b24a"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>
+      منارة <span lang="en">Manara</span>
+    </a>
+    <nav aria-label="الأقسام">
+      <a href="#features">الميزات</a>
+      <a href="/features-ar">بالفيديو</a>
+      <a href="#promise">وعدنا</a>
+      <a href="#how">كيف تعمل</a>
+      <a href="/decouvrir.html" lang="fr" hreflang="fr">Français</a>
+      <a href="/">تسجيل الدخول</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>رقابة أبوية يراها طفلك ويفهمها.</h1>
+        <p class="lead">حدّد وقت الشاشة ووقت النوم والمواقع المحجوبة على هاتف طفلك الأندرويد. لا شيء مخفي: يعرض الهاتف دائمًا ما هو مفعَّل.</p>
+        <div class="cta">
+          <a class="button" href="/beta-ar">كن من العائلات الرائدة</a>
+          <a class="button ghost" href="/features-ar">▶ شاهد منارة بالفيديو</a>
+          <a class="button ghost" href="/">أنشئ حسابًا مجانًا</a>
+        </div>
+        <div class="tags">
+          <span>مجانية خلال التجربة</span>
+          <span>مفتوحة المصدر</span>
+          <span>صُنعت في تونس</span>
+          <span>العربية · Français · English</span>
+        </div>
+      </div>
+
+      <div class="phone" role="img" aria-label="ما يراه الطفل على هاتفه: الهاتف خاضع للإشراف، وما يستطيع ولي أمره رؤيته، والقواعد المفعّلة.">
+        <div class="screen" lang="ar" dir="rtl">
+          <div class="head">
+            <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#d8b24a"/><path d="M13 13h6l1.6 14h-9.2z" fill="#062229"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2b65a"/><path d="M16 5l4 4.5h-8z" fill="#062229"/></svg>
+            <div><b>هذا الهاتف خاضع للإشراف</b><small>من قِبل ولي أمرك، عبر منارة.</small></div>
+          </div>
+          <div class="box">
+            <strong>ما الذي يستطيع ولي أمرك رؤيته</strong>
+            <span>الوقت الذي تقضيه في كل تطبيق</span>
+            <span>هل تعمل منارة</span>
+            <span class="promise">لا تُرسَل أبدًا رسائلك ولا صورك ولا مكالماتك ولا كلمات مرورك.</span>
+          </div>
+          <div class="box">
+            <strong>القواعد على هذا الهاتف</strong>
+            <span>وسائل التواصل الاجتماعي: 1 س في اليوم</span>
+            <span>وقت النوم 21:00–07:00</span>
+            <span>حجب المواقع</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section aria-labelledby="why-title">
+      <div class="why">
+        <div>
+          <div class="big">8 <small>ساعات في اليوم</small></div>
+          <h2 id="why-title">هذا هو الوقت الذي يقضيه من هم بين 12 و16 سنة على الإنترنت في تونس.</h2>
+          <p>تساعد منارة الوالدين على استعادة زمام الأمور، بقواعد بسيطة يراها الطفل ويفهمها، بدل سحب الهاتف منه.</p>
+          <p class="source">رقم ذكره وزير تكنولوجيات الاتصال، نوفمبر 2025.</p>
+        </div>
+        <figure>
+          <video controls playsinline preload="metadata" poster="/videos/manara-bedtime-ar.jpg" aria-label="فيديو: في الليل تنام التطبيقات">
+            <source src="/videos/manara-bedtime-ar.mp4" type="video/mp4" />
+          </video>
+          <figcaption>في الليل تنام التطبيقات · <a href="/features-ar">الفيديوهات الأخرى</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="features" aria-labelledby="features-title">
+      <h2 id="features-title">ما الذي تفعله منارة</h2>
+      <div class="grid">
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+          <h3>وقت شاشة محدود</h3>
+          <p>رصيد يومي لتيك توك وفيسبوك وإنستغرام والألعاب، أو للتطبيق الذي تختاره.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+          <h3>في الليل تنام التطبيقات</h3>
+          <p>في وقت النوم تتوقف التطبيقات مؤقتًا. وتبقى المكالمات والرسائل وواتساب والقرآن متاحة، ويعود كل شيء في الصباح.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+          <h3>حجب المواقع الضارة في كامل الهاتف</h3>
+          <p>يعمل الفلتر في كل المتصفحات وكل التطبيقات، لا في Chrome وحده.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <h3>يصعب الالتفاف عليه</h3>
+          <p>لا إعادة ضبط من الإعدادات، ولا وضع آمن، ولا مستخدم جديد، ولا تغيير للوقت. ويمكن أيضًا حجب شبكات VPN، اختياريًا.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          <h3>على الهاتف الذي يملكه</h3>
+          <p>لا حاجة إلى إعادة الضبط ولا إلى حاسوب: يتم التثبيت على الهاتف، دون فقدان التطبيقات ولا بياناتها.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/><circle cx="12" cy="12" r="9"/></svg>
+          <h3>بالعربية والفرنسية</h3>
+          <p>تطبيق الطفل ولوحة تحكم الوالدين بالعربية والفرنسية والإنجليزية.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/><path d="M17 3v4M17 9.5v.5"/></svg>
+          <h3>الغرباء الذين يتصلون</h3>
+          <p>تكتب الأرقام التي تعرفها؛ وإذا اتصل رقم آخر بطفلك يصلك تنبيه. على أندرويد، بالنسخة المنزّلة من الموقع.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>
+          <h3>القيم العائلية</h3>
+          <p>اختياريًا، تُحجب أيضًا مواقع القمار والمواعدة والكحول في Chrome.</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"/></svg>
+          <h3>مهلة قبل تخفيف أي قاعدة</h3>
+          <p>حتى لا تتراجع في لحظة ضعف: ينتظر تخفيف القاعدة قبل أن يصل إلى الهاتف، ويمكنك إلغاؤه.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="promise" aria-labelledby="promise-title">
+      <div class="promise-band">
+        <div>
+          <h2 id="promise-title">مرئية، دائمًا.</h2>
+          <p>ليس لمنارة وضع مخفي، ولن يكون لها أبدًا. يعرف طفلك أن الهاتف خاضع للإشراف ويرى بالضبط ما تراه أنت. هذا ما يجعل القواعد أسهل قبولًا، وهو أيضًا ما يميّز أداة الوالدين عن برامج التجسس.</p>
+        </div>
+        <ul>
+          <li>إشعار دائم على الهاتف، لا يمكن إزالته</li>
+          <li>لا رسائل ولا صور ولا كلمات مرور أبدًا</li>
+          <li>لا ميكروفون ولا تنصّت أبدًا</li>
+          <li>ولي الأمر وحده يستطيع إزالة منارة، حتى دون اتصال</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="how" aria-labelledby="how-title">
+      <h2 id="how-title">كيف تعمل</h2>
+      <div class="steps">
+        <div class="step">
+          <h3>أنشئ حسابك</h3>
+          <p>بريد إلكتروني وكلمة مرور، على هاتفك أو حاسوبك.</p>
+        </div>
+        <div class="step">
+          <h3>اربط هاتف طفلك</h3>
+          <p>ترشدك لوحة التحكم خطوة بخطوة وتتابع الهاتف مباشرة. يحتفظ الهاتف بتطبيقاته وبياناته.</p>
+        </div>
+        <div class="step">
+          <h3>اختر القواعد</h3>
+          <p>ابدأ من عمر طفلك، ثم اضبط كل قاعدة بلمسة. يطبّقها الهاتف خلال ثوانٍ، أو خلال ربع ساعة على الأكثر.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="honest-title">
+      <h2 id="honest-title">بصراحة</h2>
+      <div class="honest">
+        <ul>
+          <li><strong>أندرويد فقط.</strong> لهاتف آيفون، أداة «مدة استخدام الجهاز» من Apple، المجانية والمدمجة، هي الخيار الأفضل.</li>
+          <li><strong>جُرّبت على سامسونغ وشاومي.</strong> تتبع العلامات الأخرى الخطوات نفسها، لكنها لم تُختبر بعد.</li>
+          <li><strong>مشروع ناشئ.</strong> منارة حرة ومفتوحة المصدر، وتتحسّن بملاحظات العائلات.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="questions-title">
+      <h2 id="questions-title">أسئلة</h2>
+      <details>
+        <summary>هل هي مجانية؟</summary>
+        <p>نعم، بالكامل، خلال التجربة. لم يُحدَّد السعر بعد التجربة، وستُبلَّغ به العائلات الرائدة مسبقًا. والشيفرة مفتوحة المصدر.</p>
+      </details>
+      <details>
+        <summary>هل سيعرف طفلي أن هاتفه خاضع للإشراف؟</summary>
+        <p>نعم، دائمًا. يعرض الهاتف ذلك باستمرار، مع قائمة ما يُشارَك. وتؤكد ذلك أنت أيضًا قبل ربط الهاتف.</p>
+      </details>
+      <details>
+        <summary>هل يجب إعادة ضبط الهاتف أو امتلاك حاسوب؟</summary>
+        <p>لا. يتم التثبيت على الهاتف، وهو متصل بشبكة Wi-Fi، بأندرويد 11 أو أحدث. ويمكن أيضًا إعداد هاتف جديد بمسح رمز QR.</p>
+      </details>
+      <details>
+        <summary>وإذا أردت إزالة منارة؟</summary>
+        <p>من لوحة التحكم، ببضع نقرات. وإذا كان الهاتف دون اتصال، يكفي رمز من 8 أرقام تعرضه لوحة التحكم.</p>
+      </details>
+    </section>
+
+    <div class="final">
+      <h2>مستعد للتجربة؟</h2>
+      <div class="cta">
+        <a class="button" href="/beta-ar">كن من العائلات الرائدة</a>
+        <a class="button ghost" href="/features-ar">▶ شاهد منارة بالفيديو</a>
+        <a class="button ghost" href="/">أنشئ حسابًا مجانًا</a>
+        <a class="button ghost" href="/download.html">نزّل التطبيق</a>
+        <a class="button ghost" href="/guide.html">اقرأ الدليل</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>منارة · Manara — مفتوحة المصدر، صُنعت في تونس.</span>
+    <nav aria-label="روابط">
+      <a href="/features-ar">منارة بالفيديو</a>
+      <a href="/beta-ar">العائلات الرائدة</a>
+      <a href="/privacy-ar.html">الخصوصية</a>
+      <a href="/guide.html">دليل الوالدين</a>
+      <a href="/delete-account.html">حذف حساب</a>
+      <a href="/decouvrir.html" lang="fr" hreflang="fr">Français</a>
+    </nav>
+  </footer>
+</div>
+</body>
+</html>

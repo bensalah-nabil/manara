@@ -9,14 +9,14 @@
 <title>Manara · Le contrôle parental que votre enfant voit et comprend</title>
 <style>
   :root {
-    --bg: #f4efe5; --card: #ffffff; --line: #e6dfd1; --ink: #0f3b47; --text: #23353b; --muted: #5d6b6f;
-    --amber: #8a5a0b; --lamp: #e3a23a; --brand: #134c58; --brand-ink: #ffffff; --soft: #fbf8f2;
+    --bg: #f6f1e6; --card: #fffdf8; --line: #e5dac3; --ink: #0e3b2c; --text: #1b2a24; --muted: #5b675f;
+    --amber: #8a6a12; --lamp: #d8b24a; --brand: #0e5a43; --brand-ink: #ffffff; --soft: #e2efe8;
     color-scheme: light;
     font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
     color: var(--text); background: var(--bg);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); }
+  body { margin: 0; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23b99328' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='4'/%3E%3C/g%3E%3C/svg%3E") repeat; }
   [lang="ar"] { font-family: 'Segoe UI', 'Noto Kufi Arabic', 'Noto Sans Arabic', Tahoma, system-ui, sans-serif; line-height: 1.8; }
   .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; }
   a { color: var(--brand); }
@@ -42,27 +42,28 @@
   .tags { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; color: var(--muted); font-size: 0.9rem; }
 
   /* Phone mock-up: what the child sees */
-  .phone { justify-self: center; width: min(300px, 100%); aspect-ratio: 9 / 18.5; border-radius: 38px; background: #0f2127; padding: 12px; box-shadow: 0 30px 60px -24px rgba(15, 59, 71, 0.45); }
-  .screen { height: 100%; border-radius: 28px; background: #141d23; color: #e6edf1; padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-size: 0.82rem; }
+  .phone { justify-self: center; width: min(300px, 100%); aspect-ratio: 9 / 18.5; border-radius: 38px; background: #0b1512; padding: 12px; box-shadow: 0 30px 60px -24px rgba(10, 70, 52, 0.45); }
+  .screen { height: 100%; border-radius: 28px; background: #10201a; color: #ede6d4; padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-size: 0.82rem; }
   .screen .head { display: flex; align-items: center; gap: 10px; }
   .screen .head b { font-size: 1.05rem; line-height: 1.2; }
-  .screen .head small { display: block; color: #93a3ad; }
-  .screen .box { border: 1px solid #25323b; border-radius: 14px; padding: 10px 12px; display: grid; gap: 6px; }
+  .screen .head small { display: block; color: #a9a48d; }
+  .screen .box { border: 1px solid #24392f; border-radius: 14px; padding: 10px 12px; display: grid; gap: 6px; }
   .screen .box strong { font-size: 0.9rem; }
-  .screen .box span { color: #93a3ad; }
-  .screen .promise { color: #5cb3c4; }
+  .screen .box span { color: #a9a48d; }
+  .screen .promise { color: #d8b24a; }
 
   /* The ad video, beside the figure it opens with */
-  .why { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: center; background: #0d2a31; color: #f4efe5; border-radius: 28px; padding: 36px; }
+  .why { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: center; background: #0a2a20; color: #f6f1e6; border-radius: 28px; padding: 36px; }
   .why .big { font-size: clamp(3.5rem, 9vw, 6rem); font-weight: 800; line-height: 1; color: var(--lamp); }
-  .why .big small { font-size: 0.38em; color: #f4efe5; font-weight: 700; }
-  .why h2 { color: #f4efe5; margin-top: 10px; }
+  .why .big small { font-size: 0.38em; color: #f6f1e6; font-weight: 700; }
+  .why h2 { color: #f6f1e6; margin-top: 10px; }
   .why h2 + .ar { color: var(--lamp); }
-  .why .source { color: #a9bcc0; font-size: 0.9rem; margin: 0; }
+  .why .source { color: #a9c2b6; font-size: 0.9rem; margin: 0; }
   .why p { margin: 0 0 12px; }
   .why video { display: block; width: 100%; max-width: 300px; margin-inline: auto; aspect-ratio: 9 / 16; border-radius: 22px; background: #000; box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.6); }
   .why figure { margin: 0; justify-self: center; }
-  .why figcaption { color: #a9bcc0; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+  .why figcaption { color: #a9c2b6; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+  .why figcaption a { color: #d8b24a; }
 
   /* Sections */
   section { padding-block: 40px; }
@@ -79,7 +80,7 @@
   .promise-band h2 { color: var(--brand-ink); }
   .promise-band h2 + .ar { color: var(--lamp); }
   .promise-band ul { margin: 0; padding-inline-start: 1.2em; display: grid; gap: 8px; }
-  .promise-band li span[lang="ar"] { display: block; color: #cfe3e6; font-size: 0.95rem; }
+  .promise-band li span[lang="ar"] { display: block; color: #cfe3d9; font-size: 0.95rem; }
 
   .steps { counter-reset: step; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
   .step { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
@@ -120,7 +121,7 @@
 <div class="wrap">
   <header class="top">
     <a class="brand" href="/decouvrir.html" aria-label="Manara, accueil">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#134c58"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#e3a23a"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0e5a43"/><path d="M13 13h6l1.6 14h-9.2z" fill="#fff"/><path d="M12.5 9.5h7v3.5h-7z" fill="#d8b24a"/><path d="M16 5l4 4.5h-8z" fill="#fff"/></svg>
       Manara <span lang="ar">منارة</span>
     </a>
     <nav aria-label="Sections">
@@ -128,6 +129,7 @@
       <a href="/features">En vidéo</a>
       <a href="#promesse">Notre promesse</a>
       <a href="#comment">Comment ça marche</a>
+      <a href="/decouvrir-ar.html" lang="ar" hreflang="ar">العربية</a>
       <a href="/">Se connecter</a>
     </nav>
   </header>
@@ -155,7 +157,7 @@
       <div class="phone" role="img" aria-label="Ce que l'enfant voit sur son téléphone : le téléphone est géré, ce que le parent peut voir, et les règles en place.">
         <div class="screen" lang="ar" dir="rtl">
           <div class="head">
-            <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#5cb3c4"/><path d="M13 13h6l1.6 14h-9.2z" fill="#062229"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2b65a"/><path d="M16 5l4 4.5h-8z" fill="#062229"/></svg>
+            <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#d8b24a"/><path d="M13 13h6l1.6 14h-9.2z" fill="#062229"/><path d="M12.5 9.5h7v3.5h-7z" fill="#f2b65a"/><path d="M16 5l4 4.5h-8z" fill="#062229"/></svg>
             <div><b>هذا الهاتف خاضع للإشراف</b><small>من قِبل ولي أمرك، عبر منارة.</small></div>
           </div>
           <div class="box">
@@ -184,10 +186,10 @@
           <p class="source">Chiffre cité par le ministre des Technologies de la communication, novembre 2025.</p>
         </div>
         <figure>
-          <video controls playsinline preload="metadata" poster="pub/manara-pub-poster.png" aria-label="Vidéo de présentation de Manara, 23 secondes">
-            <source src="pub/manara-pub-vertical.mp4" type="video/mp4" />
+          <video controls playsinline preload="metadata" poster="/videos/manara-bedtime-fr.jpg" aria-label="Vidéo : la nuit, les applis dorment, 53 secondes">
+            <source src="/videos/manara-bedtime-fr.mp4" type="video/mp4" />
           </video>
-          <figcaption>Manara en 23 secondes · منارة في 23 ثانية</figcaption>
+          <figcaption>La nuit, les applis dorment · <a href="/features">les autres vidéos</a></figcaption>
         </figure>
       </div>
     </section>
@@ -231,6 +233,24 @@
           <h3>En arabe et en français</h3>
           <p>L'application de l'enfant et la console des parents parlent arabe, français et anglais.</p>
           <p lang="ar" dir="rtl">بالعربية والفرنسية</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/><path d="M17 3v4M17 9.5v.5"/></svg>
+          <h3>Les inconnus qui appellent</h3>
+          <p>Vous écrivez les numéros que vous connaissez ; si un autre numéro appelle votre enfant, vous êtes prévenu. Sur Android, avec la version du site.</p>
+          <p lang="ar" dir="rtl">تنبيه عند اتصال رقم مجهول</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>
+          <h3>Valeurs familiales</h3>
+          <p>En option, les sites de jeux d'argent, de rencontres et d'alcool sont aussi bloqués dans Chrome.</p>
+          <p lang="ar" dir="rtl">القيم العائلية</p>
+        </article>
+        <article class="card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"/></svg>
+          <h3>Un délai avant d'assouplir</h3>
+          <p>Pour ne pas céder dans l'instant : assouplir une règle attend avant d'arriver sur le téléphone, et vous pouvez l'annuler.</p>
+          <p lang="ar" dir="rtl">مهلة قبل تخفيف أي قاعدة</p>
         </article>
       </div>
     </section>
@@ -327,6 +347,7 @@
       <a href="/privacy-fr.html">Confidentialité</a>
       <a href="/guide.html">Guide des parents</a>
       <a href="/delete-account.html">Supprimer un compte</a>
+      <a href="/decouvrir-ar.html" lang="ar" hreflang="ar">العربية</a>
     </nav>
   </footer>
 </div>
