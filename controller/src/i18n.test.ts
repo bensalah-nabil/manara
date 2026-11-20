@@ -33,7 +33,7 @@ test('a translation fills in the same names and keeps the same bold parts', () =
 
 test('Arabic messages are written in Arabic', () => {
     // Brand and product names, and page addresses, stay in Latin letters; a message with no Arabic letter at all is a miss.
-    const latinOnly = new Set<MessageKey>(['chromeEditor.title', 'setup.accountLine', 'auth.privacyHref', 'auth.videosHref', 'auth.betaHref', 'auth.guideHref'])
+    const latinOnly = new Set<MessageKey>(['chromeEditor.title', 'setup.accountLine', 'auth.privacyHref', 'auth.videosHref', 'auth.betaHref', 'auth.guideHref', 'auth.deleteHref'])
     for (const key of keys) {
         if (latinOnly.has(key) || !/[A-Za-z]{3}/.test(en[key])) continue
         assert.match(ar[key], /[؀-ۿ]/, key)

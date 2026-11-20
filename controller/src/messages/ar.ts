@@ -60,6 +60,7 @@ export const ar: Record<MessageKey, string> = {
     'auth.privacy': 'سياسة الخصوصية',
     'auth.privacyHref': '/privacy-ar.html',
     'auth.deleteLink': 'حذف حسابك',
+    'auth.deleteHref': '/delete-account-ar.html',
     'auth.about': 'تعرّف على منارة',
     'auth.newVisitor': 'جديد على منارة؟',
     'auth.videos': '▶ شاهد منارة بالفيديو',

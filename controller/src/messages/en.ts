@@ -57,6 +57,7 @@ export const en = {
     'auth.privacy': 'Privacy policy',
     'auth.privacyHref': '/privacy.html',
     'auth.deleteLink': 'Delete your account',
+    'auth.deleteHref': '/delete-account.html',
     'auth.about': 'About Manara',
     'auth.newVisitor': 'New to Manara?',
     'auth.videos': '▶ See Manara on video',

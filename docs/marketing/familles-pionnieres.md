@@ -475,3 +475,91 @@ refused); no before/after; the page must say what the ad says.
 **Ad 2: vertical video** for Reels and Stories: the existing
 `controller/public/pub/manara-pub-vertical.mp4`, with the same text and button. Watch it once
 more before using it: it was made before the beta, so check nothing in it is out of date.
+
+---
+
+# Weeks 3 and 4: schools, flyers, feedback
+
+## 12. The flyer (A5, made)
+
+`docs/marketing/print/flyer-fr.pdf` and `flyer-ar.pdf` print on A5 (148 × 210 mm), with the
+background to the edges: ask the print shop for full-bleed printing, or print on A4 and cut. The
+`.png` files are the same flyers to send on WhatsApp. The QR code opens `/beta` (French) or
+`/beta-ar` (Arabic). Scan one printed copy with a phone before printing many. Rebuild with
+`tools/flyer/make.mjs`.
+
+## 13. Letter to a school, a Quran school or a parents' association
+
+Hand it in with a few flyers. Ask for nothing more than passing the flyer to parents, or ten
+minutes at a parents' meeting.
+
+**FR**
+
+> Madame, Monsieur,
+>
+> Je m'appelle [Prénom Nom], je suis [ingénieur / père de famille] à [ville]. J'ai créé Manara, un
+> contrôle parental pour les téléphones Android, en arabe, en français et en anglais, pensé pour nos
+> familles et nos valeurs.
+>
+> Beaucoup de parents s'inquiètent du temps que leurs enfants passent sur le téléphone, la nuit
+> surtout, des contenus qu'ils peuvent croiser, et des inconnus qui peuvent les contacter. Manara
+> permet de mettre les applications en pause la nuit en gardant le Coran, WhatsApp et les appels
+> ouverts, de bloquer les sites pour adultes, et de prévenir le parent quand un numéro inconnu appelle
+> l'enfant. Rien n'est caché : l'enfant voit toujours sur son téléphone ce qui est en place.
+>
+> Je cherche 20 familles pour le tester gratuitement, et je l'installe avec chacune par appel. Je
+> vous serais reconnaissant de bien vouloir faire connaître cette proposition aux parents, par
+> exemple en distribuant le dépliant ci-joint ou en m'accordant quelques minutes lors d'une réunion
+> de parents. Je ne demande aucune information sur les élèves : chaque parent s'inscrit lui-même,
+> s'il le souhaite.
+>
+> Je reste à votre disposition pour vous présenter Manara.
+>
+> Avec mes respectueuses salutations,
+> [Prénom Nom] · [téléphone] · [e-mail] · manara-rosy.vercel.app/decouvrir.html
+
+**AR**
+
+> السيدة المديرة / السيد المدير،
+>
+> أنا [الاسم واللقب]، [مهندس / أب] من [المدينة]. أنشأت «منارة»، وهي رقابة أبوية لهواتف أندرويد،
+> بالعربية والفرنسية والإنجليزية، صُمّمت لعائلاتنا ووفق قيمنا.
+>
+> يقلق كثير من الأولياء من الوقت الذي يقضيه أبناؤهم على الهاتف، ولا سيما في الليل، ومن المحتوى
+> الذي قد يصادفونه، ومن الغرباء الذين قد يتصلون بهم. تتيح منارة إيقاف التطبيقات مؤقتًا في الليل
+> مع إبقاء القرآن وواتساب والمكالمات متاحة، وحجب المواقع المخصّصة للبالغين، وتنبيه الولي عندما
+> يتصل رقم مجهول بطفله. لا شيء مخفي: يرى الطفل دائمًا على هاتفه ما هو مفعّل.
+>
+> أبحث عن 20 عائلة لتجربتها مجانًا، وأثبّتها مع كل عائلة في مكالمة. وسأكون ممتنًا لو تفضّلتم بإعلام
+> الأولياء بهذا العرض، بتوزيع المطوية المرفقة مثلًا، أو بمنحي بضع دقائق خلال اجتماع للأولياء. لا
+> أطلب أي معلومة عن التلاميذ: يسجّل كل ولي بنفسه إن رغب في ذلك.
+>
+> وأبقى على ذمّتكم لتقديم منارة.
+>
+> مع فائق الاحترام،
+> [الاسم واللقب] · [الهاتف] · [البريد الإلكتروني] · manara-rosy.vercel.app/decouvrir-ar.html
+
+## 14. Feedback questionnaires (day 7 and day 14)
+
+Short enough to answer on WhatsApp, or copy them into a form. Send day 7 a week after the setup
+call, day 14 a week later. Questions in French; the Arabic follows each.
+
+**Day 7: first week** (5 questions)
+
+1. Sur 10, à quel point l'installation a-t-elle été facile ? Qu'est-ce qui a bloqué ? — من 10، ما مدى سهولة التثبيت؟ ما الذي أوقفك؟
+2. Quelles règles avez-vous activées ? — ما القواعد التي فعّلتها؟
+3. Votre enfant a-t-il compris ce qui était en place ? Comment l'a-t-il pris ? — هل فهم طفلك ما هو مفعّل؟ كيف تقبّله؟
+4. Quelque chose ne marche pas comme prévu ? — هل هناك شيء لا يعمل كما توقعت؟
+5. Une seule chose à améliorer ? — شيء واحد نحسّنه؟
+
+**Day 14: two weeks** (6 questions)
+
+1. Utilisez-vous encore Manara ? Sinon, pourquoi ? — هل ما زلت تستعمل منارة؟ إن لا، فلماذا؟
+2. Qu'est-ce qui a le plus changé à la maison ? — ما أكثر ما تغيّر في البيت؟
+3. Sur 10, recommanderiez-vous Manara à un autre parent ? — من 10، هل تنصح وليًا آخر بمنارة؟
+4. Combien seriez-vous prêt à payer par mois, si c'était payant ? (rien / moins de 5 DT / 5 à 10 DT / plus) — كم تقبل أن تدفع شهريًا لو كانت بمقابل؟
+5. Pouvons-nous citer votre avis, avec votre prénom ou anonymement ? — هل نستطيع نشر رأيك، باسمك الأول أو دون اسم؟
+6. Un parent autour de vous qui aimerait l'essayer ? — هل تعرف وليًا يرغب في تجربتها؟
+
+Question 4 feeds the price decision, still open (`docs/standby.md`). Question 5 needs a clear yes
+before any testimonial is published; keep the answer.

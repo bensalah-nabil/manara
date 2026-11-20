@@ -55,6 +55,7 @@ export const fr: Record<MessageKey, string> = {
     'auth.privacy': 'Politique de confidentialité',
     'auth.privacyHref': '/privacy-fr.html',
     'auth.deleteLink': 'Supprimer votre compte',
+    'auth.deleteHref': '/delete-account-fr.html',
     'auth.about': 'Découvrir Manara',
     'auth.newVisitor': 'Nouveau sur Manara ?',
     'auth.videos': '▶ Voir Manara en vidéo',

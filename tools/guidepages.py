@@ -400,7 +400,7 @@ T['fr'] = dict(file='guide-fr.html', dir='ltr', title='Manara · Guide des paren
         <strong>Retirer de ma liste</strong>.</li>
       <li>Un téléphone perdu ou réinitialisé : <strong>Retirer de ma liste</strong>.</li>
     </ul>
-    <p>Pour supprimer votre compte et toutes ses données, voir <a href="/delete-account.html">Supprimer votre compte</a>.</p>
+    <p>Pour supprimer votre compte et toutes ses données, voir <a href="/delete-account-fr.html">Supprimer votre compte</a>.</p>
   </section>
 
   <section id="trouble">
@@ -422,7 +422,7 @@ T['fr'] = dict(file='guide-fr.html', dir='ltr', title='Manara · Guide des paren
     <p>Écrivez à <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
   </section>
 
-  <p class="muted"><a href="/privacy-fr.html">Politique de confidentialité</a> · <a href="/delete-account.html">Supprimer votre compte</a></p>""")
+  <p class="muted"><a href="/privacy-fr.html">Politique de confidentialité</a> · <a href="/delete-account-fr.html">Supprimer votre compte</a></p>""")
 
 T['ar'] = dict(file='guide-ar.html', dir='rtl', title='منارة · دليل الوالدين', langLabel='اللغة', home='منارة',
     h1='دليل الوالدين', lead='كيف تثبّت منارة على هاتف طفلك، وتختار قواعده، وتزيل منارة.',
@@ -571,7 +571,7 @@ T['ar'] = dict(file='guide-ar.html', dir='rtl', title='منارة · دليل ا
         <strong>تحرير هذا الهاتف</strong>. ثم اختر <strong>إزالة من قائمتي</strong>.</li>
       <li>هاتف مفقود أو أُعيد ضبطه: <strong>إزالة من قائمتي</strong>.</li>
     </ul>
-    <p>لحذف حسابك وكل بياناته، انظر <a href="/delete-account.html">حذف حسابك</a>.</p>
+    <p>لحذف حسابك وكل بياناته، انظر <a href="/delete-account-ar.html">حذف حسابك</a>.</p>
   </section>
 
   <section id="trouble">
@@ -592,7 +592,7 @@ T['ar'] = dict(file='guide-ar.html', dir='rtl', title='منارة · دليل ا
     <p>راسلنا على <a href="mailto:{EMAIL}" dir="ltr">{EMAIL}</a>.</p>
   </section>
 
-  <p class="muted"><a href="/privacy-ar.html">سياسة الخصوصية</a> · <a href="/delete-account.html">حذف حسابك</a></p>""")
+  <p class="muted"><a href="/privacy-ar.html">سياسة الخصوصية</a> · <a href="/delete-account-ar.html">حذف حسابك</a></p>""")
 
 
 def langs(code, label):
