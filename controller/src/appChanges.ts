@@ -30,8 +30,13 @@ export function applyAppChanges(policy: Policy, draft: Draft): Policy {
     return { ...policy, appChanges: { enabled: draft.enabled } }
 }
 
-/** Newest first; a malformed event, another kind, or one seen twice is left out. */
+/** The list's changes: the newest [MAX_SHOWN] of [parseAppChanges]. */
 export function summarizeAppChanges(events: EventItem[]): AppChangeItem[] {
+    return parseAppChanges(events).slice(0, MAX_SHOWN)
+}
+
+/** Every change, newest first, for counting; a malformed event, another kind, or one seen twice is left out. */
+export function parseAppChanges(events: EventItem[]): AppChangeItem[] {
     const seen = new Set<string>()
     const items: AppChangeItem[] = []
     for (const event of events) {
@@ -45,7 +50,7 @@ export function summarizeAppChanges(events: EventItem[]): AppChangeItem[] {
         items.push({ id: event.id, action, packageName, label, occurredAt: event.occurredAt })
     }
     items.sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
-    return items.slice(0, MAX_SHOWN)
+    return items
 }
 
 export function actionText(item: AppChangeItem): string {

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
-    aboveUsual, appName, applySuggestion, dailySeries, findInsights, hourGrid, lastWeek, lateNights, median, parseReports, suggestionText,
+    aboveUsual, appName, applySuggestion, appWeek, dailySeries, findInsights, hourGrid, lastWeek, lateNights, median, parseReports, suggestionText,
+    topAppsByDate,
 } from './insights.ts'
 import type { EventItem } from './protection.ts'
 
@@ -195,4 +196,47 @@ test('a week with no report has no figures to show', () => {
     assert.equal(week.average, null)
     assert.equal(week.previousAverage, null)
     assert.deepEqual(week.topApps, [])
+})
+
+test('time by app: the 7 days before today against the 7 before those, a day on average', () => {
+    const reports = parseReports([
+        // Today, still counting: left out.
+        report('2026-11-20T09:00:00Z', 300, { 'com.zhiliaoapp.musically': 300 }),
+        // The recent 7 days (13th to 19th): reported on two of them only.
+        report('2026-11-19T21:00:00Z', 90, { 'com.zhiliaoapp.musically': 60, 'com.whatsapp': 30 }),
+        report('2026-11-19T10:00:00Z', 10, { 'com.zhiliaoapp.musically': 10 }), // an earlier report of the same day
+        report('2026-11-14T21:00:00Z', 50, { 'com.zhiliaoapp.musically': 40, 'com.whatsapp': 10 }),
+        // The 7 before (6th to 12th): one day.
+        report('2026-11-10T21:00:00Z', 30, { 'com.zhiliaoapp.musically': 30 }),
+        // Older still: not counted.
+        report('2026-11-01T21:00:00Z', 500, { 'com.roblox.client': 500 }),
+    ])
+    const week = appWeek(reports, '2026-11-20')
+    assert.equal(week.days, 2)
+    assert.equal(week.previousDays, 1)
+    assert.deepEqual(week.rows, [
+        { packageName: 'com.zhiliaoapp.musically', minutes: 50, previous: 30 },
+        { packageName: 'com.whatsapp', minutes: 20, previous: 0 },
+    ])
+})
+
+test('time by app has no comparison when the week before was never reported, and keeps the busiest few', () => {
+    const apps = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`org.example.app${i}`, i + 1]))
+    const week = appWeek(parseReports([report('2026-11-19T21:00:00Z', 78, { ...apps, 'org.example.tiny': 0.2 })]), '2026-11-20', 8)
+    assert.equal(week.previousDays, 0)
+    assert.equal(week.rows.length, 8)
+    assert.equal(week.rows[0].packageName, 'org.example.app11')
+    assert.ok(week.rows.every((r) => r.previous === null))
+    assert.equal(appWeek([], '2026-11-20').rows.length, 0)
+})
+
+test('each day names its busiest apps from its last report', () => {
+    const top = topAppsByDate(parseReports([
+        report('2026-11-19T10:00:00Z', 5, { 'com.whatsapp': 5 }),
+        report('2026-11-19T21:00:00Z', 100, { 'com.whatsapp': 20, 'com.zhiliaoapp.musically': 70, 'com.roblox.client': 9, 'org.example.idle': 0.4 }),
+    ]), 2)
+    assert.deepEqual(top.get('2026-11-19'), [
+        { packageName: 'com.zhiliaoapp.musically', minutes: 70 },
+        { packageName: 'com.whatsapp', minutes: 20 },
+    ])
 })

@@ -1,6 +1,6 @@
 import { colorHex, initial } from './profile.ts'
 import { ProfileEditor } from './ProfileEditor.tsx'
-import { useCallback, useEffect, useState } from 'preact/hooks'
+import { useCallback, useEffect, useMemo, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { isSessionError } from './api.ts'
 import type { EventItem } from './protection.ts'
@@ -23,13 +23,16 @@ import { InsightsPanel } from './InsightsPanel.tsx'
 import { PrayerChart } from './PrayerChart.tsx'
 import { RuleCards } from './RuleCards.tsx'
 import { readCards } from './ruleCards.ts'
-import { actionText, summarizeAppChanges, whenText } from './appChanges.ts'
+import { actionText, MAX_SHOWN as MAX_CHANGES, parseAppChanges, whenText } from './appChanges.ts'
 import type { AppChangeItem } from './appChanges.ts'
 import { alertsOn, isUnknownCaller, knownNumbers } from './callAlerts.ts'
-import { directionText, durationText, groupByDay, numberText, summarizeCalls, timeText } from './callLog.ts'
+import { directionText, durationText, groupByDay, MAX_SHOWN as MAX_CALLS, numberText, parseCalls, timeText } from './callLog.ts'
+import { DayColumns } from './DayColumns.tsx'
+import { appChangesPerDay, callsPerDay } from './dayCounts.ts'
+import type { DayCount } from './dayCounts.ts'
 import type { CallItem } from './callLog.ts'
 import { appName } from './insights.ts'
-import { t } from './i18n.ts'
+import { joinList, t, tn } from './i18n.ts'
 
 /** Loads one kind of event for a panel; reloads when [reloads] changes. */
 function useEvents<T>(
@@ -130,10 +133,26 @@ const USAGE_WINDOW_MS = 9 * 24 * 60 * 60 * 1000
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 
-/** Apps installed or removed, newest first (roadmap W1). */
+/** Every change for the chart, the newest for the list. */
+function appChangeData(events: EventItem[]): { all: AppChangeItem[]; list: AppChangeItem[] } {
+    const all = parseAppChanges(events)
+    return { all, list: all.slice(0, MAX_CHANGES) }
+}
+
+function appChangeDay(day: DayCount): string {
+    if (day.main + day.context === 0) return tn('appChanges.installedCount', 0)
+    return joinList([
+        ...(day.main > 0 ? [tn('appChanges.installedCount', day.main)] : []),
+        ...(day.context > 0 ? [tn('appChanges.removedCount', day.context)] : []),
+    ])
+}
+
+/** Apps installed or removed, newest first (roadmap W1), with the 30 days per day above. */
 function AppChangesPanel(props: Props) {
-    const { value: changes, error, reload } = useEvents<AppChangeItem[]>(props, 'app_change', summarizeAppChanges, THIRTY_DAYS_MS)
+    const { value, error, reload } = useEvents(props, 'app_change', appChangeData, THIRTY_DAYS_MS)
+    const changes = value?.list ?? null
     const { shown, more } = useFirst(changes, 8)
+    const perDay = useMemo(() => (value ? appChangesPerDay(value.all) : []), [value])
     return (
         <Panel title={t('appChanges.title')} onRefresh={reload} error={error} footnote={t('appChanges.footnote')}>
             {changes === null ? (
@@ -142,6 +161,10 @@ function AppChangesPanel(props: Props) {
                 <p class="muted">{t('appChanges.none')}</p>
             ) : (
                 <>
+                    <div class="stack">
+                        <strong>{t('appChanges.perDay')}</strong>
+                        <DayColumns days={perDay} label={t('appChanges.perDay')} mainName={t('appChanges.installed')} contextName={t('appChanges.removed')} below describe={appChangeDay} />
+                    </div>
                     <ul class="call-list app-changes">
                         {shown.map((item) => (
                             <li key={item.id}>
@@ -158,8 +181,15 @@ function AppChangesPanel(props: Props) {
     )
 }
 
+/** Every call for the chart, the newest for the list. */
+function callData(events: EventItem[]): { all: CallItem[]; list: CallItem[] } {
+    const all = parseCalls(events)
+    return { all, list: all.slice(0, MAX_CALLS) }
+}
+
 function CallHistoryPanel(props: Props) {
-    const { value: calls, error, reload } = useEvents<CallItem[]>(props, 'call', summarizeCalls)
+    const { value, error, reload } = useEvents(props, 'call', callData)
+    const calls = value?.list ?? null
     const { shown, more } = useFirst(calls, 8)
     // With call alerts on, a call from a number the parent doesn't know is marked (roadmap W2).
     const [known, setKnown] = useState<string[] | null>(null)
@@ -170,6 +200,10 @@ function CallHistoryPanel(props: Props) {
             .catch(() => undefined)
         return () => { current = false }
     }, [props.api, props.device.deviceId])
+    const perDay = useMemo(() => (value ? callsPerDay(value.all, known) : []), [value, known])
+    const callDay = (day: DayCount) => known === null || day.main === 0
+        ? tn('calls.count', day.main + day.context)
+        : joinList([tn('calls.count', day.main + day.context), tn('calls.unknownCount', day.main)])
     return (
         <Panel title={t('calls.title')} onRefresh={reload} error={error} footnote={t('calls.footnote')}>
             {calls === null ? (
@@ -178,6 +212,16 @@ function CallHistoryPanel(props: Props) {
                 <p class="muted">{t('calls.none')}</p>
             ) : (
                 <>
+                    <div class="stack">
+                        <strong>{t('calls.perDay')}</strong>
+                        <DayColumns
+                            days={perDay}
+                            label={t('calls.perDay')}
+                            mainName={known === null ? t('calls.calls') : t('calls.fromUnknown')}
+                            contextName={known === null ? undefined : t('calls.others')}
+                            describe={callDay}
+                        />
+                    </div>
                     {groupByDay(shown).map((day) => (
                         <div key={day.key} class="call-day">
                             <h4>{day.label}</h4>

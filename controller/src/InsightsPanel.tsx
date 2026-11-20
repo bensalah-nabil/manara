@@ -2,15 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { isSessionError } from './api.ts'
 import type { Props } from './Editors.tsx'
 import { minutesText } from './dailyUsage.ts'
+import { tipStyle } from './chartTip.ts'
 import { errorText } from './format.ts'
 import {
-    aboveUsual, appName, applySuggestion, dailySeries, findInsights, hourGrid, lastWeek, lateNights, median, parseReports, suggestionText,
+    aboveUsual, appName, applySuggestion, appWeek, dailySeries, findInsights, hourGrid, lastWeek, lateNights, median, parseReports, suggestionText,
+    topAppsByDate,
 } from './insights.ts'
-import type { Day, Insight, Report, WeekSummary } from './insights.ts'
+import type { AppRow, AppWeek, Day, Insight, Report, WeekSummary } from './insights.ts'
 import type { Policy } from './policy.ts'
 import type { EventItem } from './protection.ts'
 import { savedText } from './usePolicyEditor.ts'
-import { dateLocale, t } from './i18n.ts'
+import { dateLocale, joinList, t } from './i18n.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const WEEKDAYS = [t('day.sun'), t('day.mon'), t('day.tue'), t('day.wed'), t('day.thu'), t('day.fri'), t('day.sat')]
@@ -67,7 +69,7 @@ function Tile({ label, value, note }: { label: string; value: string; note?: str
 }
 
 /** Daily screen time: one column per day, days well above the child's usual emphasized. */
-function DailyChart({ days, usual, compared }: { days: Day[]; usual: number | null; compared: number }) {
+function DailyChart({ days, usual, compared, apps }: { days: Day[]; usual: number | null; compared: number; apps: Map<string, { packageName: string; minutes: number }[]> }) {
     const [hover, setHover] = useState<number | null>(null)
     const box = useRef<HTMLDivElement>(null)
     // On a narrow screen the chart scrolls: open it on the latest days, not the oldest.
@@ -131,12 +133,84 @@ function DailyChart({ days, usual, compared }: { days: Day[]; usual: number | nu
                 ))}
             </svg>
             {hovered && hover !== null && (
-                <div class="chart-tip" style={{ left: `${((left + hover * slot + slot / 2) / W) * 100}%` }}>
+                <div class="chart-tip" style={tipStyle((left + hover * slot + slot / 2) / W)}>
                     <strong>{shortDate(hovered.date)}</strong>
                     <span>{hovered.minutes === null ? t('insights.noReport') : minutesText(hovered.minutes)}</span>
                     {usual !== null && hovered.minutes !== null && <span class="muted">{t('insights.usual', { time: minutesText(usual) })}</span>}
+                    {(apps.get(hovered.date)?.length ?? 0) > 0 && (
+                        <span class="muted">{joinList((apps.get(hovered.date) ?? []).map((a) => `${appName(a.packageName)} ${minutesText(a.minutes)}`))}</span>
+                    )}
                 </div>
             )}
+        </div>
+    )
+}
+
+function changeText(minutes: number, previous: number): string {
+    const change = Math.round(minutes) - Math.round(previous)
+    return change > 0 ? t('insights.changeUp', { time: minutesText(change) })
+        : change < 0 ? t('insights.changeDown', { time: minutesText(-change) })
+            : t('insights.changeSame')
+}
+
+/**
+ * Time by app: one brand bar per app (minutes a day, the last 7 days), an ink mark for the 7 days
+ * before, the value and the change written beside it. Plain HTML, so it reads right to left in Arabic.
+ */
+function AppWeekChart({ week }: { week: AppWeek }) {
+    const [hover, setHover] = useState<number | null>(null)
+    const compare = week.previousDays > 0
+    const max = Math.max(1, ...week.rows.flatMap((r) => [r.minutes, r.previous ?? 0]))
+    const share = (m: number) => `${(m / max) * 100}%`
+    const rowText = (r: AppRow) => r.previous === null
+        ? t('insights.appRowNoBefore', { app: appName(r.packageName), time: minutesText(r.minutes) })
+        : t('insights.appRow', { app: appName(r.packageName), time: minutesText(r.minutes), before: minutesText(r.previous) })
+    return (
+        <div class="stack">
+            <div class="chart-legend" aria-hidden="true">
+                <span><i class="key main" />{t('insights.recentWeek')}</span>
+                {compare && <span><i class="key tick" />{t('insights.weekBefore')}</span>}
+            </div>
+            <ul class="app-week" aria-label={t('insights.byApp')} onPointerLeave={() => setHover(null)}>
+                {week.rows.map((r, i) => (
+                    <li
+                        key={r.packageName}
+                        class={hover !== null && hover !== i ? 'dim' : undefined}
+                        tabIndex={0}
+                        aria-label={rowText(r)}
+                        onPointerEnter={() => setHover(i)}
+                        onFocus={() => setHover(i)}
+                        onBlur={() => setHover(null)}
+                    >
+                        <span class="bar-label" title={r.packageName} aria-hidden="true">{appName(r.packageName)}</span>
+                        <span class="aw-track" aria-hidden="true">
+                            <span class="aw-bar" style={{ inlineSize: share(r.minutes) }} />
+                            {r.previous !== null && <span class="aw-tick" style={{ insetInlineStart: share(r.previous) }} />}
+                        </span>
+                        <span class="aw-value" aria-hidden="true">
+                            {minutesText(r.minutes)}
+                            {r.previous !== null && <span class="muted">{changeText(r.minutes, r.previous)}</span>}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+            <details>
+                <summary>{t('insights.asTable')}</summary>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>{t('insights.app')}</th><th>{t('insights.recentWeek')}</th>{compare && <th>{t('insights.weekBefore')}</th>}</tr></thead>
+                        <tbody>
+                            {week.rows.map((r) => (
+                                <tr key={r.packageName}>
+                                    <td>{appName(r.packageName)}</td>
+                                    <td>{minutesText(r.minutes)}</td>
+                                    {compare && <td>{r.previous === null ? '—' : minutesText(r.previous)}</td>}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
         </div>
     )
 }
@@ -256,6 +330,8 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
             hitsThisWeek: limitHits.filter((h) => Date.parse(h.occurredAt) >= now - 7 * DAY_MS).length,
             grid: hourGrid(reports),
             lastWeek: lastWeek(reports, today),
+            appWeek: appWeek(reports, today),
+            topApps: topAppsByDate(reports),
             insights: findInsights({ reports, limitHits, policy, today, now }),
         }
     }, [reports, hits, policy])
@@ -330,7 +406,7 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                         <>
                             <div class="stack">
                                 <strong>{t('insights.perDay')}</strong>
-                                <DailyChart days={view.days} usual={view.usual} compared={view.compared} />
+                                <DailyChart days={view.days} usual={view.usual} compared={view.compared} apps={view.topApps} />
                                 <p class="muted small">
                                     {t('insights.highlightHelp')}
                                 </p>
@@ -347,6 +423,17 @@ export function InsightsPanel({ api, device, onSessionExpired }: Props) {
                                         </table>
                                     </div>
                                 </details>
+                            </div>
+                            <div class="stack">
+                                <strong>{t('insights.byApp')}</strong>
+                                {view.appWeek.rows.length > 0 ? (
+                                    <>
+                                        <AppWeekChart week={view.appWeek} />
+                                        <p class="muted small">{t('insights.byAppHelp')}</p>
+                                    </>
+                                ) : (
+                                    <p class="muted">{t('insights.byAppNone')}</p>
+                                )}
                             </div>
                             <details class="fold">
                                 <summary>{t('insights.byHour')}</summary>

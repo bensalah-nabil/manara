@@ -62,6 +62,7 @@ const KNOWN_APPS: Record<string, string> = {
     'com.netflix.mediaclient': 'Netflix',
     'com.android.chrome': 'Chrome',
     'org.telegram.messenger': 'Telegram',
+    'com.quran.labs.androidquran': 'Quran for Android',
 }
 
 /** A readable app name: a known one, else the package's last part, capitalized. */
@@ -160,6 +161,65 @@ export function lastWeek(reports: Report[], today: string, top = 3): WeekSummary
             .slice(0, top)
             .map(([packageName, minutes]) => ({ packageName, minutes })),
     }
+}
+
+export interface AppRow {
+    packageName: string
+    /** Minutes a day over the recent days the phone reported. */
+    minutes: number
+    /** The same over the 7 days before; null when the phone reported none of them. */
+    previous: number | null
+}
+
+export interface AppWeek {
+    rows: AppRow[]
+    /** How many of the 7 recent days, and of the 7 before, the phone reported. */
+    days: number
+    previousDays: number
+}
+
+/**
+ * Each app's minutes a day over the 7 days before [today] (today is still counting), against the 7
+ * days before those: busiest [top] first. Averages are over the days the phone reported, so a day it
+ * was off doesn't drag them down. Each report lists the day's 30 busiest apps, so an app missing from
+ * one counts as 0 that day.
+ */
+export function appWeek(reports: Report[], today: string, top = 8): AppWeek {
+    const last = lastPerDate(reports)
+    const day = Date.parse(today + 'T00:00:00Z')
+    const span = (firstBack: number) => Array.from({ length: 7 }, (_, i) => last.get(isoDate(day - (firstBack + i) * DAY_MS)))
+        .filter((r): r is Report => r !== undefined)
+    const perDay = (days: Report[]) => {
+        const sums = new Map<string, number>()
+        for (const r of days) for (const [pkg, minutes] of r.apps) sums.set(pkg, (sums.get(pkg) ?? 0) + minutes)
+        return new Map([...sums].map(([pkg, sum]) => [pkg, sum / days.length]))
+    }
+    const recent = span(1)
+    const before = span(8)
+    const now = perDay(recent)
+    const then = perDay(before)
+    return {
+        rows: [...now]
+            .filter(([, minutes]) => minutes >= 0.5)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, top)
+            .map(([packageName, minutes]) => ({ packageName, minutes, previous: before.length ? then.get(packageName) ?? 0 : null })),
+        days: recent.length,
+        previousDays: before.length,
+    }
+}
+
+/** Each date's busiest [top] apps, from its last report: what a day's tooltip names. */
+export function topAppsByDate(reports: Report[], top = 3): Map<string, { packageName: string; minutes: number }[]> {
+    const out = new Map<string, { packageName: string; minutes: number }[]>()
+    for (const [date, r] of lastPerDate(reports)) {
+        out.set(date, [...r.apps]
+            .filter(([, minutes]) => minutes >= 1)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, top)
+            .map(([packageName, minutes]) => ({ packageName, minutes })))
+    }
+    return out
 }
 
 export function median(values: number[]): number | null {

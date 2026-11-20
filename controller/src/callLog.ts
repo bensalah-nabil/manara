@@ -46,8 +46,16 @@ const DIRECTIONS: Record<Direction, string> = {
 
 export const MAX_SHOWN = 100
 
-/** Newest first. A malformed report is left out rather than shown as a call that didn't happen. */
+/** The list's calls: the newest [MAX_SHOWN] of [parseCalls]. */
 export function summarizeCalls(events: EventItem[]): CallItem[] {
+    return parseCalls(events).slice(0, MAX_SHOWN)
+}
+
+/**
+ * Every call, newest first, for counting (the chart counts all of them, the list shows a few). A
+ * malformed report is left out rather than shown as a call that didn't happen.
+ */
+export function parseCalls(events: EventItem[]): CallItem[] {
     const calls: CallItem[] = []
     for (const event of events) {
         if (event.kind !== 'call' || Number.isNaN(Date.parse(event.occurredAt))) continue
@@ -59,7 +67,7 @@ export function summarizeCalls(events: EventItem[]): CallItem[] {
         calls.push({ id: event.id, number, app, direction: payload.direction as Direction, occurredAt: event.occurredAt, durationSeconds: duration })
     }
     calls.sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
-    return withoutRepeats(calls).slice(0, MAX_SHOWN)
+    return withoutRepeats(calls)
 }
 
 /** Two sources can see one call (WhatsApp writes a few to the call log): the one with a number wins. */

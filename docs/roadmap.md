@@ -17,19 +17,18 @@ top product goal (a parent with no technical background sets up a phone alone).
      wording (self-update to 1.0.35 already seen on the owner's phone, ADR-0010).
    - Reset the Neon database password (pasted into a chat on 2026-11-19) and update
      `DATABASE_URL` on Render.
-   - Add the privacy-policy sentence on operator access (en, fr, ar): the admin console
-     (ADR-0011) is switched on in production without it.
-   - Read CI on GitHub: the SQL behind the admin console, the cooling-off delay and
-     waiting changes has only ever run there.
+   - Read CI on GitHub for `b765359` and after. The database tests ran locally against
+     Postgres 16 on 2026-11-20 and caught a failing one (sign-in matched emails case by
+     case), so CI had probably been red since `d43e1aa`.
    - Find why the owner's phone never took 1.0.34, and confirm the A52 reached 1.0.35.
 2. **Setup a parent can finish alone.** The usability test with 2–3 non-technical
    parents (E-10), then the UX review's critical fixes (5.7), then the demo video
    recorded on real screens with the measured time.
 3. **Before more families: legal and distribution.** The lawyer's opinion and INPDP
    filings (P19), Play Console verification (E-5).
-4. **Features, by value:** apps installed or removed and unknown-caller alerts (W1, W2),
-   phone pick-ups (W3), requests from the child (D3); the self-control track (S1–S5);
-   the prayer-time pause (P14).
+4. **Features, by value:** phone pick-ups (W3), requests from the child (D3); the
+   self-control track (S1–S5); the prayer-time pause (P14). W1 and W2 (apps installed or
+   removed, unknown-caller alerts) are built.
 5. Later: external penetration test and MASA (Phase 4).
 
 ## Phase 0 — Prove device-owner enrollment — ✅ core hypothesis proven (2026-11-03)
@@ -743,10 +742,12 @@ does not block.
 |---|---|---|
 | R1 | Console rework: one place per topic. Tabs Activity, Rules, What you see, This phone; each rule topic has its own "More options"; no separate Advanced settings; location and the app report moved to What you see, each marked On or Off | `DevicePanel.tsx`, `RuleCards.tsx` |
 | R2 | **Cooling-off delay**: a loosening waits 1 h to 7 days before reaching the phone and can be cancelled; tightening, and Lock now, are instant; release and the offline code wait too. Enforced by the server | ADR-0012. Seen working on the owner's phone (a 7-day wait) |
-| R3 | **Admin console** for whoever runs Manara: accounts, phones, problems; read-only, every read logged; sign-in with Microsoft Entra ID | ADR-0011, [`admin-console.md`](admin-console.md). Real sign-in seen; deployed site not yet |
+| R3 | **Admin console** for whoever runs Manara: accounts, phones, problems; every read logged; sign-in with Microsoft Entra ID. Part 1: support actions (two-step off, reset link, suspend, delete, clear a setup, remove a phone), releases offered to phones, a notice to parents; each with a reason and a typed confirmation, told to the parent. Part 2: a dashboard of totals (phones checking in, growth, versions and brands, setup funnel and failures, alerts and failing email). Never child data, never a phone command | ADR-0011, [`admin-console.md`](admin-console.md). Real sign-in seen; deployed site not yet |
 | R4 | Two ways to add a phone: a new or reset phone (QR), or the phone already in use (guided setup), with a "have this ready" box | `AddDevice.tsx` |
 | R5 | A demo video of guided setup in English, French and Arabic, on the parent guide | `tools/demo-video/`. Drawn scenes, not a real recording |
 | R6 | 1.0.35 released; the phone's self-update seen on the owner's phone (1.0.33 → 1.0.35) | ADR-0010 |
+| R7 | Parent charts, in the console's Activity tab: time by app, the last 7 days against the 7 before; each day's busiest apps in the screen-time tooltip; calls per day with unknown numbers in the brand colour; apps installed above the line, removed below. Built from what the phone already sends, nothing new collected. The screen-time tooltip had always been clipped out of sight; fixed | `InsightsPanel.tsx`, `DayColumns.tsx`, `dayCounts.ts`. Seen with invented data only |
+| R8 | Email addresses in any case: sign-up stored them as typed and sign-in matched them exactly, so "Sara@x.com" couldn't sign in as "sara@x.com" | `parent_repository.go`, [`admin-console.md`](admin-console.md) |
 
 **UX review (2026-11-20), still to fix:**
 
