@@ -62,6 +62,7 @@ export const fr: Record<MessageKey, string> = {
     'auth.beta': 'Devenir famille pionnière (gratuit)',
     'auth.betaHref': '/beta',
     'auth.guide': 'Guide des parents',
+    'auth.guideHref': '/guide-fr.html',
     'auth.twoStepTitle': 'Connexion en deux étapes',
     'auth.twoStepHelp': "Saisissez le code à 6 chiffres de votre application d'authentification. Vous avez perdu le téléphone qui contient l'application ? Saisissez l'un de vos codes de secours.",
     'auth.code': 'Code',

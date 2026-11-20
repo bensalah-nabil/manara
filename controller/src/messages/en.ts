@@ -64,6 +64,7 @@ export const en = {
     'auth.beta': 'Become a founding family (free)',
     'auth.betaHref': '/beta-en',
     'auth.guide': 'Parent guide',
+    'auth.guideHref': '/guide.html',
     'auth.twoStepTitle': 'Two-step sign-in',
     'auth.twoStepHelp': 'Enter the 6-digit code from your authenticator app. Lost the phone with the app? Enter one of your recovery codes instead.',
     'auth.code': 'Code',

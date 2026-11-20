@@ -25,11 +25,14 @@
   li { margin: 6px 0; }
   a { color: var(--brand); }
   strong { font-weight: 650; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .langs { margin-inline-start: auto; font-size: 0.95rem; }
+  .langs a, .langs strong { margin-inline-start: 12px; }
 </style>
 </head>
 <body>
 <main>
-  <header><a href="/">Manara</a></header>
+  <header><a href="/">Manara</a><nav class="langs" aria-label="Language"><strong lang="en">English</strong><a href="/download-fr.html" lang="fr" hreflang="fr">Français</a><a href="/download-ar.html" lang="ar" hreflang="ar">العربية</a></nav></header>
   <h1>Download Manara for Android</h1>
   <p class="muted">Open this page <strong>on your child's phone</strong>, then tap the button. Android 11 or newer.</p>
 

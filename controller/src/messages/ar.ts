@@ -67,6 +67,7 @@ export const ar: Record<MessageKey, string> = {
     'auth.beta': 'كن من العائلات الرائدة (مجانًا)',
     'auth.betaHref': '/beta-ar',
     'auth.guide': 'دليل أولياء الأمور',
+    'auth.guideHref': '/guide-ar.html',
     // TODO-REVIEW: "two-step sign-in" rendered as "تسجيل الدخول بخطوتين"
     'auth.twoStepTitle': 'تسجيل الدخول بخطوتين',
     // TODO-REVIEW: "authenticator app" rendered as "تطبيق المصادقة", "recovery codes" as "رموز الاسترداد"
