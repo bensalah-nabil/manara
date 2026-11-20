@@ -20,6 +20,15 @@ class HomeModelTest {
     }
 
     @Test
+    fun aCopyOutsideTheMainSpaceOnlyExplains() {
+        // A clone in Xiaomi's cloned apps, a Secure Folder or another user, whatever else is true.
+        for (enrolled in listOf(false, true)) for (owner in listOf(false, true)) {
+            assertEquals(HomeModel.Screen.OTHER_SPACE, HomeModel.screen(enrolled, owner, mainSpace = false))
+        }
+        assertEquals(HomeModel.Screen.CONNECT, HomeModel.screen(enrolled = false, deviceOwner = false, mainSpace = true))
+    }
+
+    @Test
     fun setupNeedsAndroid11() {
         assertFalse(HomeModel.setupSupported(29))
         assertTrue(HomeModel.setupSupported(30))

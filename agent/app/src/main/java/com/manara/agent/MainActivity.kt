@@ -46,6 +46,7 @@ import com.manara.agent.ui.ManagedScreen
 import com.manara.agent.ui.ManaraTheme
 import com.manara.agent.ui.ReleaseScreen
 import com.manara.agent.ui.ReleaseStep
+import com.manara.agent.ui.OtherSpaceScreen
 import com.manara.agent.ui.ReleasedScreen
 import com.manara.agent.ui.SetupScreen
 import kotlinx.coroutines.Dispatchers
@@ -78,9 +79,17 @@ class MainActivity : ComponentActivity() {
     private val isDeviceOwner: Boolean
         get() = getSystemService(DevicePolicyManager::class.java).isDeviceOwnerApp(packageName)
 
+    /**
+     * The phone's main space. Android's device owner is the system user's (DevicePolicyManagerService:
+     * device owner on user 0 outside headless system user mode, which phones don't use), so a copy
+     * in a clone space, a Secure Folder or another user can never manage the phone.
+     */
+    private val isMainSpace: Boolean
+        get() = getSystemService(android.os.UserManager::class.java).isSystemUser
+
     /** Idempotent: the notice, syncing, and self-granted permissions of a managed phone. */
     private fun keepManagementRunning() {
-        if (!isDeviceOwner) return
+        if (!isMainSpace || !isDeviceOwner) return
         ManagedNoticeService.start(this)
         OwnerReceiver.grantSelfGrantablePermissions(this)
         if (DeviceTokenStore(this).deviceToken() != null) {
@@ -105,6 +114,7 @@ class MainActivity : ComponentActivity() {
         val releaseStore = remember { ReleaseStore(this) }
         val enrolled = remember(resume, route) { tokenStore.deviceId() != null }
         val deviceOwner = remember(resume, route) { isDeviceOwner }
+        val mainSpace = remember { isMainSpace }
         val moveOpen = remember(resume, route) { TransferWindow.isOpen(releaseStore.transferUntil, System.currentTimeMillis()) }
 
         when (route) {
@@ -114,8 +124,9 @@ class MainActivity : ComponentActivity() {
                 ReleaseFlow(onDone = { released -> route = if (released) Route.RELEASED else Route.HOME })
             }
             Route.HOME -> {
-                val screen = HomeModel.screen(enrolled, deviceOwner)
+                val screen = HomeModel.screen(enrolled, deviceOwner, mainSpace)
                 when {
+                    screen == HomeModel.Screen.OTHER_SPACE -> OtherSpaceScreen()
                     screen == HomeModel.Screen.MANAGED && moveOpen -> Connect(moving = true) { resumes.intValue++ }
                     screen == HomeModel.Screen.CONNECT -> Connect(moving = false) { resumes.intValue++ }
                     screen == HomeModel.Screen.SETUP -> Setup { resumes.intValue++ }

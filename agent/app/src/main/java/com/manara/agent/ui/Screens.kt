@@ -374,6 +374,17 @@ fun ReleaseScreen(step: ReleaseStep, message: String?, onCode: (String) -> Unit,
     }
 }
 
+/** Manara opened outside the phone's main space (HomeModel.Screen.OTHER_SPACE). */
+@Composable
+fun OtherSpaceScreen() {
+    Page {
+        Header(stringResource(R.string.other_space_title), stringResource(R.string.other_space_subtitle))
+        Section(stringResource(R.string.other_space_section)) {
+            Text(stringResource(R.string.other_space_text))
+        }
+    }
+}
+
 @Composable
 fun ReleasedScreen() {
     Page {

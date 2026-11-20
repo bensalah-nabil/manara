@@ -9,6 +9,12 @@ import com.manara.agent.text.Words
 /** Pure. Which of the app's few screens the phone is on. */
 object HomeModel {
     enum class Screen {
+        /**
+         * Running outside the phone's main space: a clone in Xiaomi's cloned apps (user 999, seen on a
+         * Redmi Pad 2), a Secure Folder or another user. Device owner lives in the main space only, so
+         * this copy could only ever be a second, unmanaged Manara: it explains and does nothing else.
+         */
+        OTHER_SPACE,
         /** Not connected to a parent account yet. */
         CONNECT,
         /** Connected, but Manara doesn't manage the phone yet: guided setup. */
@@ -17,7 +23,8 @@ object HomeModel {
         MANAGED,
     }
 
-    fun screen(enrolled: Boolean, deviceOwner: Boolean): Screen = when {
+    fun screen(enrolled: Boolean, deviceOwner: Boolean, mainSpace: Boolean = true): Screen = when {
+        !mainSpace -> Screen.OTHER_SPACE
         deviceOwner && enrolled -> Screen.MANAGED
         enrolled -> Screen.SETUP
         else -> Screen.CONNECT

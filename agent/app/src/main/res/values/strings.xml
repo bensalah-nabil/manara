@@ -227,6 +227,10 @@
     <string name="code_wrong">That code isn\'t right. Check it with your parent.</string>
     <string name="code_locked">Too many wrong codes. Try again after %1$s.</string>
     <string name="code_no_secret">This phone hasn\'t received its release key yet. Connect to the internet, wait a few minutes, and try again.</string>
+    <string name="other_space_title">Not the phone\'s main space</string>
+    <string name="other_space_subtitle">This copy of Manara can\'t manage the phone.</string>
+    <string name="other_space_section">What to do</string>
+    <string name="other_space_text">This copy of Manara is in a second space on the phone: cloned apps, a Second space, a Secure Folder or another user. Manara works only in the phone\'s main space, so open it there. You can remove this copy: turn Manara off in the phone\'s cloned apps (Applications clonées on a Xiaomi).</string>
     <string name="released_title">Manara is off</string>
     <string name="released_subtitle">This phone is no longer managed.</string>
     <string name="released_section">All done</string>

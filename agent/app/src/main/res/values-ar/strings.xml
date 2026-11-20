@@ -243,6 +243,11 @@
     <string name="code_wrong">هذا الرمز غير صحيح. راجعه مع ولي أمرك.</string>
     <string name="code_locked">رموز خاطئة كثيرة. أعد المحاولة بعد %1$s.</string>
     <string name="code_no_secret">لم يستلم هذا الهاتف مفتاح التحرير بعد. صِله بالإنترنت، وانتظر بضع دقائق، ثم أعد المحاولة.</string>
+    <!-- TODO-REVIEW: the second-space screen (X5, docs/enrollment-xiaomi.md), added 2026-11-20 -->
+    <string name="other_space_title">ليست المساحة الرئيسية للهاتف</string>
+    <string name="other_space_subtitle">لا تستطيع هذه النسخة من منارة إدارة الهاتف.</string>
+    <string name="other_space_section">ما العمل</string>
+    <string name="other_space_text">هذه النسخة من منارة موجودة في مساحة ثانية على الهاتف: التطبيقات المستنسخة أو مساحة ثانية أو مجلد آمن أو مستخدم آخر. لا تعمل منارة إلا في المساحة الرئيسية للهاتف، فافتحها هناك. يمكنك إزالة هذه النسخة: أوقف منارة في التطبيقات المستنسخة على الهاتف (Applications clonées على Xiaomi).</string>
     <string name="released_title">منارة متوقف</string>
     <string name="released_subtitle">هذا الهاتف لم يعد خاضعًا للإشراف.</string>
     <string name="released_section">تمّ كل شيء</string>
