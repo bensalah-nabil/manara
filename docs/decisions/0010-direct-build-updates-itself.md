@@ -46,6 +46,13 @@ published and the three Render settings set. At its next check-in (22:08:22) the
 process checked in at 22:08:39. No installer screen appeared. Manara stayed device owner, the managed
 notice came back, and the same three apps stayed paused.
 
+The owner's phone, 2026-11-20. It was still on 1.0.33 a day after v1.0.34 was offered. Once v1.0.35
+was published and Render set to 35, it updated to 1.0.35 within minutes while charging on Wi-Fi (the
+console showed "Manara 1.0.35"), skipping 1.0.34. Why it never took 1.0.34 is not known: either it
+was not charging on Wi-Fi in that day, or its three tries failed and it gave up on that version
+(`UpdateDecision.MAX_TRIES`; a newer offer starts again). Its log was not read: adb was locked behind
+the phone's own wait before loosening (ADR-0012).
+
 ## Consequences
 
 - GitHub (Microsoft) sees the phone's IP address when it downloads an update. The privacy page says

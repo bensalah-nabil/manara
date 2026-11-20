@@ -7,6 +7,31 @@ Capabilities adopted from other open-source projects, and the ones
 deliberately rejected, are planned in [`capability-plan.md`](capability-plan.md)
 (milestones M1–M7), on top of the phases below.
 
+## Now: priorities (2026-11-20)
+
+In this order. The first group protects what is already live; the second is the
+top product goal (a parent with no technical background sets up a phone alone).
+
+1. **Keep what's live safe and reaching phones.**
+   - Finish the 1.0.35 checks on a phone: Lock now, the managed notice, the new bedtime
+     wording (self-update to 1.0.35 already seen on the owner's phone, ADR-0010).
+   - Reset the Neon database password (pasted into a chat on 2026-11-19) and update
+     `DATABASE_URL` on Render.
+   - Add the privacy-policy sentence on operator access (en, fr, ar): the admin console
+     (ADR-0011) is switched on in production without it.
+   - Read CI on GitHub: the SQL behind the admin console, the cooling-off delay and
+     waiting changes has only ever run there.
+   - Find why the owner's phone never took 1.0.34, and confirm the A52 reached 1.0.35.
+2. **Setup a parent can finish alone.** The usability test with 2–3 non-technical
+   parents (E-10), then the UX review's critical fixes (5.7), then the demo video
+   recorded on real screens with the measured time.
+3. **Before more families: legal and distribution.** The lawyer's opinion and INPDP
+   filings (P19), Play Console verification (E-5).
+4. **Features, by value:** apps installed or removed and unknown-caller alerts (W1, W2),
+   phone pick-ups (W3), requests from the child (D3); the self-control track (S1–S5);
+   the prayer-time pause (P14).
+5. Later: external penetration test and MASA (Phase 4).
+
 ## Phase 0 — Prove device-owner enrollment — ✅ core hypothesis proven (2026-11-03)
 
 **Why first:** if a custom agent can't become device owner on real phones, or
@@ -409,8 +434,12 @@ plan are in [`security.md`](security.md).
 - [x] Two-step sign-in for parents (capability-plan E2).
 - [x] Threat model ([threat-model.md](threat-model.md)); its gaps fixed: expiring
       enrollment codes, a pinned Gradle download, the date and time locked.
-- [ ] Audit log of parent actions; remove every adb key after setup.
-- [ ] Encrypt location data and authenticator secrets at rest.
+- [x] Audit log of parent actions (2026-11-18); every adb key removed at the end of guided
+      setup, seen on the SM-A045F (2026-11-19).
+- [x] Location, calls and authenticator secrets sealed at rest with `DATA_KEY` (2026-11-18).
+- [x] Rate limits and the alert throttle in Postgres, shared between server instances (2026-11-19).
+- [x] Two-step sign-in made **optional** (2026-11-19, the owner's decision, security.md item 3):
+      the authenticator app was one more hard step for a non-technical parent.
 - [ ] External penetration test; MASA AL1, then AL2 with a lab.
 - [ ] Per-manufacturer keep-alive testing matrix.
 
@@ -607,7 +636,7 @@ phone, no enforcer, no policy field yet.**
 | ID | Item | Why (who already has it) | How | Done when |
 |---|---|---|---|---|
 | P1 | **Arabic and French**, in the app and the console, with right-to-left layout | Family Link, Screen Time, Samsung and Microsoft are all in Arabic and French. Manara is English only, the biggest gap in the study | Agent: `values-ar`, `values-fr` string resources (no hard-coded text), RTL checked on every screen. Console: a message catalogue and `dir="rtl"`. Parent guide translated | A parent completes guided setup in Arabic on a Samsung; no English left on any screen |
-| P2 | **A locked phone can still call the parent** | Family Link's most painful complaint: a locked child "cannot even text their parent". Kidcare's reviewers name the opposite as reassuring: "les enfants peuvent toujours appeler" (competitive-brief §3). Manara's bedtime used `lockNow()`, so only emergency calls worked | **Decided 2026-11-17, after a spike: not lock task mode.** Bedtime holds every launchable app in `AppPauses` except the default phone app, the clock, Settings and Manara (`BedtimeDecision`); "Lock now" still locks. Why not lock task mode (AOSP android14/15-release, `LockTaskController.isLockTaskModeViolationInternal`): emergency calls get through only with `LOCK_TASK_FEATURE_KEYGUARD`, which also opens the whole system dialer; the alarm's screen is blocked unless allowlisted (inferred: no exception for it); a fault leaves a child in kiosk mode. Android refuses to pause the default dialer anyway (`SuspendPackageHelper.canSuspendPackageForUser`), so calls and emergency calls always work. **Added 2026-11-18, after the A52 test:** the default texting app stays open too, and the parent can keep apps open with `lockSchedule.allowedApps` (at most 50; a console preset adds six prayer-time apps). A paused app's notifications are hidden and it can't ring the phone (`DevicePolicyManager.setPackagesSuspended` javadoc, android14/15-release), so without this the dawn adhan was silenced by a night window. Limits: any number can be called or texted, not only the parent's; other messaging apps are paused | During bedtime, the child calls the parent's number; other apps stay closed. Verified on a Samsung |
+| P2 | **A locked phone can still call the parent** | Family Link's most painful complaint: a locked child "cannot even text their parent". Kidcare's reviewers name the opposite as reassuring: "les enfants peuvent toujours appeler" (competitive-brief §3). Manara's bedtime used `lockNow()`, so only emergency calls worked | **Decided 2026-11-17, after a spike: not lock task mode.** Bedtime holds every launchable app in `AppPauses` except the default phone app, the clock, Settings and Manara (`BedtimeDecision`); "Lock now" still locks. Why not lock task mode (AOSP android14/15-release, `LockTaskController.isLockTaskModeViolationInternal`): emergency calls get through only with `LOCK_TASK_FEATURE_KEYGUARD`, which also opens the whole system dialer; the alarm's screen is blocked unless allowlisted (inferred: no exception for it); a fault leaves a child in kiosk mode. Android refuses to pause the default dialer anyway (`SuspendPackageHelper.canSuspendPackageForUser`), so calls and emergency calls always work. **Added 2026-11-18, after the A52 test:** the default texting app stays open too, and the parent can keep apps open with `lockSchedule.allowedApps` (at most 50; a console preset adds six prayer-time apps). A paused app's notifications are hidden and it can't ring the phone (`DevicePolicyManager.setPackagesSuspended` javadoc, android14/15-release), so without this the dawn adhan was silenced by a night window. Limits: any number can be called or texted, not only the parent's. **Added 2026-11-20 (1.0.35):** bedtime also never pauses WhatsApp and WhatsApp Business (how Tunisian families call), the three main Quran apps, and 15 authenticator apps (a parent locked out of the console at night by their own authenticator), each id checked on Google Play (`BedtimeDecision.ALWAYS_OPEN`) | During bedtime, the child calls the parent's number; other apps stay closed. Verified on a Samsung |
 | P3 | **The offline release code never fails** | Family Link: "keeps rejecting the correct Parent Access Code", one phone locked a week | Test, not a feature: airplane mode, after a reboot, after 30 days without a sync, after an app update | All four pass on a phone |
 | P4 | **Fastest filtering server from Tunisia** | AdGuard answered in 96–117 ms vs ~50 ms for Cloudflare on Topnet Wi-Fi (2026-11-10) | The agent measures each candidate DoT host and reports it; the console picks or warns. Also say in the console that the ads filter can slow new pages | Numbers from Topnet, Ooredoo and Orange; the rule cards use the fastest honest host |
 | P19 | **Legal gate** before any family outside the developer's own (not code) | Law 2004-63 requires a declaration (art. 7), a family judge's authorization for a child's data (art. 28) and authorization for transfers abroad (art. 52), with prison terms (arts. 87, 90). Kidcare claims INPDP recognition | A lawyer's written opinion on the three questions in [`privacy/pia-call-history.md`](privacy/pia-call-history.md). Then the INPDP filings it calls for, or hosting in Tunisia | The opinion is filed in `docs/`, and every filing it requires has a receipt |
@@ -657,8 +686,10 @@ nothing new is collected, and none of it reads content.
 |---|---|---|---|
 | P14 | **Prayer-time pause**: the apps the parent already limits (social media, games) close for N minutes at each prayer the parent ticks | Pure `PrayerTimes` (sun angles, offline, G5) and `PrayerPauseDecision`: **built and unit-tested 2026-11-10**. Still to build: a `prayerPause` policy field (additive, G6), a `PrayerPauseEnforcer` that suspends and resumes the packages (not `lockNow()`: calls and every other app stay open), the child's notice "Prayer time: your apps are back at 13:05", a console card with the day's times and a per-prayer minute adjustment. Location: the parent picks a city in the console, so the pause needs no GPS and collects nothing | On a Samsung, Instagram closes at the computed minute and reopens N minutes later, offline; the times match the Ministry of Religious Affairs timetable for Tunis within 2 minutes (*Hypothesis:* its angles are 18°/18°; check before release) |
 | P15 | **Ramadan schedule**: one switch that moves bedtime and daily limits for the month | A console preset over the existing `lockSchedule` and `timeLimits`; no agent change. Dates entered by the parent, not computed | The preset applies and reverts on a phone |
-| P16 | **Always-allowed apps**: Quran, school and the phone app never count against a limit or a pause | *Verify first* whether `TimeLimitDecision` already has an exemption list | A listed app stays open during a pause and at zero minutes left |
+| P16 | **Always-allowed apps**: Quran, school and the phone app never count against a limit or a pause | **Bedtime done (2026-11-20):** Quran apps, WhatsApp and authenticators are never paused at bedtime, and the console's "Add prayer-time and Quran apps" button adds them to a parent's list. Still open: time limits and the prayer pause. *Verify first* whether `TimeLimitDecision` already has an exemption list | A listed app stays open during a pause and at zero minutes left |
 | B5 | **Family-values filter on the whole phone** (was 5.2) | Today the "Family values" card works in Chrome only (`RuleCards.tsx` l.31): it is the pack's headline and its weakest part. capability-plan B5 | Gambling, dating and alcohol sites closed in every browser |
+| P22 | **Islamic look** for the console and the parent pages: emerald and gold, a faint eight-pointed star, the name also written منارة | **Done 2026-11-20**, every language (the owner's choice). Not on `decouvrir.html` yet | — |
+| P23 | **An ayah on a paused app**: the short support message Android shows (D2) carries a short ayah or hadith, e.g. An-Nur 24:30 | Within D2's character limit; websites keep the browser's own error page | Seen on a phone, in Arabic and French |
 | P18 | **Review, not a claim** (not code) | Ask one imam or a religious-education teacher, and one family association, to read the pack's wording in Arabic before it is advertised. Never print "approved by" without a written yes | A named reviewer, in writing |
 
 ### 5.5 — Design fixes (from reading the code, 2026-11-10; no screen was rendered)
@@ -704,11 +735,64 @@ Settings. On the SM-A528B it opens About phone, one level above Build number (un
 information): the phone's hint says so. A setting a maker refuses to report shows as unknown and
 does not block.
 
+### 5.7 — Added 2026-11-19 and 2026-11-20
+
+**Done:**
+
+| ID | Item | Where |
+|---|---|---|
+| R1 | Console rework: one place per topic. Tabs Activity, Rules, What you see, This phone; each rule topic has its own "More options"; no separate Advanced settings; location and the app report moved to What you see, each marked On or Off | `DevicePanel.tsx`, `RuleCards.tsx` |
+| R2 | **Cooling-off delay**: a loosening waits 1 h to 7 days before reaching the phone and can be cancelled; tightening, and Lock now, are instant; release and the offline code wait too. Enforced by the server | ADR-0012. Seen working on the owner's phone (a 7-day wait) |
+| R3 | **Admin console** for whoever runs Manara: accounts, phones, problems; read-only, every read logged; sign-in with Microsoft Entra ID | ADR-0011, [`admin-console.md`](admin-console.md). Real sign-in seen; deployed site not yet |
+| R4 | Two ways to add a phone: a new or reset phone (QR), or the phone already in use (guided setup), with a "have this ready" box | `AddDevice.tsx` |
+| R5 | A demo video of guided setup in English, French and Arabic, on the parent guide | `tools/demo-video/`. Drawn scenes, not a real recording |
+| R6 | 1.0.35 released; the phone's self-update seen on the owner's phone (1.0.33 → 1.0.35) | ADR-0010 |
+
+**UX review (2026-11-20), still to fix:**
+
+| ID | Finding | Severity |
+|---|---|---|
+| U1 | At phone width the 4th tab ("This phone", where Manara is removed) is cut off with no scroll sign | Critical |
+| U2 | A new phone opens on Activity, five empty cards: open on Rules, or a 3-step checklist | Moderate |
+| U3 | Six "Refresh" buttons on Activity: one for the page | Moderate |
+| U4 | Header crowded at phone width (language, About, Account, Sign out) | Minor |
+| U5 | `decouvrir.html` has its own look; the guide and download page are English only | Moderate |
+
+**What the parent sees (each off by default, details only, listed on the child's notice, ADR-0001):**
+
+| ID | Item | Value | How |
+|---|---|---|---|
+| W1 | **Apps installed or removed**, with time | Catches a new chat app, browser or VPN at once | **Built 2026-11-20, not yet on a phone (needs 1.0.36).** The phone compares its launcher apps with the list saved at the last sync (`AppChangesDecision`), so offline installs still arrive; `app_change` events kept 30 days; a switch under What you see and a card on Activity; the child's notice says so |
+| W2 | **A call from a number you don't know** | Strangers, without reading anything | **Built 2026-11-20.** The parent types the known numbers (never the child's contacts); the server compares the last 8 digits of each incoming, missed or rejected call, hidden numbers counting as unknown, and alerts once per number per throttle window. The list is stripped from the policy the phone receives (`Policy.ForPhone`). App calls carry no number and are not checked. Call history marks the call "Unknown number" |
+| W3 | **Phone pick-ups**: unlocks per day, first and last | A better sign of compulsive use than minutes | `UsageStatsManager` events, already allowed by Usage access |
+| W4 | Phone switched off, battery low (with P7) | Explains "Not reporting" | The existing report |
+| W5 | Data used per day, Wi-Fi and mobile | Heavy streaming | `NetworkStatsManager`, Usage access |
+
+**Strangers in messaging apps (2026-11-20).** Manara does not and will not read messages. What
+keeps strangers out, in order: each app's own contacts-only setting locked by its parental
+supervision (Instagram teen accounts and Family Center, TikTok Family Pairing, Messenger Kids),
+blocking apps where anyone can write for a young child, W1 and W2, and *verify first* whether
+Android's call screening lets the device owner allow ordinary calls only from numbers the
+parent approves (WhatsApp calls are not covered). A short parent-guide page on these settings,
+in three languages, is content work.
+
+**Self-control track** (the owner also manages their own phone; owner's request, 2026-11-20):
+
+| ID | Item | Note |
+|---|---|---|
+| S1 | **A trusted person**: told of every loosening requested, cancelled or applied, and of tampering; optionally their approval needed | Reuses alert emails |
+| S2 | **New apps wait too**: a new app stays paused for the phone's wait | Closes the VPN and second-browser hole; overlaps P6 |
+| S3 | **A commitment**: a rule can't be loosened at all until a date | Stronger than R2's wait |
+| S4 | **Factory reset protection** naming a trusted person's Google account | *Verify first* in AOSP (`setFactoryResetProtectionPolicy`) |
+| S5 | **"My own phone" path**: the consent statements today say "my child, a minor", which is false for one's own phone | Own wording on the phone ("You chose these rules") |
+| S6 | Stop clearing an app's data in Settings (`DISALLOW_APPS_CONTROL`), which resets Play Store parental controls | *Verify first* its exact effect |
+
 ### Won't do (the study's ethics list)
 
 - Listening through the child's microphone (Find My Kids "Sound Around"). Audio is excluded by ADR-0001/ADR-0008.
 - Reading message content and AI-scanning it on a third-party server (Bark). Any message capture follows capability-plan Track H and its ADR, encrypted so the server can't read it, and visible to the child.
 - An iPhone app (for now). It would be weaker than Apple's own tool. Revisit only if interviews show many iPhones (Apple is 17% of mobile web traffic in Tunisia, August 2026).
+- Scanning what is on the screen with AI to blur images (asked for on 2026-11-20). Manara would read the whole screen all day, against ADR-0001 and the privacy page. Short-video feeds (Reels, Shorts, TikTok) are handled by blocking the apps or the pages instead.
 - Reading the child's social media or browsing history (Kidcare's YouTube, TikTok and Instagram history). It breaks ADR-0001's spirit and Play policy, and transparency is the position Manara can own (competitive-brief §8). Added 2026-11-17.
 
 ## Known hard problems (not blockers, but eyes open)
