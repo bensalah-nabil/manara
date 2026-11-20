@@ -325,6 +325,7 @@ export const en = {
     'setup.listUpdates': 'This list updates by itself as you remove accounts.',
     'setup.nowManages': "Manara now manages the phone. Sign back in only to the accounts you removed and want to keep on it; you don't need all of them.",
     'setup.quietHint': "The phone hasn't sent an update since {when}: it may be off or have restarted, so this list may be out of date. Opening Manara on the phone brings it back. You can finish setup either way.",
+    'setup.quietBefore': "The phone hasn't sent an update since {when}: it may be off or have restarted. Before Manara manages it, setup can't carry on by itself after a restart. Open Manara on the phone and start guided setup again; accounts you already removed stay removed. Apps setup paused stay paused until you do.",
     'setup.back': 'Back on the phone',
     'setup.notYet': 'Not yet',
     'setup.notSignedBack': 'Not signed back in',

@@ -176,6 +176,15 @@ export function SetupProgress({ api, device, onSessionExpired, onSetup, watch = 
             )
         }
         if (state !== 'current' && state !== 'waiting') return null
+        // Before device owner a restart ends the run (its wireless-debugging session is gone) and
+        // paused apps stay paused: say so under the step, not only in the heading (a Redmi Pad 2,
+        // docs/enrollment-xiaomi.md, steps 10 and 11). The reconnect step says its own.
+        const content = stepDetail(key, state)
+        if (!quiet || key === 'reconnecting') return content
+        return <>{content}<p class="hint" role="status">{t('setup.quietBefore', { when: lastSeenText(shown.updatedAt) })}</p></>
+    }
+
+    function stepDetail(key: SetupStepKey, state: StepState): ComponentChildren {
         switch (key) {
             case 'pairing':
                 return waitingToPair(shown) && shown.pairingQr ? (

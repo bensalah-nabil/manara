@@ -83,6 +83,9 @@ const ACCOUNT_TYPES: Record<string, string> = {
     'com.xiaomi': t('setup.account.xiaomi'),
     'com.whatsapp': 'WhatsApp',
     'com.facebook.auth.login': 'Facebook',
+    // Seen on a Redmi Pad 2 (docs/enrollment-xiaomi.md): Google Meet, formerly Duo, and Messenger.
+    'com.google.android.apps.tachyon': 'Google Meet',
+    'com.facebook.messenger': 'Messenger',
     'www.instagram.com': 'Instagram',
     'com.twitter.android.auth.login': 'X (Twitter)',
 }

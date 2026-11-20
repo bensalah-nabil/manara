@@ -46,6 +46,8 @@ test('the same name under a different type is a different account', () => {
 
 test('account types read as names, unknown ones as given', () => {
     assert.equal(accountTypeName('com.google'), 'Google')
+    assert.equal(accountTypeName('com.google.android.apps.tachyon'), 'Google Meet')
+    assert.equal(accountTypeName('com.facebook.messenger'), 'Messenger')
     assert.equal(accountTypeName('com.example.app'), 'com.example.app')
 })
 

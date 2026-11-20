@@ -323,6 +323,7 @@ export const fr: Record<MessageKey, string> = {
     'setup.listUpdates': 'Cette liste se met à jour toute seule à mesure que vous retirez les comptes.',
     'setup.nowManages': "Manara gère maintenant le téléphone. Reconnectez-vous seulement aux comptes que vous avez retirés et que vous voulez y garder ; vous n'avez pas besoin de tous.",
     'setup.quietHint': "Le téléphone n'a rien envoyé depuis {when} : il est peut-être éteint ou a redémarré, cette liste peut donc ne pas être à jour. Ouvrir Manara sur le téléphone le fait revenir. Vous pouvez terminer l'installation dans les deux cas.",
+    'setup.quietBefore': "Le téléphone n'a rien envoyé depuis {when} : il est peut-être éteint ou a redémarré. Tant que Manara ne le gère pas, la configuration ne peut pas reprendre seule après un redémarrage. Ouvrez Manara sur le téléphone et relancez la configuration guidée ; les comptes déjà retirés le restent. Les applications mises en pause le restent jusque-là.",
     'setup.back': 'De retour sur le téléphone',
     'setup.notYet': 'Pas encore',
     'setup.notSignedBack': 'Non reconnecté',
