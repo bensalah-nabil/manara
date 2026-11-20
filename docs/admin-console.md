@@ -13,10 +13,38 @@ page an admin opened. Parents never see it. Decision: ADR-0011.
 | The guided-setup step, status and error message | Location, calls, app usage, rules, events, anything else the phone reports |
 | The admin log | |
 
-It only reads. Changing or deleting an account still goes through the parent's own console,
-or the delete-account page. Every request is checked and **written to `admin_log` before
-anything is read**. If the log can't be written, the server answers with an error and shows
-nothing. Entries are kept for a year.
+Every request is checked and **written to `admin_log` before anything is read or done**. If the
+log can't be written, the server answers with an error and shows nothing. Entries are kept for a
+year.
+
+## What an admin can do (part 1, 2026-11-20)
+
+| Action | Effect | Confirm by typing |
+|---|---|---|
+| Turn off two-step sign-in | For a parent who lost their authenticator | the account's email |
+| Send a password-reset link | A one-hour link to the account's own email, nobody else | the account's email |
+| Suspend / reactivate | Signed out everywhere; no sign-in, two-step code or reset link works until reactivated. Phones keep their rules | the account's email |
+| Delete an account | Only one with no phone (a phone left behind could never be released) | the account's email |
+| Clear a guided setup | The console forgets a stuck setup so the parent can start again; nothing changes on the phone | the phone's code (first 8 characters of its id) |
+| Remove a phone | Only for a phone reset or lost: a managed phone keeps its rules and can't be released any more | the phone's code |
+| Offer a version / pause updates / use Render's setting | The version phones download; the server downloads the GitHub file and checks its SHA-256 before offering it | the version name |
+| Show / remove a notice | A message at the top of every parent's console, in en, fr, ar | — |
+
+What an admin **cannot** do, by design: see a child's location, calls, app usage or rules; lock,
+change or release a phone; send a command. The privacy page says so (en, fr, ar).
+
+### How it meets the standards
+
+| Requirement | How |
+|---|---|
+| Strong authentication (OWASP ASVS V2, MFA) | Microsoft Entra ID with multifactor authentication from the tenant; Manara stores no admin password |
+| Deny by default, least privilege (ASVS V4) | Three locks: Entra user assignment, the `Admin.Access` scope, `ADMIN_ALLOWED_OIDS`. Without the settings the API does not exist |
+| Deliberate, attributable actions (ASVS V4.3, V7) | Each action needs a reason (≤300 characters) and the target typed out; logged with who, what, target and reason **before** it runs, and again if it fails |
+| Accountability to the person affected (GDPR art. 5, transparency) | Actions on an account appear in that parent's own Recent activity ("Manara support …") |
+| Abuse limits (ASVS V11) | 30 actions per 10 minutes per admin, counted in Postgres across instances |
+| Data minimisation (GDPR art. 5, law 2004-63) | No child data is readable or changeable; the parent's known phone numbers never reach the child's phone |
+| Integrity of what phones install | A version is offered only after the server has downloaded the release and matched its SHA-256 |
+| Re-authentication for sensitive steps | Not built: Entra access tokens carry no reliable sign-in time. The typed confirmation and the reason are the compensating control |
 
 ## Sign-in: Microsoft Entra ID
 

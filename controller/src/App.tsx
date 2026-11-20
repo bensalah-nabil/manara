@@ -10,6 +10,7 @@ import { agoText, authErrorText, deviceName, lastSeenText, statusText } from './
 import { createSessionStore } from './session.ts'
 import { chooseLanguage, language, languageSync, storedLanguage, t } from './i18n.ts'
 import { LanguageSwitch } from './LanguageSwitch.tsx'
+import type { SiteNotice } from './api.ts'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
 
@@ -335,6 +336,13 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
         setError('')
         setReloads((count) => count + 1)
     }
+    // A notice from whoever runs Manara (maintenance, news); read once, ignored if it fails.
+    const [notice, setNotice] = useState<SiteNotice | null>(null)
+    useEffect(() => {
+        let current = true
+        api.getNotice().then((n) => { if (current) setNotice(n) }).catch(() => undefined)
+        return () => { current = false }
+    }, [api])
     const selectedId = route.view === 'phone' ? route.deviceId : null
     const selected = selectedId === null ? undefined : devices?.find((device) => device.deviceId === selectedId)
 
@@ -356,7 +364,7 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
     }
 
     return (
-        <div class="shell">
+        <div class={notice ? 'shell with-notice' : 'shell'}>
             <header class="topbar">
                 <a href="#" class="brand"><Logo /><span>{t('common.brand')}</span></a>
                 <span class="topbar-actions">
@@ -366,6 +374,11 @@ function Console({ api, onSignOut, onExpired, onDeleted }: { api: Api; onSignOut
                     <button type="button" class="ghost small" onClick={onSignOut}>{t('nav.signOut')}</button>
                 </span>
             </header>
+            {notice && (
+                <p role="status" class={notice.level === 'warning' ? 'banner notice-banner warn' : 'banner notice-banner'}>
+                    {notice.text[language()] || notice.text.en}
+                </p>
+            )}
             <div class={route.view === 'home' ? 'layout' : 'layout has-detail'}>
                 <PhoneList devices={devices} selected={selectedId} onRefresh={refresh} error={error} />
                 <main class="detail">

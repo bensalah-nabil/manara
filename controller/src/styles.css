@@ -632,3 +632,9 @@ body {
 
 /* A call from a number the parent doesn't know (roadmap W2). */
 .tag.warn { background: var(--warn-soft); color: var(--warn); }
+
+/* The notice from whoever runs Manara, above the console (admin console, part 1). */
+.shell.with-notice { grid-template-rows: auto auto 1fr; }
+.notice-banner { margin: 12px 20px 0; }
+.notice-banner.warn { background: var(--warn-soft); color: var(--warn); }
+@media (max-width: 760px) { .notice-banner { margin: 10px 16px 0; } }

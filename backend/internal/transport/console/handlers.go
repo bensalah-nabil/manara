@@ -215,6 +215,10 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_credentials", "")
 		return
 	}
+	if errors.Is(err, domain.ErrAccountSuspended) {
+		writeError(w, http.StatusForbidden, "account_suspended", "")
+		return
+	}
 	if err != nil {
 		log.Printf("console: login: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")

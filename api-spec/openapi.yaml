@@ -652,6 +652,31 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /console/notice:
+    get:
+      tags: [console]
+      summary: The notice from whoever runs Manara, or null
+      description: >
+        Set from the admin console (docs/admin-console.md). No session needed: it
+        says nothing about any account. `text` has `en`, and maybe `fr` and `ar`;
+        show the parent's language, else English. Absent while the admin console
+        is off.
+      responses:
+        '200':
+          description: "The active notice, or `{notice: null}`."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notice:
+                    nullable: true
+                    type: object
+                    properties:
+                      level: { type: string, enum: [info, warning] }
+                      text: { type: object, additionalProperties: { type: string } }
+                      until: { type: string, format: date-time }
+
   /console/auth/login:
     post:
       tags: [console]

@@ -21,6 +21,8 @@ type Handlers struct {
 	Store       domain.AdminStore
 	Now         func() time.Time
 	SilentAfter time.Duration
+	// Actions enables the write endpoints (actions.go); nil leaves the console read-only.
+	Actions *Actions
 }
 
 // Routes registers the admin endpoints on mux.
@@ -43,6 +45,21 @@ func (h *Handlers) now() time.Time {
 
 // admin checks the bearer token and records the request. False means the answer is written.
 func (h *Handlers) admin(w http.ResponseWriter, r *http.Request, action, target string) (domain.Admin, bool) {
+	a, ok := h.authenticate(w, r)
+	if !ok {
+		return a, false
+	}
+	if err := h.Store.RecordAdmin(r.Context(), domain.AdminLogEntry{AdminID: a.ID, AdminName: a.Name, Action: action, Target: target, At: h.now()}); err != nil {
+		// No log, no answer: an admin's reads must always be on record.
+		log.Printf("admin: record %s: %v", action, err)
+		writeError(w, http.StatusInternalServerError, "internal", "")
+		return domain.Admin{}, false
+	}
+	return a, true
+}
+
+// authenticate checks the bearer token only. False means the answer is written.
+func (h *Handlers) authenticate(w http.ResponseWriter, r *http.Request) (domain.Admin, bool) {
 	token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if !found || token == "" {
 		writeError(w, http.StatusUnauthorized, "not_admin", "sign in with an admin account")
@@ -58,12 +75,6 @@ func (h *Handlers) admin(w http.ResponseWriter, r *http.Request, action, target 
 			log.Printf("admin: verify token: %v", err)
 		}
 		writeError(w, http.StatusUnauthorized, "not_admin", "sign in with an admin account")
-		return domain.Admin{}, false
-	}
-	if err := h.Store.RecordAdmin(r.Context(), domain.AdminLogEntry{AdminID: a.ID, AdminName: a.Name, Action: action, Target: target, At: h.now()}); err != nil {
-		// No log, no answer: an admin's reads must always be on record.
-		log.Printf("admin: record %s: %v", action, err)
-		writeError(w, http.StatusInternalServerError, "internal", "")
 		return domain.Admin{}, false
 	}
 	return a, true

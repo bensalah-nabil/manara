@@ -4,13 +4,16 @@ import type { Auth } from './auth.ts'
 import { createApi, NotAdmin } from './api.ts'
 import type { Account, Api, LogEntry, Overview, Phone } from './api.ts'
 import { ACTION_TEXT, agoText, PROBLEM_TEXT, phoneProblem } from './model.ts'
+import { AccountActions, NoticeView, PhoneActions, ReleasesView } from './actions.tsx'
 
-type View = 'overview' | 'accounts' | 'phones' | 'log'
+type View = 'overview' | 'accounts' | 'phones' | 'releases' | 'notice' | 'log'
 
 const VIEWS: { key: View; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'accounts', label: 'Accounts' },
     { key: 'phones', label: 'Phones' },
+    { key: 'releases', label: 'Releases' },
+    { key: 'notice', label: 'Notice' },
     { key: 'log', label: 'Admin log' },
 ]
 
@@ -84,6 +87,8 @@ function Console({ auth }: { auth: Auth }) {
             {view === 'overview' && <OverviewView api={api} />}
             {view === 'accounts' && <AccountsView api={api} />}
             {view === 'phones' && <PhonesView api={api} accountId="" />}
+            {view === 'releases' && <ReleasesView api={api} />}
+            {view === 'notice' && <NoticeView api={api} />}
             {view === 'log' && <LogView api={api} />}
         </Shell>
     )
@@ -139,16 +144,21 @@ function OverviewView({ api }: { api: Api }) {
 function AccountsView({ api }: { api: Api }) {
     const [query, setQuery] = useState('')
     const [search, setSearch] = useState('')
-    const [open, setOpen] = useState<Account | null>(null)
-    const accounts = useLoad<Account[]>(() => api.accounts(search), [api, search])
+    const [openId, setOpenId] = useState<string | null>(null)
+    const [reloads, setReloads] = useState(0)
+    const accounts = useLoad<Account[]>(() => api.accounts(search), [api, search, reloads])
     const now = Date.now()
-    if (open) {
+    const open = openId === null ? null : accounts.value?.find((a) => a.id === openId) ?? null
+    if (openId !== null) {
+        if (!open) return accounts.value === null ? <Loading error={accounts.error} /> : <><button type="button" class="ghost" onClick={() => setOpenId(null)}>← All accounts</button><p class="muted">This account no longer exists.</p></>
         return (
             <>
-                <button type="button" class="ghost" onClick={() => setOpen(null)}>← All accounts</button>
-                <h2>{open.email}</h2>
-                <p class="muted">Created {new Date(open.createdAt).toLocaleDateString()} · language {open.language} · two-step {open.twoStep ? 'on' : 'off'} · last sign-in {agoText(open.lastSignIn, now)}</p>
-                <PhonesView api={api} accountId={open.id} />
+                <button type="button" class="ghost" onClick={() => setOpenId(null)}>← All accounts</button>
+                <h2>{open.email} {open.suspendedAt && <span class="pill warn">Suspended</span>}</h2>
+                <p class="muted">Created {new Date(open.createdAt).toLocaleDateString()} · language {open.language} · two-step {open.twoStep ? 'on' : 'off'} · last sign-in {agoText(open.lastSignIn, now)}{open.suspendedAt && ` · suspended ${agoText(open.suspendedAt, now)}`}</p>
+                <AccountActions api={api} account={open} onDone={() => setReloads((n) => n + 1)} />
+                <h3>Phones</h3>
+                <PhonesView api={api} accountId={open.id} withActions />
             </>
         )
     }
@@ -164,8 +174,8 @@ function AccountsView({ api }: { api: Api }) {
                         <thead><tr><th>Email</th><th>Created</th><th>Phones</th><th>Two-step</th><th>Last sign-in</th></tr></thead>
                         <tbody>
                             {accounts.value.map((a) => (
-                                <tr key={a.id} class="link-row" onClick={() => setOpen(a)}>
-                                    <td><button type="button" class="link">{a.email || '(no email)'}</button></td>
+                                <tr key={a.id} class="link-row" onClick={() => setOpenId(a.id)}>
+                                    <td><button type="button" class="link">{a.email || '(no email)'}</button>{a.suspendedAt && <> <span class="pill warn">Suspended</span></>}</td>
                                     <td>{new Date(a.createdAt).toLocaleDateString()}</td>
                                     <td>{a.phones}</td>
                                     <td>{a.twoStep ? 'on' : 'off'}</td>
@@ -181,11 +191,22 @@ function AccountsView({ api }: { api: Api }) {
     )
 }
 
-function PhonesView({ api, accountId }: { api: Api; accountId: string }) {
-    const phones = useLoad<Phone[]>(() => api.phones(accountId), [api, accountId])
+function PhonesView({ api, accountId, withActions = false }: { api: Api; accountId: string; withActions?: boolean }) {
+    const [reloads, setReloads] = useState(0)
+    const phones = useLoad<Phone[]>(() => api.phones(accountId), [api, accountId, reloads])
     if (phones.value === null) return <Loading error={phones.error} />
     if (phones.value.length === 0) return <p class="muted">No phones.</p>
-    return <PhoneTable phones={phones.value} now={Date.now()} />
+    return (
+        <>
+            <PhoneTable phones={phones.value} now={Date.now()} />
+            {withActions && phones.value.map((p) => (
+                <div key={p.id} class="card phone-actions">
+                    <b>{[p.manufacturer, p.model].filter(Boolean).join(' ') || 'Unknown phone'}</b> <span class="muted small">code {p.id.slice(0, 8)}</span>
+                    <PhoneActions api={api} phone={p} onDone={() => setReloads((n) => n + 1)} />
+                </div>
+            ))}
+        </>
+    )
 }
 
 function PhoneTable({ phones, now }: { phones: Phone[]; now: number }) {

@@ -24,6 +24,13 @@ const (
 	AuditPairingCodeSent    AuditAction = "pairing_code_sent"
 	AuditSetupFinished      AuditAction = "setup_finished"
 	AuditChangeCancelled    AuditAction = "change_cancelled" // a change waiting out the cooling-off delay
+	// Actions Manara support took on the account from the admin console, shown to the parent too.
+	AuditSupportTwoStepOff   AuditAction = "support_two_step_off"
+	AuditSupportResetSent    AuditAction = "support_reset_sent"
+	AuditSupportSuspended    AuditAction = "support_suspended"
+	AuditSupportReactivated  AuditAction = "support_reactivated"
+	AuditSupportSetupReset   AuditAction = "support_setup_reset"
+	AuditSupportPhoneRemoved AuditAction = "support_phone_removed"
 )
 
 // AuditRetention is how long the log is kept, like the phones' own activity (EventRetention).

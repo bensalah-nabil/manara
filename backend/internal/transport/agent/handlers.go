@@ -31,8 +31,9 @@ type Handlers struct {
 	Releases    domain.ReleaseRepository
 	// Alerts is optional: nil means no parent alerts are configured.
 	Alerts *domain.AlertService
-	// AgentUpdate is the direct-download version phones should run; nil holds updates back.
-	AgentUpdate *domain.AgentUpdate
+	// AgentUpdates says which direct-download version phones should run: the admin console's
+	// choice, else the server's settings; nil, or an offer of nil, holds updates back.
+	AgentUpdates *domain.AgentUpdateSource
 }
 
 // --- wire types, matching api-spec/openapi.yaml field-for-field ------------
@@ -289,7 +290,7 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	resp := syncResponse{PendingCommands: pendingDTOs, AcceptedEventIDs: acceptedIDs, ReleaseSecret: releaseSecret, AgentUpdate: h.AgentUpdate}
+	resp := syncResponse{PendingCommands: pendingDTOs, AcceptedEventIDs: acceptedIDs, ReleaseSecret: releaseSecret, AgentUpdate: h.AgentUpdates.Current(r.Context())}
 	policy, err := h.Policies.Get(r.Context(), deviceID)
 	if err != nil {
 		log.Printf("sync: get policy: %v", err)

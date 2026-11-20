@@ -36,6 +36,8 @@ export function authErrorText(code: string): string {
     switch (code) {
         case 'invalid_credentials':
             return t('err.invalidCredentials')
+        case 'account_suspended':
+            return t('err.accountSuspended')
         case 'email_taken':
             return t('err.emailTaken')
         case 'network':

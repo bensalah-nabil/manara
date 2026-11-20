@@ -30,6 +30,12 @@ const ACTIONS: Record<string, MessageKey> = {
     pairing_code_sent: 'activity.pairingCode',
     setup_finished: 'activity.setupFinished',
     change_cancelled: 'activity.changeCancelled',
+    support_two_step_off: 'activity.supportTwoStepOff',
+    support_reset_sent: 'activity.supportResetSent',
+    support_suspended: 'activity.supportSuspended',
+    support_reactivated: 'activity.supportReactivated',
+    support_setup_reset: 'activity.supportSetupReset',
+    support_phone_removed: 'activity.supportPhoneRemoved',
 }
 
 /**

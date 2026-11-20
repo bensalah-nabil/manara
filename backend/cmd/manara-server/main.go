@@ -72,6 +72,9 @@ func main() {
 	_, pushOff := notifier.(notify.Noop)
 	parents := postgres.NewParentRepository(db)
 	accounts := postgres.NewAccountRepository(db)
+	settings := postgres.NewSettingsRepository(db)
+	// The version phones are offered: the admin console's choice, else AGENT_UPDATE_*.
+	updates := &domain.AgentUpdateSource{Settings: settings, Fallback: agentUpdate()}
 	mailer := newMailer()
 	var emailAlerts *notify.ParentEmailAlerts
 	if mailer != nil {
@@ -94,7 +97,7 @@ func main() {
 	agentHandlers := &agent.Handlers{
 		Devices: devices, Tokens: tokens, Policies: policies,
 		Commands: commands, Events: events, Enrollments: enrollments, Setup: setups, Readiness: setups, Releases: releases,
-		Alerts: newAlertService(db, devices, policies, alertSenders), AgentUpdate: agentUpdate(),
+		Alerts: newAlertService(db, devices, policies, alertSenders), AgentUpdates: updates,
 	}
 	consoleHandlers := &console.Handlers{
 		Devices: devices, Policies: policies, Commands: commands,
@@ -169,7 +172,19 @@ func main() {
 
 	// The admin console's API (docs/admin-console.md): only when Entra ID is configured.
 	if v := adminVerifier(); v != nil {
-		admin.Routes(mux, &admin.Handlers{Verifier: v, Store: postgres.NewAdminRepository(db), SilentAfter: silentAfter()})
+		adminHandlers := &admin.Handlers{Verifier: v, Store: postgres.NewAdminRepository(db), SilentAfter: silentAfter(),
+			Actions: &admin.Actions{
+				TwoFactor: postgres.NewTwoFactorRepository(db), Accounts: accounts, Resets: accounts,
+				ConsoleURL: consoleURL(), Releases: releases, Audit: audit, Settings: settings, Updates: updates,
+				// 30 actions per 10 minutes per admin, shared between server instances.
+				Limiter: guard.NewLimiter(30, 10*time.Minute).Persist("admin-write", rates),
+			}}
+		if mailer != nil {
+			adminHandlers.Actions.Mailer = mailer
+		}
+		admin.Routes(mux, adminHandlers)
+		admin.ActionRoutes(mux, adminHandlers)
+		mux.HandleFunc("GET /api/v1/console/notice", adminHandlers.PublicNotice)
 		log.Printf("admin console: on, %d admin(s)", len(v.Allowed))
 	}
 

@@ -98,9 +98,10 @@ func (r *AuthRepository) SignUp(ctx context.Context, email, password string) (*d
 
 func (r *AuthRepository) Login(ctx context.Context, email, password string) (*domain.Parent, error) {
 	var p domain.Parent
+	var suspended bool
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT id, email, password_hash, created_at FROM parents WHERE email = $1`, email,
-	).Scan(&p.ID, &p.Email, &p.PasswordHash, &p.CreatedAt)
+		`SELECT id, email, password_hash, created_at, suspended_at IS NOT NULL FROM parents WHERE email = $1`, email,
+	).Scan(&p.ID, &p.Email, &p.PasswordHash, &p.CreatedAt, &suspended)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Same bcrypt work as a real account, so the answer's timing doesn't
 		// tell whether the address is registered.
@@ -113,6 +114,9 @@ func (r *AuthRepository) Login(ctx context.Context, email, password string) (*do
 
 	if err := bcrypt.CompareHashAndPassword([]byte(p.PasswordHash), []byte(password)); err != nil {
 		return nil, domain.ErrInvalidCredentials
+	}
+	if suspended {
+		return nil, domain.ErrAccountSuspended
 	}
 	return &p, nil
 }
@@ -137,10 +141,16 @@ func (r *ParentSessionRepository) Issue(ctx context.Context, parentID string) (s
 	if err != nil {
 		return "", err
 	}
-	_, err = r.db.Pool.Exec(ctx,
-		`INSERT INTO parent_sessions (parent_id, token_hash) VALUES ($1, $2)`, parentID, hash)
+	// Every way in (password, two-step code, reset link) ends here, so a suspended account gets no
+	// session whichever one it tried.
+	tag, err := r.db.Pool.Exec(ctx, `
+		INSERT INTO parent_sessions (parent_id, token_hash)
+		SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM parents WHERE id = $1 AND suspended_at IS NULL)`, parentID, hash)
 	if err != nil {
 		return "", fmt.Errorf("store parent session: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return "", domain.ErrAccountSuspended
 	}
 	return token, nil
 }
@@ -148,7 +158,8 @@ func (r *ParentSessionRepository) Issue(ctx context.Context, parentID string) (s
 func (r *ParentSessionRepository) Resolve(ctx context.Context, token string) (string, bool, error) {
 	var parentID string
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT parent_id FROM parent_sessions WHERE token_hash = $1 AND created_at > now() - make_interval(secs => $2)`,
+		`SELECT s.parent_id FROM parent_sessions s JOIN parents p ON p.id = s.parent_id AND p.suspended_at IS NULL
+		WHERE s.token_hash = $1 AND s.created_at > now() - make_interval(secs => $2)`,
 		hashToken(token), domain.SessionLifetime.Seconds(),
 	).Scan(&parentID)
 	if errors.Is(err, pgx.ErrNoRows) {

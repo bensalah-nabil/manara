@@ -280,7 +280,7 @@ func TestSyncTellsThePhoneTheVersionToRunOnlyWhenOneIsSet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h.AgentUpdate = &u
+	h.AgentUpdates = &domain.AgentUpdateSource{Fallback: &u}
 	resp := postSync(t, h, map[string]any{"policyVersion": 0, "events": []any{}})
 	if resp.AgentUpdate == nil || *resp.AgentUpdate != u {
 		t.Fatalf("update = %+v, want %+v", resp.AgentUpdate, u)

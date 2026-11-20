@@ -57,6 +57,10 @@ func (h *Handlers) signIn(w http.ResponseWriter, r *http.Request, parentID strin
 		}
 	}
 	session, err := h.Sessions.Issue(r.Context(), parentID)
+	if errors.Is(err, domain.ErrAccountSuspended) {
+		writeError(w, http.StatusForbidden, "account_suspended", "")
+		return
+	}
 	if err != nil {
 		log.Printf("console: issue session: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
@@ -107,6 +111,10 @@ func (h *Handlers) VerifyLogin(w http.ResponseWriter, r *http.Request) {
 		log.Printf("console: end challenge: %v", err)
 	}
 	session, err := h.Sessions.Issue(r.Context(), parentID)
+	if errors.Is(err, domain.ErrAccountSuspended) {
+		writeError(w, http.StatusForbidden, "account_suspended", "")
+		return
+	}
 	if err != nil {
 		log.Printf("console: issue session after two-step: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal", "")

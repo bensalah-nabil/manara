@@ -5,6 +5,12 @@ import type { EventItem } from './protection.ts'
 import type { DeviceSetup } from './setup.ts'
 import type { PendingChange } from './pending.ts'
 
+/** A message from whoever runs Manara, in each language it was written in. */
+export interface SiteNotice {
+    level: 'info' | 'warning'
+    text: Record<string, string>
+}
+
 /** A save: the policy now on the phone, and when the change waits, what is waiting. */
 export interface SavedPolicy {
     policy: Policy
@@ -298,6 +304,14 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         async setPolicy(deviceId: string, policy: Policy): Promise<SavedPolicy> {
             const { woken, pending, cancelledPending, ...stored } = toPolicy(await request('PUT', devicePath(deviceId, 'policy'), policy, true)) as Policy & { woken?: unknown; pending?: unknown; cancelledPending?: unknown }
             return { policy: stored as Policy, woken: woken === true, pending: toPending(pending), cancelledPending: cancelledPending === true }
+        },
+
+        /** The notice from whoever runs Manara (maintenance, news), or null. Needs no session. */
+        async getNotice(): Promise<SiteNotice | null> {
+            const value = (await request('GET', '/console/notice')) as { notice?: unknown } | null
+            const n = value?.notice as Partial<SiteNotice> | null | undefined
+            if (!n || (n.level !== 'info' && n.level !== 'warning') || typeof n.text !== 'object' || n.text === null) return null
+            return { level: n.level, text: n.text as Record<string, string> }
         },
 
         /** Changes waiting out the phone's cooling-off delay, soonest first. */

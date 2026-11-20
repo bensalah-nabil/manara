@@ -1,4 +1,4 @@
-# ADR-0011: A read-only admin console, signed in with Microsoft Entra ID
+# ADR-0011: An admin console, signed in with Microsoft Entra ID
 
 Date: 2026-11-19. Status: accepted (the owner chose Entra ID).
 
@@ -18,7 +18,12 @@ and leaves no record of who looked at what.
   `Admin.Access` scope, and the server's list of allowed object IDs.
 - The server checks the token itself with the standard library (RS256, keys from the tenant's
   discovery endpoint), the same choice as calling FCM without the Firebase SDK (CLAUDE.md).
-- **Read-only**, and only accounts, phones and setup states. Never what a phone reports about
+- **Support actions, never the families' phones** (part 1, 2026-11-20, the owner's request): turn
+  off two-step sign-in, send a reset link, suspend or reactivate, delete an account with no phone,
+  clear a stuck setup, remove a phone record, choose the version phones are offered, show a
+  notice. Each needs a reason and a typed confirmation, is logged first, and shows in the parent's
+  Recent activity. Originally read-only; the list is in [`admin-console.md`](../admin-console.md).
+- Only accounts, phones and setup states are shown. Never what a phone reports about
   a child (ADR-0001): no location, calls, app usage or rules.
 - **Every request is logged before any read**, and fails if the log can't be written.
 

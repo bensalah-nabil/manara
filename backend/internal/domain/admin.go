@@ -35,6 +35,8 @@ type AdminAccount struct {
 	TwoStep    bool       `json:"twoStep"`
 	Phones     int        `json:"phones"`
 	LastSignIn *time.Time `json:"lastSignIn,omitempty"`
+	// SuspendedAt is set while an admin has suspended the account.
+	SuspendedAt *time.Time `json:"suspendedAt,omitempty"`
 }
 
 type AdminPhone struct {
@@ -70,4 +72,13 @@ type AdminStore interface {
 	Phones(ctx context.Context, accountID string, limit int) ([]AdminPhone, error)
 	RecordAdmin(ctx context.Context, e AdminLogEntry) error
 	AdminLog(ctx context.Context, limit int) ([]AdminLogEntry, error)
+
+	// Account is one account, or nil when there is none.
+	Account(ctx context.Context, id string) (*AdminAccount, error)
+	// PhoneOwner is the account a phone belongs to; found is false for an unknown phone.
+	PhoneOwner(ctx context.Context, deviceID string) (accountID, email string, found bool, err error)
+	// SetSuspended suspends (ending every session) or reactivates an account.
+	SetSuspended(ctx context.Context, accountID string, suspended bool, now time.Time) (found bool, err error)
+	// DeleteSetup forgets a phone's guided-setup record, so the parent can start setup again.
+	DeleteSetup(ctx context.Context, deviceID string) (found bool, err error)
 }

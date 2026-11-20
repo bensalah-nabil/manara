@@ -42,7 +42,8 @@ func (r *AdminRepository) Accounts(ctx context.Context, query string, limit int)
 		SELECT p.id::text, COALESCE(p.email, ''), p.created_at, p.language,
 			(p.totp_secret IS NOT NULL AND p.totp_secret <> ''),
 			(SELECT count(*) FROM devices d WHERE d.parent_id = p.id),
-			(SELECT max(a.at) FROM audit_log a WHERE a.parent_id = p.id AND a.action = $1)
+			(SELECT max(a.at) FROM audit_log a WHERE a.parent_id = p.id AND a.action = $1),
+			p.suspended_at
 		FROM parents p
 		WHERE lower(COALESCE(p.email, '')) LIKE $2 ESCAPE '\'
 		ORDER BY p.created_at DESC LIMIT $3`, string(domain.AuditSignedIn), pattern, limit)
@@ -53,7 +54,7 @@ func (r *AdminRepository) Accounts(ctx context.Context, query string, limit int)
 	out := []domain.AdminAccount{}
 	for rows.Next() {
 		var a domain.AdminAccount
-		if err := rows.Scan(&a.ID, &a.Email, &a.CreatedAt, &a.Language, &a.TwoStep, &a.Phones, &a.LastSignIn); err != nil {
+		if err := rows.Scan(&a.ID, &a.Email, &a.CreatedAt, &a.Language, &a.TwoStep, &a.Phones, &a.LastSignIn, &a.SuspendedAt); err != nil {
 			return nil, fmt.Errorf("read admin account: %w", err)
 		}
 		out = append(out, a)

@@ -15,6 +15,10 @@ import (
 var ErrEmailTaken = errors.New("email already registered")
 var ErrInvalidCredentials = errors.New("invalid email or password")
 
+// ErrAccountSuspended: an admin suspended the account (docs/admin-console.md). Said only after the
+// right password, so it tells nothing to someone guessing.
+var ErrAccountSuspended = errors.New("account suspended")
+
 type Parent struct {
 	ID           string
 	Email        string
