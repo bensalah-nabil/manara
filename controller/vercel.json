@@ -4,6 +4,11 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/beta", "destination": "/beta.html" },
+    { "source": "/beta-ar", "destination": "/beta-ar.html" },
+    { "source": "/beta-en", "destination": "/beta-en.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

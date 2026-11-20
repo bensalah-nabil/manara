@@ -310,3 +310,162 @@ Check each group's rules first; some ask for the admin's approval before any app
 - [ ] A native reader checks the Derja.
 - [ ] A claims check of the final copy against the app on the day (every promise above must be true).
 - [ ] The privacy page link works, and the form's data use matches it.
+
+---
+
+# Week 2: advice posts and ads
+
+The advice posts give something useful first and mention Manara only at the end: parents'
+groups remove posts that only sell. Post one every two days (30 November to 6 December), in the
+groups and on your own page. The hook is the first-trimester exams.
+
+## 8. Advice post 1: sleep before the exams
+
+**FR**
+> **Examens du 1er trimestre : le sommeil compte plus que les révisions de minuit**
+>
+> Un enfant qui dort trop peu retient moins ce qu'il a appris, et le téléphone au lit, c'est
+> souvent une heure de sommeil en moins. Trois idées simples pour ces semaines d'examens :
+> 1. Un horaire fixe où **tous** les écrans de la maison s'arrêtent, les parents compris.
+> 2. Le téléphone qui charge **hors de la chambre**.
+> 3. Le soir, garder ce qui apaise : le Coran, un appel à la famille.
+>
+> C'est pour ça que j'ai conçu Manara ainsi : à l'heure du coucher, les applications se mettent
+> en pause, mais le Coran, WhatsApp et les appels restent ouverts. Je cherche des familles pour le
+> tester gratuitement, et je l'installe avec vous : [lien]
+
+**Derja**
+> **امتحانات الثلاثي الأول: النوم أهم من المراجعة متاع نص الليل**
+>
+> الصغير اللي ما يرقدش بالقدا يحفظ أقل، والتليفون في الفرش ساعات ياكل ساعة نوم.
+> ثلاثة أفكار ساهلة للجمعات هاذم:
+> 1. وقت ثابت تتسكّر فيه **الشاشات الكل** في الدار، حتى متاع الكبار.
+> 2. التليفون يتشحن **برّا البيت**.
+> 3. في الليل، خلّي اللي يهدّي: القرآن، مكالمة مع العايلة.
+>
+> على هذا عملت منارة هكّا: في وقت الرقاد التطبيقات تتوقّف، أما القرآن والواتساب والمكالمات
+> يقعدو محلولين. نلوّج على عايلات يجرّبوه بالمجان، ونركّبهولك معاك: [الرابط]
+
+**EN**
+> **First-term exams: sleep matters more than midnight revision**
+>
+> A child who sleeps too little remembers less of what they learned, and a phone in bed often
+> costs an hour of sleep. Three simple ideas for exam weeks:
+> 1. A fixed time when **every** screen in the house goes off, parents' too.
+> 2. The phone charges **outside the bedroom**.
+> 3. In the evening, keep what calms: the Quran, a call to family.
+>
+> That's why I built Manara this way: at bedtime the apps pause, but the Quran, WhatsApp and calls
+> stay open. I'm looking for families to test it for free, and I set it up with you: [link]
+
+If you want a figure: the American Academy of Sleep Medicine recommends 9 to 12 hours for ages 6
+to 12 and 8 to 10 for ages 13 to 18 (Paruthi et al., *J Clin Sleep Med*, 2016). Check the
+source before quoting it.
+
+## 9. Advice post 2: what a child meets by searching
+
+**FR**
+> **Ce que votre enfant trouve en cherchant une image pour un exposé**
+>
+> Une recherche d'images innocente peut afficher n'importe quoi. Deux réglages gratuits, à faire
+> ce soir sur le téléphone de l'enfant :
+> 1. **Google SafeSearch** : application Google, photo de profil, Paramètres, SafeSearch, Filtrer.
+> 2. **YouTube** : profil, Paramètres, Général, Mode restreint.
+>
+> Le problème : un enfant peut les désactiver en deux gestes. Manara garde la recherche Google
+> sécurisée, bloque les sites pour adultes, et l'enfant sait que c'est en place. Familles
+> pionnières, gratuit, installé avec vous : [lien]
+
+**Derja**
+> **شنوّة يلقى صغيرك كيف يلوّج على تصويرة لعرض**
+>
+> بحث بريء على التصاور ينجم يطلّعلو أي شي. زوز ريغلاجات بالمجان، اعملهم الليلة في تليفون الصغير:
+> 1. **Google SafeSearch**: تطبيق Google، التصويرة متاع البروفيل، الإعدادات، SafeSearch، فلتر.
+> 2. **YouTube**: البروفيل، الإعدادات، عام، الوضع المحظور.
+>
+> المشكل: الصغير ينجم ينحّيهم في زوز حركات. منارة تخلّي البحث في Google محمي، تسكّر المواقع
+> متاع الكبار، والصغير يعرف اللي هذا موجود. عايلات رائدة، بالمجان، نركّبوه معاك: [الرابط]
+
+**EN**
+> **What your child finds searching for a picture for homework**
+>
+> An innocent image search can show anything. Two free settings to change tonight on your child's
+> phone:
+> 1. **Google SafeSearch**: Google app, profile picture, Settings, SafeSearch, Filter.
+> 2. **YouTube**: profile, Settings, General, Restricted Mode.
+>
+> The catch: a child can turn them off in two taps. Manara keeps Google search safe, blocks adult
+> sites, and the child knows it's in place. Founding families, free, set up with you: [link]
+
+The SafeSearch and YouTube menu paths change between app versions: check them on a phone the day
+you post.
+
+## 10. Advice post 3: calls from strangers
+
+**FR**
+> **Votre enfant reçoit-il des appels de numéros inconnus ?**
+>
+> Beaucoup d'enfants ne le disent pas. Trois règles à leur apprendre :
+> 1. On ne donne jamais son adresse, son école ni ses horaires à quelqu'un qu'on ne connaît pas.
+> 2. Un adulte inconnu qui insiste, on raccroche et on le dit à papa ou maman.
+> 3. Personne n'a le droit de demander de garder un secret vis-à-vis des parents.
+>
+> Avec Manara, vous écrivez la liste des numéros que vous connaissez, et vous êtes prévenu quand un
+> autre numéro appelle votre enfant. L'enfant voit sur son téléphone que c'est activé.
+> Familles pionnières : [lien]
+
+**Derja**
+> **صغيرك يجيوه مكالمات من نمر ما يعرفهاش؟**
+>
+> برشا صغار ما يقولوش. ثلاثة قواعد نعلّموهملهم:
+> 1. ما نعطيوش العنوان ولا المكتب ولا الأوقات لحد ما نعرفوهش.
+> 2. كبير ما نعرفوهش ويلحّ، نسكّرو ونقولو لبابا ولا ماما.
+> 3. حتى حد ما عندو الحق يطلب سرّ نخبّيوه على الوالدين.
+>
+> بمنارة، تكتب ليستة النمر اللي تعرفهم، وتجيك تنبيه كيف نمرة أخرى تكلّم صغيرك. والصغير يشوف في
+> التليفون متاعو اللي هذا مفعّل. عايلات رائدة: [الرابط]
+
+**EN**
+> **Does your child get calls from unknown numbers?**
+>
+> Many children don't say. Three rules to teach them:
+> 1. Never give your address, school or timetable to someone you don't know.
+> 2. If an adult you don't know insists, hang up and tell Mum or Dad.
+> 3. Nobody may ask you to keep a secret from your parents.
+>
+> With Manara you write down the numbers you know, and you're told when another number calls your
+> child. The child sees on their phone that it's on. Founding families: [link]
+
+Unknown-caller alerts need the direct APK, not the Play Store version: fine for the beta, but
+don't reuse this post once families install from Play.
+
+## 11. Ads (Meta: Facebook and Instagram)
+
+**Budget:** about 200 TND over weeks 2 to 4: two ads at the same time, then keep the one with the
+cheaper cost per sign-up after 5 days.
+
+**Audience:** parents aged 28 to 50. Ad 1 in Tunisia (French and Arabic); ad 2 in France,
+Belgium and Canada (French), parenting and Islam interests.
+
+**Meta's rules:** no sentence that asserts a personal trait ("Êtes-vous un parent inquiet ?" is
+refused); no before/after; the page must say what the ad says.
+
+**Ad 1: carousel of 4 images** (made, in `docs/marketing/ads/`, French and Arabic, 1080 × 1080)
+
+| Card | French | Arabic |
+|---|---|---|
+| 1 | La nuit, les applis dorment. Le Coran reste ouvert. | في الليل تنام التطبيقات، ويبقى القرآن مفتوحًا. |
+| 2 | Sites pour adultes bloqués. Recherche Google sécurisée. | المواقع المخصّصة للبالغين محجوبة، والبحث الآمن مفعّل. |
+| 3 | Un inconnu appelle votre enfant ? Vous êtes prévenu. | رقم مجهول يتصل بطفلك؟ يصلك تنبيه. |
+| 4 | Rien de caché. Gratuit pendant le test, installé avec vous. | لا شيء مخفي. مجانية خلال التجربة، ونثبّتها معك. |
+
+- **Primary text (FR):** Manara protège votre enfant sur Internet, sans rien lui cacher. Nous
+  cherchons 20 familles pour le tester gratuitement, et nous l'installons avec vous par appel.
+- **Primary text (AR):** منارة تحمي طفلك على الإنترنت دون أن تخفي عنه شيئًا. نبحث عن 20 عائلة
+  لتجربتها مجانًا، ونثبّتها معك في مكالمة.
+- **Headline:** Devenez une famille pionnière / كن من العائلات الرائدة
+- **Button:** S'inscrire, to `/beta.html` or `/beta-ar.html`.
+
+**Ad 2: vertical video** for Reels and Stories: the existing
+`controller/public/pub/manara-pub-vertical.mp4`, with the same text and button. Watch it once
+more before using it: it was made before the beta, so check nothing in it is out of date.
