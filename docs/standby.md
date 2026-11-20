@@ -22,6 +22,7 @@ Xiaomi changes not built yet (X2, X11, X13, resuming setup mid-way).
 | Closed test, 12 testers for 14 days | Not started (needs verification first) | Create the app, upload the `play` bundle, invite testers | [`play-store.md`](play-store.md) |
 | Permissions Declaration Form for `READ_CALL_LOG` | Not drafted | Draft the explanation (visible parental control, only while the parent turns it on, the child told, numbers only, 30 days). Parental control is not on Google's allowed list, so submit it as a **separate update after** a first release without calls | [ADR-0008](decisions/0008-visible-call-history.md) |
 | Play Protect blocks the direct APK | Cause found: the notification listener for calls inside WhatsApp, Messenger, Telegram and Viber | **Decision taken: keep the call features for now.** Don't remove them, and don't tell parents to turn Play Protect off, without asking the owner | [`enrollment-xiaomi.md`](enrollment-xiaomi.md), X1 |
+| **Manara Parents** (the console as a Play Store app) | Ready to build: the console is installable (manifest, icons, service worker) | Create, upload, link the site, closed test: `tools/parent-app/README.md` | [README](../tools/parent-app/README.md) |
 | Android developer verification (apps outside Play) | Not started | After the Play account is verified | [`play-console-checklist.md`](play-console-checklist.md) |
 
 ## Privacy and legal (paused 2026-11-17)
