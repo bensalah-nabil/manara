@@ -9,7 +9,7 @@
     <string name="summary_filter">Filtrage des sites demandé</string>
     <string name="summary_location">Partage de la position demandé, toutes les %1$s min</string>
     <string name="summary_usage">L\'utilisation quotidienne des applications est envoyée à ton parent</string>
-    <string name="summary_lock">Plages de coucher, où les applications sont en pause et les appels et SMS restent possibles : %1$s</string>
+    <string name="summary_lock">Plages de coucher, où les applications sont en pause mais les appels, les SMS, WhatsApp et le Coran restent possibles : %1$s</string>
     <string name="summary_restrictions">Réglages bloqués demandés : %1$s</string>
     <string name="summary_chrome">Règles Chrome définies par ton parent</string>
     <string name="summary_other_browsers">Les navigateurs autres que Chrome sont bloqués</string>
@@ -124,7 +124,7 @@
         <item quantity="many">%1$s applications</item>
         <item quantity="other">%1$s applications</item>
     </plurals>
-    <string name="rule_locked">Applications en pause %1$s–%2$s, appels et SMS possibles</string>
+    <string name="rule_locked">Applications en pause %1$s–%2$s ; appels, SMS, WhatsApp et Coran possibles</string>
     <string name="days_every">Tous les jours</string>
     <string name="days_weekdays">Du lundi au vendredi</string>
     <string name="days_weekends">Le week-end</string>
@@ -222,7 +222,7 @@
     <string name="block_notice_managed">Ton parent gère ce téléphone avec Manara.</string>
     <string name="block_notice_time_limit">Les applications dont le temps du jour est écoulé sont en pause.</string>
     <string name="block_notice_browser">Seul Chrome permet de naviguer sur le web.</string>
-    <string name="block_notice_bedtime">C\'est l\'heure du coucher : les applications sont en pause, mais tu peux appeler et envoyer des SMS.</string>
+    <string name="block_notice_bedtime">C\'est l\'heure du coucher : applications en pause, mais appels, SMS, WhatsApp et Coran restent possibles.</string>
     <string name="block_notice_other">Certaines applications sont en pause.</string>
     <string name="block_notice_open">Ouvre Manara pour voir les règles.</string>
 </resources>

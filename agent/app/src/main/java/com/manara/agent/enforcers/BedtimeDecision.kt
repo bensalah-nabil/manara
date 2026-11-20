@@ -22,8 +22,8 @@ object BedtimeDecision {
 
     /**
      * Sign-in code apps, never paused: a parent who set Manara up on a phone that also holds their
-     * own authenticator was locked out of the console at night (2026-11-19). An app here that
-     * the phone doesn't have changes nothing.
+     * own authenticator was locked out of the console at night (2026-11-19). Each id checked on
+     * Google Play on 2026-11-20. An app here that the phone doesn't have changes nothing.
      */
     val AUTHENTICATORS = setOf(
         "com.google.android.apps.authenticator2", // Google Authenticator
@@ -31,7 +31,36 @@ object BedtimeDecision {
         "com.authy.authy", // Twilio Authy
         "com.twofasapp", // 2FAS
         "com.beemdevelopment.aegis", // Aegis
+        "org.fedorahosted.freeotp", // FreeOTP
+        "org.liberty.android.freeotpplus", // FreeOTP+
+        "com.duosecurity.duomobile", // Duo Mobile
+        "com.lastpass.authenticator", // LastPass Authenticator
+        "com.bitwarden.authenticator", // Bitwarden Authenticator
+        "com.okta.android.auth", // Okta Verify
+        "com.salesforce.authenticator", // Salesforce Authenticator
+        "com.zoho.accounts.oneauth", // Zoho OneAuth
+        "com.yubico.yubioath", // Yubico Authenticator
+        "io.ente.auth", // Ente Auth
     )
+
+    /**
+     * WhatsApp, never paused: in Tunisia it is how a family calls and texts, so pausing it would cut
+     * a child off from their parents at night (owner's choice, 2026-11-20). Checked on Google Play.
+     */
+    val CALLS_AND_TEXTS = setOf(
+        "com.whatsapp", // WhatsApp
+        "com.whatsapp.w4b", // WhatsApp Business
+    )
+
+    /** Quran apps, never paused, so the Quran can be read at night (owner's choice, 2026-11-20). Checked on Google Play. */
+    val QURAN = setOf(
+        "com.quran.labs.androidquran", // Quran for Android (Quran.com)
+        "com.greentech.quran", // Al Quran (Greentech)
+        "com.quranapp.android", // QuranApp
+    )
+
+    /** Everything bedtime never pauses on any phone, whatever the parent's own list holds. */
+    val ALWAYS_OPEN = AUTHENTICATORS + CALLS_AND_TEXTS + QURAN
 
     /**
      * [launchable]: the apps with a launcher icon. [keepOpen]: what the phone always keeps usable at
@@ -46,5 +75,5 @@ object BedtimeDecision {
         keepOpen: Set<String>,
         allowed: Set<String>,
     ): Set<String> =
-        if (LockDecision.isWithinAnyWindow(windows, dayOfWeek, hour)) launchable - keepOpen - AUTHENTICATORS - allowed else emptySet()
+        if (LockDecision.isWithinAnyWindow(windows, dayOfWeek, hour)) launchable - keepOpen - ALWAYS_OPEN - allowed else emptySet()
 }

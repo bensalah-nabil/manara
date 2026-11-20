@@ -52,7 +52,7 @@ class HomeModelTest {
     fun rulesReadPlainly() {
         val rules = ChildView.rules(English, full)
         assertEquals(ChildView.Line("Games", "1 h 30 min a day, 2 apps"), rules[0])
-        assertEquals(ChildView.Line("Apps pause 21:00–07:00, calls and texts still work", "Weekdays"), rules[1])
+        assertEquals(ChildView.Line("Apps pause 21:00–07:00; calls, texts, WhatsApp and Quran still work", "Weekdays"), rules[1])
         assertEquals("Website filter", rules[2].title)
         assertEquals(ChildView.Line("Settings you can't change", "Factory reset, developer options"), rules[3])
     }

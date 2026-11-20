@@ -36,7 +36,7 @@ class NoticeSummaryTest {
         assertTrue(lines.contains("App time limits: 2"))
         assertTrue(lines.contains("Site filtering requested"))
         assertTrue(lines.contains("Location sharing requested, every 20 min"))
-        assertTrue(lines.contains("Bedtime windows, when apps pause and calls and texts still work: 1"))
+        assertTrue(lines.contains("Bedtime windows, when apps pause but calls, texts, WhatsApp and Quran apps still work: 1"))
         assertTrue(lines.contains("Settings restrictions requested: 2"))
         assertFalse(lines.any { it.contains("private.app.name") })
     }

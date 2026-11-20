@@ -14,7 +14,7 @@ class BedtimeDecisionTest {
         ),
     )
     private val launchable = setOf(
-        "com.zhiliaoapp.musically", "com.whatsapp", "com.samsung.android.dialer", "com.samsung.android.messaging",
+        "com.zhiliaoapp.musically", "com.instagram.android", "com.samsung.android.dialer", "com.samsung.android.messaging",
         "com.sec.android.app.clockpackage", "com.android.settings", "com.manara.agent",
     )
     private val keepOpen = setOf(
@@ -32,12 +32,12 @@ class BedtimeDecisionTest {
 
     @Test
     fun atBedtimeEveryAppPausesExceptCallsTextsTheClockSettingsAndManara() {
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.MONDAY, 22))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.MONDAY, 22))
     }
 
     @Test
     fun theWindowCarriesPastMidnightIntoTheNextMorning() {
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.TUESDAY, 6))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.TUESDAY, 6))
         assertEquals(emptySet<String>(), hold(Calendar.TUESDAY, 7)) // 07:00, bedtime is over
     }
 
@@ -54,24 +54,24 @@ class BedtimeDecisionTest {
 
     @Test
     fun anAppInstalledDuringBedtimeIsPausedOnTheNextCheck() {
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp", "com.new.game"), hold(Calendar.MONDAY, 22, apps = launchable + "com.new.game"))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android", "com.new.game"), hold(Calendar.MONDAY, 22, apps = launchable + "com.new.game"))
     }
 
     @Test
     fun anAppKeptOpenThatIsNotInstalledChangesNothing() {
         val withoutClock = launchable - "com.sec.android.app.clockpackage"
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.MONDAY, 22, apps = withoutClock))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.MONDAY, 22, apps = withoutClock))
     }
 
     @Test
     fun anAppTheParentAllowsStaysOpen() {
         val apps = launchable + "com.kanout.mawaqit"
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.MONDAY, 22, apps = apps, allowed = setOf("com.kanout.mawaqit")))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.MONDAY, 22, apps = apps, allowed = setOf("com.kanout.mawaqit")))
     }
 
     @Test
     fun anAllowedAppThePhoneDoesNotHaveChangesNothing() {
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.MONDAY, 22, allowed = setOf("com.athan")))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.MONDAY, 22, allowed = setOf("com.athan")))
     }
 
     @Test
@@ -82,6 +82,20 @@ class BedtimeDecisionTest {
     @Test
     fun authenticatorAppsStayOpenAtBedtimeWithoutBeingAllowed() {
         val apps = launchable + "com.google.android.apps.authenticator2" + "com.azure.authenticator"
-        assertEquals(setOf("com.zhiliaoapp.musically", "com.whatsapp"), hold(Calendar.MONDAY, 22, apps = apps))
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.MONDAY, 22, apps = apps))
+    }
+
+    @Test
+    fun whatsAppQuranAndEveryAuthenticatorStayOpenAtBedtime() {
+        val apps = launchable + BedtimeDecision.ALWAYS_OPEN
+        assertEquals(setOf("com.zhiliaoapp.musically", "com.instagram.android"), hold(Calendar.MONDAY, 22, apps = apps))
+        listOf("com.whatsapp", "com.whatsapp.w4b", "com.quran.labs.androidquran", "com.greentech.quran", "io.ente.auth")
+            .forEach { assert(it in BedtimeDecision.ALWAYS_OPEN) { "$it must stay open" } }
+    }
+
+    @Test
+    fun everyAlwaysOpenIdLooksLikeAnAndroidPackage() {
+        val packageName = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$")
+        BedtimeDecision.ALWAYS_OPEN.forEach { assert(packageName.matches(it)) { "$it is not a package name" } }
     }
 }
