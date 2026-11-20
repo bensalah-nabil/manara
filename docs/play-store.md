@@ -129,6 +129,13 @@ the direct APK.
 7. **Content rating questionnaire:** answer "Yes" to sharing the user's
    location with others; no user-generated content.
 
+## Manara Parents (the console app)
+
+A second, much simpler app for the parents' own phones: the console as a Trusted Web Activity,
+package `com.manara.parents`. Its project, build, signing, store texts and Data safety answers are
+in [`tools/parent-app/README.md`](../tools/parent-app/README.md). Its closed test can recruit the
+same testers Manara needs.
+
 ## Still open
 
 - **Guided setup and Device and Network Abuse.** Setup opens an ADB

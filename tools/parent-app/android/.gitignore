@@ -1,0 +1,10 @@
+# Build output and anything secret never go in git (tools/parent-app/README.md).
+.gradle/
+build/
+app/build/
+local.properties
+*.aab
+*.apk
+*.idsig
+*.keystore
+*.jks
