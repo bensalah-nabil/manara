@@ -34,3 +34,12 @@ Thumbs.db
 # Logs & temp
 *.log
 /tmp/
+
+# Python bytecode from running the tools/ generators
+__pycache__/
+
+# Feature videos: work files and outputs (tools/feature-videos/README.md)
+tools/feature-videos/build/
+tools/feature-videos/out/
+tools/feature-videos/edge-profile/
+tools/feature-videos/contact-*.png

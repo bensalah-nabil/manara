@@ -137,6 +137,11 @@ func main() {
 	limited := func(h http.HandlerFunc) http.HandlerFunc { return guard.PerClient(guessable, ipHeader, h) }
 
 	mux.HandleFunc("POST /api/v1/enroll", limited(agentHandlers.Enroll))
+	// The public beta page's sign-up form (docs/marketing/familles-pionnieres.md): no session,
+	// so a tighter limit of its own against spam, shared between server instances.
+	betaSignups := postgres.NewBetaSignupRepository(db)
+	betaLimit := guard.NewLimiter(5, time.Hour).Persist("beta-signup", rates)
+	mux.HandleFunc("POST /api/v1/beta-signups", guard.PerClient(betaLimit, ipHeader, (&console.BetaSignups{Store: betaSignups}).Create))
 	mux.HandleFunc("POST /api/v1/agent/sync", agentHandlers.Sync)
 	mux.HandleFunc("POST /api/v1/agent/setup", agentHandlers.ReportSetup)
 	mux.HandleFunc("GET /api/v1/agent/setup/input", agentHandlers.GetSetupInput)
@@ -179,12 +184,15 @@ func main() {
 				ConsoleURL: consoleURL(), Releases: releases, Audit: audit, Settings: settings, Updates: updates,
 				// 30 actions per 10 minutes per admin, shared between server instances.
 				Limiter: guard.NewLimiter(30, 10*time.Minute).Persist("admin-write", rates),
-			}}
+			},
+			Beta: betaSignups,
+		}
 		if mailer != nil {
 			adminHandlers.Actions.Mailer = mailer
 		}
 		admin.Routes(mux, adminHandlers)
 		admin.ActionRoutes(mux, adminHandlers)
+		admin.BetaRoutes(mux, adminHandlers)
 		mux.HandleFunc("GET /api/v1/console/notice", adminHandlers.PublicNotice)
 		log.Printf("admin console: on, %d admin(s)", len(v.Allowed))
 	}
@@ -596,6 +604,11 @@ func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.Event
 		}
 		if _, err := postgres.NewPendingRepository(db).PurgeAppliedBefore(ctx, time.Now().Add(-8*24*time.Hour)); err != nil {
 			log.Printf("retention sweep waiting changes: %v", err)
+		}
+		if n, err := postgres.NewBetaSignupRepository(db).PurgeBetaSignups(ctx, time.Now().Add(-domain.BetaSignupRetention)); err != nil {
+			log.Printf("retention sweep beta sign-ups: %v", err)
+		} else if n > 0 {
+			log.Printf("retention sweep: deleted %d old beta sign-up(s)", n)
 		}
 		if _, err := postgres.NewAlertLogRepository(db).PurgeOlderThan(ctx, time.Now().Add(-90*24*time.Hour)); err != nil {
 			log.Printf("retention sweep alert log: %v", err)

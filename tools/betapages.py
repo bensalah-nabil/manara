@@ -1,11 +1,16 @@
 """Generates controller/public/beta.html (fr), beta-ar.html and beta-en.html from one template."""
-import io, sys
+import io, os, sys
 from urllib.parse import quote
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import betaform  # noqa: E402  the sign-up form, its styles and words
 
 OUT = sys.argv[1]
 EMAIL = 'nabil.bsalah0@gmail.com'  # already public on the privacy pages
-# Replace with the Google Form's link once it exists; until then the button opens an email.
-FORM_URL = ''
+# The buttons jump to the form on the page (betaform.py). Set FORM_URL to send them elsewhere instead.
+FORM_URL = '#inscription'
+# The API the form posts to: the live server unless MANARA_API_URL says otherwise (local preview).
+API = os.environ.get('MANARA_API_URL', betaform.API)
 
 PATTERN = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E"
            "%3Cg fill='none' stroke='%23b99328' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E"
@@ -220,7 +225,7 @@ for code, p in PAGES.items():
 <link rel="alternate" hreflang="en" href="/beta-en.html" />
 <title>{esc(p['title'])}</title>
 <!-- Generated from one template (docs/marketing/familles-pionnieres.md); change all three pages together. -->
-<style>{CSS}</style>
+<style>{CSS}{betaform.CSS}</style>
 </head>
 <body>
 <main>
@@ -250,6 +255,7 @@ for code, p in PAGES.items():
 
   <h2>{esc(p['how'])}</h2>
   <ol class="steps">{steps}</ol>
+{betaform.build(code, p["privacy_href"], API)}
 
   <h2>{esc(p['faq'])}</h2>
   {qa}
@@ -262,6 +268,7 @@ for code, p in PAGES.items():
 
   <footer>{esc(p['foot'])} · <a href="{p['privacy_href']}">{esc(p['privacy'])}</a></footer>
 </main>
+<script src="/beta-form.js" defer></script>
 </body>
 </html>
 """

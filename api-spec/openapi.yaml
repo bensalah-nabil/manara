@@ -677,6 +677,53 @@ paths:
                       text: { type: object, additionalProperties: { type: string } }
                       until: { type: string, format: date-time }
 
+  /beta-signups:
+    post:
+      tags: [console]
+      summary: A parent's sign-up to the beta, from the public beta page
+      description: >
+        No session: the beta page (/beta) is public. At most 5 per hour per client
+        address. Only what booking the setup call needs; kept 180 days. A filled-in
+        `website` (a field people never see) is answered as success and stored nowhere.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, whatsapp, place, callLanguage, brand, childAge, ownChild]
+              properties:
+                firstName: { type: string, maxLength: 60 }
+                whatsapp: { type: string, description: "8 to 15 digits, with an optional +, spaces, dashes or brackets." }
+                place: { type: string, maxLength: 80, description: Country and city. }
+                callLanguage: { type: string, enum: [fr, ar, en] }
+                brand: { type: string, enum: [samsung, xiaomi, oppo-realme, other, iphone], description: "An iphone joins the waiting list." }
+                model: { type: string, maxLength: 80 }
+                childAge: { type: string, enum: [under10, 10to13, 14to17] }
+                worries: { type: array, items: { type: string, enum: [screen-time, night, adult-content, strangers, games, other] } }
+                slots: { type: array, items: { type: string, enum: [weekday-evening, saturday-morning, other] } }
+                pageLanguage: { type: string, enum: [fr, ar, en] }
+                ownChild: { type: boolean, description: "Must be true: the parent's own minor child, who will know (ADR-0001)." }
+                website: { type: string, description: Leave empty. }
+      responses:
+        '200':
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  waitlist: { type: boolean, description: "True for an iPhone: not set up yet, told later." }
+        '400':
+          description: "`invalid_field` (the field's name in `message`), `own_child_required` or `bad_request`."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Too many sign-ups from this client address.
+
   /console/auth/login:
     post:
       tags: [console]

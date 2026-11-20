@@ -24,6 +24,8 @@ type Handlers struct {
 	SilentAfter time.Duration
 	// Actions enables the write endpoints (actions.go); nil leaves the console read-only.
 	Actions *Actions
+	// Beta lists and follows up the beta page's sign-ups (beta.go); nil turns that off.
+	Beta domain.BetaSignupStore
 }
 
 // Routes registers the admin endpoints on mux.

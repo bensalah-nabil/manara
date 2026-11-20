@@ -57,6 +57,48 @@
   .last h2 { margin: 0 0 14px; }
   footer { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 32px; }
   @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .cards, .steps { grid-template-columns: 1fr; } }
+
+  #inscription { scroll-margin-top: 16px; }
+  .signup { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; margin-top: 40px; box-shadow: 0 20px 40px -28px rgba(14, 90, 67, .45); }
+  .signup h2 { margin: 0 0 4px; }
+  .progress { height: 8px; background: var(--soft); border-radius: 999px; overflow: hidden; margin: 14px 0 6px; }
+  .progress span { display: block; height: 100%; width: 20%; background: var(--brand); border-radius: 999px; transition: width .35s ease; }
+  .counter { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
+  .step h3 { font-size: 1.3rem; margin: 0 0 16px; }
+  .field { display: block; margin-bottom: 16px; }
+  .field > span { display: block; font-weight: 600; margin-bottom: 6px; }
+  .field small, .hint { display: block; color: var(--muted); font-size: .88rem; margin-top: 4px; font-weight: 400; }
+  .field input[type=text], .field input[type=tel] { width: 100%; font: inherit; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); }
+  .field input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--soft); }
+  fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+  legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tile { position: relative; }
+  .tile input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .tile span { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); font-weight: 600; transition: border-color .15s, background .15s, transform .15s; }
+  .tile .emoji { font-size: 1.3rem; }
+  .tile input:checked + span { border-color: var(--brand); background: var(--soft); box-shadow: inset 0 0 0 1px var(--brand); }
+  .tile input:checked + span::after { content: '✓'; margin-inline-start: auto; color: var(--brand); font-weight: 800; }
+  .tile input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .tile:hover span { transform: translateY(-1px); }
+  .iphone-note { background: var(--soft); border-radius: 12px; padding: 12px 14px; margin: -6px 0 16px; }
+  .promise { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); cursor: pointer; font-weight: 600; }
+  .promise input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--brand); flex: none; }
+  .error { display: block; color: #b42318; font-size: .9rem; min-height: 1.2em; margin-top: 4px; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .error { color: #ff8a7f; } }
+  .nav { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .nav .button { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
+  .nav .back { background: transparent; color: var(--brand); border: 0; font: inherit; font-weight: 600; cursor: pointer; padding: 10px 4px; }
+  .nav .button:disabled { opacity: .6; cursor: wait; }
+  .status { color: var(--muted); min-height: 1.4em; margin: 12px 0 0; }
+  .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .done { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 36px 24px; margin-top: 40px; }
+  .done:focus { outline: none; }
+  .done .check { width: 72px; height: 72px; margin: 0 auto 12px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-size: 2.2rem; animation: pop .45s ease-out; }
+  .done h2 { margin: 0 0 8px; }
+  .done .sign { color: var(--muted); margin-top: 12px; }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .progress span, .tile span, .done .check { transition: none; animation: none; } }
 </style>
 </head>
 <body>
@@ -71,7 +113,7 @@
       <h1>كن من العائلات الرائدة</h1>
       <p class="lead">احمِ طفلك على الإنترنت، بوضوح ووفق قيمنا.</p>
       <ul class="chips"><li>مجانًا خلال التجربة</li><li>نثبّتها معك في مكالمة</li><li>20 عائلة فقط</li></ul>
-      <a class="button" href="mailto:nabil.bsalah0@gmail.com?subject=%D8%B9%D8%A7%D8%A6%D9%84%D8%A9%20%D8%B1%D8%A7%D8%A6%D8%AF%D8%A9%20-%20%D9%85%D9%86%D8%A7%D8%B1%D8%A9&amp;body=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%0A%0A%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D9%85%D9%86%D8%A7%D8%B1%D8%A9.%0A%D8%A7%D9%84%D8%A7%D8%B3%D9%85%3A%0A%D8%A7%D9%84%D8%A8%D9%84%D8%AF%20%D9%88%D8%A7%D9%84%D9%85%D8%AF%D9%8A%D9%86%D8%A9%3A%0A%D9%84%D8%BA%D8%A9%20%D8%A7%D9%84%D9%85%D9%83%D8%A7%D9%84%D9%85%D8%A9%20%28%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9%D8%8C%20%D8%A7%D9%84%D9%81%D8%B1%D9%86%D8%B3%D9%8A%D8%A9%D8%8C%20%D8%A7%D9%84%D8%A5%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9%29%3A%0A%D9%86%D9%88%D8%B9%20%D9%87%D8%A7%D8%AA%D9%81%20%D8%A7%D9%84%D8%B7%D9%81%D9%84%20%D9%88%D8%B7%D8%B1%D8%A7%D8%B2%D9%87%3A%0A%D8%B9%D9%85%D8%B1%20%D8%A7%D9%84%D8%B7%D9%81%D9%84%3A%0A%0A%D8%A3%D8%A4%D9%83%D8%AF%20%D8%A3%D9%86%D9%87%20%D8%B7%D9%81%D9%84%D9%8A%20%D8%A7%D9%84%D9%82%D8%A7%D8%B5%D8%B1%D8%8C%20%D9%88%D8%A3%D9%86%D9%87%20%D8%B3%D9%8A%D8%B9%D8%B1%D9%81%20%D8%A3%D9%86%20%D9%87%D8%A7%D8%AA%D9%81%D9%87%20%D9%85%D8%AD%D9%85%D9%8A.">سجّل الآن</a>
+      <a class="button" href="#inscription">سجّل الآن</a>
       <p class="note">أندرويد 11 أو أحدث · لا يعمل على آيفون بعد</p>
     </div>
     <figure>
@@ -88,16 +130,79 @@
   <h2>كيف تجري التجربة</h2>
   <ol class="steps"><li><strong>تسجّل</strong><span>بعض الأسئلة عن الهاتف والأوقات التي تناسبك.</span></li><li><strong>نثبّتها معًا</strong><span>مكالمة مدّتها نحو 20 دقيقة، أرشدك فيها خطوة بخطوة.</span></li><li><strong>تستعملها مدّة أسبوعين</strong><span>ثم تخبرني بصراحة بما يعمل وما لا يعمل.</span></li></ol>
 
+  <section id="inscription" aria-labelledby="signup-title">
+    <form id="signup" class="signup" novalidate data-api="https://manara-api-pvu4.onrender.com/api/v1"
+      data-sending="جارٍ الإرسال…" data-waking="لحظة، الخادم يستيقظ…" data-too-many="إرسالات كثيرة من هذا الاتصال. أعد المحاولة بعد ساعة." data-failed="لم ينجح الإرسال. أعد المحاولة بعد قليل، أو راسلنا على nabil.bsalah0@gmail.com.">
+      <h2 id="signup-title">التسجيل · عائلة رائدة</h2>
+      <div class="progress" aria-hidden="true"><span></span></div>
+      <p class="counter" data-counter data-template="الخطوة {n} من {total}" aria-live="polite"></p>
+      <div class="honeypot" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label></div>
+
+      <div class="step" data-step>
+        <h3>لنتعارف</h3>
+        <label class="field"><span>اسمك</span><input type="text" name="firstName" required maxlength="60" autocomplete="given-name" data-error="اكتب اسمك." /><em class="error" role="alert"></em></label>
+        <label class="field"><span>رقم واتساب</span><input type="tel" name="whatsapp" required maxlength="24" autocomplete="tel" dir="ltr" data-pattern="^\+?[0-9 ()\-.]{8,24}$" data-error="اكتب رقمًا من 8 إلى 15 خانة." /><small>مع رمز البلد، مثلًا ‎+216 22 123 456</small><em class="error" role="alert"></em></label>
+        <label class="field"><span>البلد والمدينة</span><input type="text" name="place" required maxlength="80" autocomplete="address-level2" data-error="اكتب بلدك ومدينتك." /><small>مثلًا: صفاقس، تونس</small><em class="error" role="alert"></em></label>
+        <div class="nav"><span></span><button type="button" class="button next">متابعة</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>هاتف طفلك</h3>
+        <fieldset data-required data-error="اختر نوع الهاتف."><legend>نوعه</legend><div class="tiles"><label class="tile"><input type="radio" name="brand" value="samsung" /><span>Samsung</span></label><label class="tile"><input type="radio" name="brand" value="xiaomi" /><span>Xiaomi / Redmi / POCO</span></label><label class="tile"><input type="radio" name="brand" value="oppo-realme" /><span>Oppo / Realme</span></label><label class="tile"><input type="radio" name="brand" value="other" /><span>أندرويد آخر</span></label><label class="tile"><input type="radio" name="brand" value="iphone" /><span>iPhone</span></label></div><em class="error" role="alert"></em></fieldset>
+        <p class="iphone-note" data-iphone hidden>منارة لا تعمل على آيفون بعد. تابع رغم ذلك: نحجز لك مكانًا ونخبرك حين يصبح ذلك ممكنًا.</p>
+        <label class="field"><span>الطراز <small style="display:inline">(اختياري)</small></span><input type="text" name="model" maxlength="80" /><small>إن كنت تعرفه: الإعدادات، حول الهاتف</small></label>
+        <div class="nav"><button type="button" class="back">رجوع</button><button type="button" class="button next">متابعة</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>طفلك</h3>
+        <fieldset data-required data-error="اختر العمر."><legend>عمره</legend><div class="tiles"><label class="tile"><input type="radio" name="childAge" value="under10" /><span>أقل من 10 سنوات</span></label><label class="tile"><input type="radio" name="childAge" value="10to13" /><span>من 10 إلى 13</span></label><label class="tile"><input type="radio" name="childAge" value="14to17" /><span>من 14 إلى 17</span></label></div><em class="error" role="alert"></em></fieldset>
+        <fieldset><legend>أكثر ما يقلقك</legend><span class="hint" style="margin:-4px 0 8px">يمكنك اختيار أكثر من واحد</span><div class="tiles"><label class="tile"><input type="checkbox" name="worries" value="night" /><span><b class="emoji" aria-hidden="true">🌙</b>الليل</span></label><label class="tile"><input type="checkbox" name="worries" value="screen-time" /><span><b class="emoji" aria-hidden="true">⏱️</b>وقت الشاشة</span></label><label class="tile"><input type="checkbox" name="worries" value="adult-content" /><span><b class="emoji" aria-hidden="true">🛡️</b>محتوى البالغين</span></label><label class="tile"><input type="checkbox" name="worries" value="strangers" /><span><b class="emoji" aria-hidden="true">📞</b>الغرباء</span></label><label class="tile"><input type="checkbox" name="worries" value="games" /><span><b class="emoji" aria-hidden="true">🎮</b>الألعاب</span></label><label class="tile"><input type="checkbox" name="worries" value="other" /><span><b class="emoji" aria-hidden="true">💬</b>شيء آخر</span></label></div></fieldset>
+        <div class="nav"><button type="button" class="back">رجوع</button><button type="button" class="button next">متابعة</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>مكالمة التثبيت</h3>
+        <fieldset data-required data-error="اختر لغة."><legend>بأي لغة؟</legend><div class="tiles"><label class="tile"><input type="radio" name="callLanguage" value="ar" /><span>العربية</span></label><label class="tile"><input type="radio" name="callLanguage" value="fr" /><span>Français</span></label><label class="tile"><input type="radio" name="callLanguage" value="en" /><span>English</span></label></div><em class="error" role="alert"></em></fieldset>
+        <fieldset><legend>متى يناسبك؟</legend><span class="hint" style="margin:-4px 0 8px">يمكنك اختيار أكثر من واحد</span><div class="tiles"><label class="tile"><input type="checkbox" name="slots" value="weekday-evening" /><span>مساء أيام الأسبوع</span></label><label class="tile"><input type="checkbox" name="slots" value="saturday-morning" /><span>صباح السبت</span></label><label class="tile"><input type="checkbox" name="slots" value="other" /><span>وقت آخر</span></label></div></fieldset>
+        <div class="nav"><button type="button" class="back">رجوع</button><button type="button" class="button next">متابعة</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>وعد واحد، وانتهينا</h3>
+        <label class="promise"><input type="checkbox" name="ownChild" value="yes" required data-error="منارة لطفلك أنت فقط، وهو يعلم بذلك: ضع علامة للمتابعة." /><span>أؤكد أنه طفلي القاصر، وأنه سيعرف أن هاتفه محمي.<em class="error" role="alert"></em></span></label>
+        <p class="hint" style="margin-top:12px">تُستعمل إجاباتك فقط للاتصال بك من أجل هذه التجربة، وتُحذف بعد 6 أشهر. <a href="/privacy-ar.html">سياسة الخصوصية</a></p>
+        <div class="nav"><button type="button" class="back">رجوع</button><button type="submit" class="button">إرسال التسجيل</button></div>
+      </div>
+      <p class="status" data-status role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="done" data-done hidden tabindex="-1">
+      <div class="check" aria-hidden="true">✓</div>
+      <h2>شكرًا يا <span data-name></span>!</h2>
+      <p>سأراسلك على واتساب خلال 48 ساعة لتحديد موعد المكالمة.</p>
+      <p class="sign">فريق منارة</p>
+    </div>
+    <div class="done" data-done-waitlist hidden tabindex="-1">
+      <div class="check" aria-hidden="true">✓</div>
+      <h2>شكرًا يا <span data-name></span>!</h2>
+      <p>أنت على قائمة الانتظار: سنخبرك حين تعمل منارة على آيفون.</p>
+      <p class="sign">فريق منارة</p>
+    </div>
+  </section>
+
+
   <h2>أسئلة شائعة</h2>
   <details><summary>ما الهواتف المدعومة؟</summary><p>أندرويد 11 أو أحدث. جُرّبت على سامسونغ وشاومي، ولا تعمل على آيفون بعد.</p></details><details><summary>هل سيعرف طفلي؟</summary><p>نعم، دائمًا. يُظهر الهاتف باستمرار أنه محمي وما يمكنك رؤيته. منارة لا تقرأ الرسائل ولا تستمع إلى المكالمات أبدًا.</p></details><details><summary>وماذا عن خصوصيتنا؟</summary><p>لا نبيع أي بيانات ولا نستعملها للإعلانات. يمكنك إيقاف كل شيء وحذف حسابك في أي وقت.</p></details><details><summary>وبعد التجربة؟</summary><p>تحتفظ بمنارة إن أردت. لم يُحدَّد السعر بعد التجربة، وستُبلَّغ به العائلات الرائدة مسبقًا.</p></details><details><summary>لمن منارة؟</summary><p>للأبوين وطفلهما القاصر فقط، وليست أبدًا لمراقبة شخص بالغ.</p></details>
 
   <section class="last">
     <h2>مستعد للتجربة؟</h2>
-    <a class="button" href="mailto:nabil.bsalah0@gmail.com?subject=%D8%B9%D8%A7%D8%A6%D9%84%D8%A9%20%D8%B1%D8%A7%D8%A6%D8%AF%D8%A9%20-%20%D9%85%D9%86%D8%A7%D8%B1%D8%A9&amp;body=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%0A%0A%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AA%D8%AC%D8%B1%D8%A8%D8%A9%20%D9%85%D9%86%D8%A7%D8%B1%D8%A9.%0A%D8%A7%D9%84%D8%A7%D8%B3%D9%85%3A%0A%D8%A7%D9%84%D8%A8%D9%84%D8%AF%20%D9%88%D8%A7%D9%84%D9%85%D8%AF%D9%8A%D9%86%D8%A9%3A%0A%D9%84%D8%BA%D8%A9%20%D8%A7%D9%84%D9%85%D9%83%D8%A7%D9%84%D9%85%D8%A9%20%28%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9%D8%8C%20%D8%A7%D9%84%D9%81%D8%B1%D9%86%D8%B3%D9%8A%D8%A9%D8%8C%20%D8%A7%D9%84%D8%A5%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9%29%3A%0A%D9%86%D9%88%D8%B9%20%D9%87%D8%A7%D8%AA%D9%81%20%D8%A7%D9%84%D8%B7%D9%81%D9%84%20%D9%88%D8%B7%D8%B1%D8%A7%D8%B2%D9%87%3A%0A%D8%B9%D9%85%D8%B1%20%D8%A7%D9%84%D8%B7%D9%81%D9%84%3A%0A%0A%D8%A3%D8%A4%D9%83%D8%AF%20%D8%A3%D9%86%D9%87%20%D8%B7%D9%81%D9%84%D9%8A%20%D8%A7%D9%84%D9%82%D8%A7%D8%B5%D8%B1%D8%8C%20%D9%88%D8%A3%D9%86%D9%87%20%D8%B3%D9%8A%D8%B9%D8%B1%D9%81%20%D8%A3%D9%86%20%D9%87%D8%A7%D8%AA%D9%81%D9%87%20%D9%85%D8%AD%D9%85%D9%8A.">سجّل الآن</a>
+    <a class="button" href="#inscription">سجّل الآن</a>
     <p class="note">أندرويد 11 أو أحدث · لا يعمل على آيفون بعد</p>
   </section>
 
   <footer>صُنعت منارة في تونس. · <a href="/privacy-ar.html">سياسة الخصوصية</a></footer>
 </main>
+<script src="/beta-form.js" defer></script>
 </body>
 </html>

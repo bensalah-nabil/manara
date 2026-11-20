@@ -66,6 +66,26 @@ export interface AdminStats {
     emailsFailing: number
 }
 
+/** A parent's sign-up from the public beta page (domain.BetaSignup). */
+export interface BetaSignup {
+    id: string
+    createdAt: string
+    firstName: string
+    whatsapp: string
+    place: string
+    callLanguage: string
+    brand: string
+    model?: string
+    childAge: string
+    worries: string[]
+    slots: string[]
+    pageLanguage: string
+    status: BetaStatus
+    updatedAt: string
+}
+
+export type BetaStatus = 'new' | 'contacted' | 'set_up' | 'declined'
+
 export class ActionError extends Error {
     readonly code: string
     constructor(code: string, message: string) {
@@ -143,6 +163,17 @@ export function createApi(token: () => Promise<string>) {
         phones: (accountId = '') => get<Phone[]>(`/admin/phones?account=${encodeURIComponent(accountId)}`),
         log: () => get<LogEntry[]>('/admin/log'),
         stats: (days: number) => get<AdminStats>(`/admin/stats?days=${days}`),
+        betaSignups: () => get<BetaSignup[]>('/admin/beta-signups'),
+        /** The follow-up of one sign-up; logged on the server like every admin request. */
+        setBetaStatus: async (id: string, status: BetaStatus) => {
+            const response = await fetch(`${API_URL}/admin/beta-signups/${encodeURIComponent(id)}/status`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status }),
+            })
+            if (response.status === 401) throw new NotAdmin()
+            if (!response.ok) throw new Error(`The server answered ${response.status}.`)
+        },
     }
 }
 

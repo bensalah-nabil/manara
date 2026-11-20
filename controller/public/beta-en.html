@@ -57,6 +57,48 @@
   .last h2 { margin: 0 0 14px; }
   footer { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 32px; }
   @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .cards, .steps { grid-template-columns: 1fr; } }
+
+  #inscription { scroll-margin-top: 16px; }
+  .signup { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; margin-top: 40px; box-shadow: 0 20px 40px -28px rgba(14, 90, 67, .45); }
+  .signup h2 { margin: 0 0 4px; }
+  .progress { height: 8px; background: var(--soft); border-radius: 999px; overflow: hidden; margin: 14px 0 6px; }
+  .progress span { display: block; height: 100%; width: 20%; background: var(--brand); border-radius: 999px; transition: width .35s ease; }
+  .counter { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
+  .step h3 { font-size: 1.3rem; margin: 0 0 16px; }
+  .field { display: block; margin-bottom: 16px; }
+  .field > span { display: block; font-weight: 600; margin-bottom: 6px; }
+  .field small, .hint { display: block; color: var(--muted); font-size: .88rem; margin-top: 4px; font-weight: 400; }
+  .field input[type=text], .field input[type=tel] { width: 100%; font: inherit; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); }
+  .field input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--soft); }
+  fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+  legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tile { position: relative; }
+  .tile input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .tile span { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); font-weight: 600; transition: border-color .15s, background .15s, transform .15s; }
+  .tile .emoji { font-size: 1.3rem; }
+  .tile input:checked + span { border-color: var(--brand); background: var(--soft); box-shadow: inset 0 0 0 1px var(--brand); }
+  .tile input:checked + span::after { content: '✓'; margin-inline-start: auto; color: var(--brand); font-weight: 800; }
+  .tile input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .tile:hover span { transform: translateY(-1px); }
+  .iphone-note { background: var(--soft); border-radius: 12px; padding: 12px 14px; margin: -6px 0 16px; }
+  .promise { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); cursor: pointer; font-weight: 600; }
+  .promise input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--brand); flex: none; }
+  .error { display: block; color: #b42318; font-size: .9rem; min-height: 1.2em; margin-top: 4px; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .error { color: #ff8a7f; } }
+  .nav { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .nav .button { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
+  .nav .back { background: transparent; color: var(--brand); border: 0; font: inherit; font-weight: 600; cursor: pointer; padding: 10px 4px; }
+  .nav .button:disabled { opacity: .6; cursor: wait; }
+  .status { color: var(--muted); min-height: 1.4em; margin: 12px 0 0; }
+  .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .done { text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 36px 24px; margin-top: 40px; }
+  .done:focus { outline: none; }
+  .done .check { width: 72px; height: 72px; margin: 0 auto 12px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-size: 2.2rem; animation: pop .45s ease-out; }
+  .done h2 { margin: 0 0 8px; }
+  .done .sign { color: var(--muted); margin-top: 12px; }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .progress span, .tile span, .done .check { transition: none; animation: none; } }
 </style>
 </head>
 <body>
@@ -71,7 +113,7 @@
       <h1>Become a founding family</h1>
       <p class="lead">Protect your child online, openly and in line with our values.</p>
       <ul class="chips"><li>Free during the test</li><li>Set up with you on a call</li><li>Limited to 20 families</li></ul>
-      <a class="button" href="mailto:nabil.bsalah0@gmail.com?subject=Manara%20founding%20family&amp;body=Hello%2C%0A%0AI%27d%20like%20to%20test%20Manara.%0AFirst%20name%3A%0ACountry%20and%20city%3A%0ALanguage%20for%20the%20call%20%28French%2C%20Arabic%2C%20English%29%3A%0AThe%20child%27s%20phone%20brand%20and%20model%3A%0AThe%20child%27s%20age%3A%0A%0AI%20confirm%20this%20is%20my%20own%20minor%20child%2C%20and%20that%20they%20will%20know%20their%20phone%20is%20protected.">Sign up</a>
+      <a class="button" href="#inscription">Sign up</a>
       <p class="note">Android 11 or newer · no iPhone yet</p>
     </div>
     <figure>
@@ -88,16 +130,79 @@
   <h2>How the test works</h2>
   <ol class="steps"><li><strong>You sign up</strong><span>A few questions about the phone and when suits you.</span></li><li><strong>We set it up together</strong><span>A call of about 20 minutes; I guide you step by step.</span></li><li><strong>You use it for two weeks</strong><span>Then you tell me honestly what works and what doesn’t.</span></li></ol>
 
+  <section id="inscription" aria-labelledby="signup-title">
+    <form id="signup" class="signup" novalidate data-api="https://manara-api-pvu4.onrender.com/api/v1"
+      data-sending="Sending…" data-waking="One moment, the server is waking up…" data-too-many="Too many sign-ups from this connection. Try again in an hour." data-failed="Sending didn’t work. Try again in a moment, or write to nabil.bsalah0@gmail.com.">
+      <h2 id="signup-title">Sign up · founding family</h2>
+      <div class="progress" aria-hidden="true"><span></span></div>
+      <p class="counter" data-counter data-template="Step {n} of {total}" aria-live="polite"></p>
+      <div class="honeypot" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label></div>
+
+      <div class="step" data-step>
+        <h3>Nice to meet you</h3>
+        <label class="field"><span>Your first name</span><input type="text" name="firstName" required maxlength="60" autocomplete="given-name" data-error="Write your first name." /><em class="error" role="alert"></em></label>
+        <label class="field"><span>Your WhatsApp number</span><input type="tel" name="whatsapp" required maxlength="24" autocomplete="tel" dir="ltr" data-pattern="^\+?[0-9 ()\-.]{8,24}$" data-error="Write a number of 8 to 15 digits." /><small>With the country code, for example +216 22 123 456</small><em class="error" role="alert"></em></label>
+        <label class="field"><span>Country and city</span><input type="text" name="place" required maxlength="80" autocomplete="address-level2" data-error="Write your country and city." /><small>For example: Sfax, Tunisia</small><em class="error" role="alert"></em></label>
+        <div class="nav"><span></span><button type="button" class="button next">Continue</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>Your child’s phone</h3>
+        <fieldset data-required data-error="Choose a brand."><legend>Its brand</legend><div class="tiles"><label class="tile"><input type="radio" name="brand" value="samsung" /><span>Samsung</span></label><label class="tile"><input type="radio" name="brand" value="xiaomi" /><span>Xiaomi / Redmi / POCO</span></label><label class="tile"><input type="radio" name="brand" value="oppo-realme" /><span>Oppo / Realme</span></label><label class="tile"><input type="radio" name="brand" value="other" /><span>Other Android</span></label><label class="tile"><input type="radio" name="brand" value="iphone" /><span>iPhone</span></label></div><em class="error" role="alert"></em></fieldset>
+        <p class="iphone-note" data-iphone hidden>Manara doesn’t work on iPhone yet. Carry on anyway: we keep you a place and tell you as soon as it does.</p>
+        <label class="field"><span>The model <small style="display:inline">(optional)</small></span><input type="text" name="model" maxlength="80" /><small>If you know it: Settings, About phone</small></label>
+        <div class="nav"><button type="button" class="back">Back</button><button type="button" class="button next">Continue</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>Your child</h3>
+        <fieldset data-required data-error="Choose an age."><legend>Their age</legend><div class="tiles"><label class="tile"><input type="radio" name="childAge" value="under10" /><span>Under 10</span></label><label class="tile"><input type="radio" name="childAge" value="10to13" /><span>10 to 13</span></label><label class="tile"><input type="radio" name="childAge" value="14to17" /><span>14 to 17</span></label></div><em class="error" role="alert"></em></fieldset>
+        <fieldset><legend>What worries you most</legend><span class="hint" style="margin:-4px 0 8px">Choose as many as you like</span><div class="tiles"><label class="tile"><input type="checkbox" name="worries" value="night" /><span><b class="emoji" aria-hidden="true">🌙</b>The nights</span></label><label class="tile"><input type="checkbox" name="worries" value="screen-time" /><span><b class="emoji" aria-hidden="true">⏱️</b>Screen time</span></label><label class="tile"><input type="checkbox" name="worries" value="adult-content" /><span><b class="emoji" aria-hidden="true">🛡️</b>Adult content</span></label><label class="tile"><input type="checkbox" name="worries" value="strangers" /><span><b class="emoji" aria-hidden="true">📞</b>Strangers</span></label><label class="tile"><input type="checkbox" name="worries" value="games" /><span><b class="emoji" aria-hidden="true">🎮</b>Games</span></label><label class="tile"><input type="checkbox" name="worries" value="other" /><span><b class="emoji" aria-hidden="true">💬</b>Something else</span></label></div></fieldset>
+        <div class="nav"><button type="button" class="back">Back</button><button type="button" class="button next">Continue</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>Our setup call</h3>
+        <fieldset data-required data-error="Choose a language."><legend>In which language?</legend><div class="tiles"><label class="tile"><input type="radio" name="callLanguage" value="en" /><span>English</span></label><label class="tile"><input type="radio" name="callLanguage" value="fr" /><span>Français</span></label><label class="tile"><input type="radio" name="callLanguage" value="ar" /><span>العربية</span></label></div><em class="error" role="alert"></em></fieldset>
+        <fieldset><legend>When suits you?</legend><span class="hint" style="margin:-4px 0 8px">Choose as many as you like</span><div class="tiles"><label class="tile"><input type="checkbox" name="slots" value="weekday-evening" /><span>Weekday evenings</span></label><label class="tile"><input type="checkbox" name="slots" value="saturday-morning" /><span>Saturday mornings</span></label><label class="tile"><input type="checkbox" name="slots" value="other" /><span>Another time</span></label></div></fieldset>
+        <div class="nav"><button type="button" class="back">Back</button><button type="button" class="button next">Continue</button></div>
+      </div>
+
+      <div class="step" data-step hidden>
+        <h3>One promise, and you’re done</h3>
+        <label class="promise"><input type="checkbox" name="ownChild" value="yes" required data-error="Manara is only for your own child, who knows it: tick to continue." /><span>I confirm this is my own minor child, and that they will know their phone is protected.<em class="error" role="alert"></em></span></label>
+        <p class="hint" style="margin-top:12px">Your answers are only used to call you about this test, and deleted after 6 months. <a href="/privacy.html">Privacy policy</a></p>
+        <div class="nav"><button type="button" class="back">Back</button><button type="submit" class="button">Send my sign-up</button></div>
+      </div>
+      <p class="status" data-status role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="done" data-done hidden tabindex="-1">
+      <div class="check" aria-hidden="true">✓</div>
+      <h2>Thank you, <span data-name></span>!</h2>
+      <p>I’ll write to you on WhatsApp within 48 hours to book our call.</p>
+      <p class="sign">The Manara team</p>
+    </div>
+    <div class="done" data-done-waitlist hidden tabindex="-1">
+      <div class="check" aria-hidden="true">✓</div>
+      <h2>Thank you, <span data-name></span>!</h2>
+      <p>You’re on the waiting list: we’ll tell you as soon as Manara works on iPhone.</p>
+      <p class="sign">The Manara team</p>
+    </div>
+  </section>
+
+
   <h2>Questions</h2>
   <details><summary>Which phones?</summary><p>Android 11 or newer. Tested on Samsung and Xiaomi. Not on iPhone yet.</p></details><details><summary>Will my child know?</summary><p>Yes, always. The phone always shows that it is protected and what you can see. Manara never reads messages and never listens to calls.</p></details><details><summary>What about our privacy?</summary><p>Nothing is sold or used for advertising. You can stop everything and delete your account at any time.</p></details><details><summary>After the test?</summary><p>You keep Manara if you want. The price after the test isn’t set yet, and founding families will be told first.</p></details><details><summary>Who is it for?</summary><p>A parent and their own minor child. Never for watching another adult.</p></details>
 
   <section class="last">
     <h2>Ready to try it?</h2>
-    <a class="button" href="mailto:nabil.bsalah0@gmail.com?subject=Manara%20founding%20family&amp;body=Hello%2C%0A%0AI%27d%20like%20to%20test%20Manara.%0AFirst%20name%3A%0ACountry%20and%20city%3A%0ALanguage%20for%20the%20call%20%28French%2C%20Arabic%2C%20English%29%3A%0AThe%20child%27s%20phone%20brand%20and%20model%3A%0AThe%20child%27s%20age%3A%0A%0AI%20confirm%20this%20is%20my%20own%20minor%20child%2C%20and%20that%20they%20will%20know%20their%20phone%20is%20protected.">Sign up</a>
+    <a class="button" href="#inscription">Sign up</a>
     <p class="note">Android 11 or newer · no iPhone yet</p>
   </section>
 
   <footer>Manara is made in Tunisia. · <a href="/privacy.html">Privacy policy</a></footer>
 </main>
+<script src="/beta-form.js" defer></script>
 </body>
 </html>

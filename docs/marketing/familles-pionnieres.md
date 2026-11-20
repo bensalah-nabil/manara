@@ -11,7 +11,13 @@ anything that reads as watching another adult.
 
 ---
 
-## 1. Sign-up form (Google Forms)
+## 1. Sign-up form
+
+**Built into the beta page (2026-11-20)** instead of Google Forms: five steps on /beta, /beta-ar and
+/beta-en, sent to Manara's own server (`POST /api/v1/beta-signups`) and listed in the admin
+console, "Beta sign-ups", where each family is marked contacted, set up or declined. Kept 180 days,
+and on the privacy page. The questions below are the ones it asks; the words are in
+`tools/betaform.py`.
 
 **Title:** Familles pionnières Manara / العائلات الرائدة / Manara founding families
 
