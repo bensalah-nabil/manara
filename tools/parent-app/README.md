@@ -79,7 +79,10 @@ Play Console → **Create app** → "Manara Parents", app, free. Then:
 
 Without this the app shows a browser address bar. Play Console → the app → **Test and release →
 App integrity → App signing** → copy the **SHA-256 certificate fingerprint of the app signing key**.
-Send it to Claude, or create `controller/public/.well-known/assetlinks.json` yourself:
+The file `controller/public/.well-known/assetlinks.json` already exists, with the fingerprint of
+the test APK (debug key of this PC, released as `parents-v1.0.0-test`). **Add** the Play fingerprint
+next to it in `sha256_cert_fingerprints` (send it to Claude, or edit it yourself); once the test APK is
+no longer used, remove its line. The file's shape:
 
 ```json
 [{

@@ -18,7 +18,7 @@ Xiaomi changes not built yet (X2, X11, X13, resuming setup mid-way).
 
 | Item | Where it stopped | Next step | Document |
 |---|---|---|---|
-| Developer identity verification | Refused: the payments profile Play uses has its name in Arabic only and no street in the address | The owner fixes that profile (name in Latin letters as on the passport, full street address), then "Try again" with an identity and an address document | [`play-console-checklist.md`](play-console-checklist.md) |
+| Developer identity verification | **Resubmitted 2026-11-21, in review.** The linked payments profile now has the Latin name and the address as on the identity card | Wait for Google's answer (a few days). If refused, send only the refusal message. After approval: verify the contact phone by SMS | [`play-console-checklist.md`](play-console-checklist.md) |
 | Closed test, 12 testers for 14 days | Not started (needs verification first) | Create the app, upload the `play` bundle, invite testers | [`play-store.md`](play-store.md) |
 | Permissions Declaration Form for `READ_CALL_LOG` | Not drafted | Draft the explanation (visible parental control, only while the parent turns it on, the child told, numbers only, 30 days). Parental control is not on Google's allowed list, so submit it as a **separate update after** a first release without calls | [ADR-0008](decisions/0008-visible-call-history.md) |
 | Play Protect blocks the direct APK | Cause found: the notification listener for calls inside WhatsApp, Messenger, Telegram and Viber | **Decision taken: keep the call features for now.** Don't remove them, and don't tell parents to turn Play Protect off, without asking the owner | [`enrollment-xiaomi.md`](enrollment-xiaomi.md), X1 |

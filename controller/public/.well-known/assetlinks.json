@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.manara.parents",
+      "sha256_cert_fingerprints": [
+        "50:4F:F9:5E:30:A9:26:BD:8F:1B:F9:11:3A:5A:5A:76:93:D8:F4:FF:C9:C0:F9:64:F6:88:89:2D:29:FE:97:A3"
+      ]
+    }
+  }
+]
