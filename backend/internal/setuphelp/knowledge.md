@@ -76,9 +76,21 @@ the Manara Parents app) on the parent's own phone or computer.
   phone sleeps. Charger plugged in, screen on.
 - "Build number" not found: search Settings for "Build number" or "OS version".
 - The phone restarted during setup, before "Manara made the phone manager": setup stops (the
-  console says so). Paused apps stay paused until setup runs again. Open Manara and start guided
-  setup again; accounts already removed stay removed. After "manager", a restart is fine: setup
-  resumes.
+  console says so). Paused apps stay paused until setup runs again. The whole fix, and nothing
+  more: (1) on the phone, open Manara and tap "Start guided setup" again; (2) open Wireless
+  debugging again and pair as before (QR code or the 6-digit pairing code typed into the console,
+  on the phone's page in the console). Accounts already removed stay removed. Do NOT tell the
+  parent to choose "+ Add a phone" again or to enter a new connection code: the phone is still
+  linked to the account, and adding it again makes a second, empty phone in the list. After
+  "manager", a restart is fine: setup resumes by itself.
+
+## Things never to tell a parent
+
+- To choose "+ Add a phone" again, or to scan or type a new connection code, for a phone already
+  in their list (it is still linked; only a phone never linked needs that).
+- To uninstall Manara or any app, clear an app's data, or factory-reset a phone the child uses.
+- To turn off Play Protect or change a security setting alone.
+- To give anyone a password, a code or the child's account.
 - Android refuses because accounts remain (Samsung counts every account, even from paused apps):
   remove every account the console still lists under "Still on the phone", then the list updates
   by itself. On Samsung, also Samsung account and work or school accounts.

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import { ApiError, isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import { language, t } from './i18n.ts'
-import { MAX_QUESTION, failureKey, helpRequest, looksPrivate, suggestions } from './setupHelp.ts'
+import { MAX_QUESTION, failureKey, helpRequest, looksPrivate, plainAnswer, suggestions } from './setupHelp.ts'
 import type { HelpTurn } from './setupHelp.ts'
 
 const SUPPORT_EMAIL = 'nabil.bsalah0@gmail.com'
@@ -77,7 +77,7 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
         setQuestion('')
         try {
             const answer = await api.askSetupHelp(helpRequest(q, before, { step, status, maker, language: language() }))
-            setTurns([...before, { role: 'parent', text: q }, { role: 'assistant', text: answer }])
+            setTurns([...before, { role: 'parent', text: q }, { role: 'assistant', text: plainAnswer(answer) }])
         } catch (caught) {
             if (isSessionError(caught)) { onSessionExpired(); return }
             // Give the question back so it can be sent again.

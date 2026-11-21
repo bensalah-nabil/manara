@@ -69,3 +69,14 @@ export function failureKey(code: string, status: number): MessageKey {
     if (code === 'network') return 'help.err.network'
     return 'help.err.failed'
 }
+
+/** The answer as plain text: models sometimes write Markdown (bold stars, headings) anyway. */
+export function plainAnswer(text: string): string {
+    return text
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/^\s*[-*]\s+/gm, '• ')
+        .replace(/\*\*/g, '')
+        .trim()
+}

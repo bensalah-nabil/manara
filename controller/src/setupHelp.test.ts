@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { HISTORY_TURNS, failureKey, helpRequest, looksPrivate, suggestions } from './setupHelp.ts'
+import { HISTORY_TURNS, failureKey, helpRequest, looksPrivate, plainAnswer, suggestions } from './setupHelp.ts'
 import { en } from './messages/en.ts'
 
 test('codes, phone numbers and emails are flagged; ordinary numbers are not', () => {
@@ -30,4 +30,12 @@ test('every suggestion and failure message exists in the catalogue', () => {
     for (const [code, status] of [['', 429], ['assistant_declined', 422], ['assistant_busy', 503], ['assistant_unavailable', 503], ['network', 0], ['x', 502]] as const) {
         assert.ok(failureKey(code, status) in en)
     }
+})
+
+test('Markdown in an answer becomes plain text', () => {
+    const NL = String.fromCharCode(10)
+    assert.equal(plainAnswer('1. Open **Manara** and tap **Start guided setup**.'), '1. Open Manara and tap Start guided setup.')
+    assert.equal(plainAnswer('## Steps' + NL + '- one' + NL + '* two'), ['Steps', '• one', '• two'].join(NL))
+    assert.equal(plainAnswer('a **dangling star'), 'a dangling star')
+    assert.equal(plainAnswer('1. افتح **Manara** على الهاتف'), '1. افتح Manara على الهاتف')
 })
