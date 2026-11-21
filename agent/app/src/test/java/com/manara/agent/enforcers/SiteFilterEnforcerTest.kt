@@ -1,6 +1,7 @@
 package com.manara.agent.enforcers
 
 import android.app.admin.DevicePolicyManager
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,5 +38,13 @@ class SiteFilterEnforcerTest {
                 DevicePolicyManager.PRIVATE_DNS_MODE_PROVIDER_HOSTNAME, host, "dns.google"
             ))
         }
+    }
+
+    @Test
+    fun `a working host clears the failures reported before, and once the one older versions left`() {
+        assertEquals(listOf("host_not_serving"), SiteFilterEnforcer.restoredAfterSuccess(emptySet(), legacyCleared = false))
+        assertEquals(emptyList<String>(), SiteFilterEnforcer.restoredAfterSuccess(emptySet(), legacyCleared = true))
+        assertEquals(listOf("failure_setting"), SiteFilterEnforcer.restoredAfterSuccess(setOf("failure_setting"), legacyCleared = true))
+        assertEquals(listOf("failure_setting", "host_not_serving"), SiteFilterEnforcer.restoredAfterSuccess(setOf("failure_setting"), legacyCleared = false))
     }
 }

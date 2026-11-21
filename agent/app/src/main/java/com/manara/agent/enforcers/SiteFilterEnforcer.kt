@@ -46,9 +46,20 @@ class SiteFilterEnforcer(context: Context) : PolicyEnforcer {
         }.onSuccess { code ->
             if (code != DevicePolicyManager.PRIVATE_DNS_SET_NO_ERROR) {
                 Log.w(TAG, "Private DNS change rejected, code=$code host=$wantedHost")
-                pendingEvents.add(enforcementEvent(id, "failed", describe(code)))
+                val detail = describe(code)
+                pendingEvents.add(enforcementEvent(id, "failed", detail))
+                prefs.edit().putStringSet(KEY_REPORTED_FAILURES, reportedFailures() + detail).apply()
             } else {
-                prefs.edit().putString(KEY_APPLIED_HOST, wantedHost).apply()
+                // A failure reported earlier stays red in the console until a "restored" with
+                // the same detail arrives; nothing sent one (audit 2026-11-21, a host_not_serving
+                // from a network that blocked port 853 stayed red after the filter worked again).
+                val restored = restoredAfterSuccess(reportedFailures(), prefs.getBoolean(KEY_LEGACY_CLEARED, false))
+                restored.forEach { pendingEvents.add(enforcementEvent(id, "restored", it)) }
+                prefs.edit()
+                    .putString(KEY_APPLIED_HOST, wantedHost)
+                    .putStringSet(KEY_REPORTED_FAILURES, emptySet())
+                    .putBoolean(KEY_LEGACY_CLEARED, true)
+                    .apply()
             }
         }.onFailure {
             Log.w(TAG, "Private DNS change threw", it)
@@ -82,6 +93,8 @@ class SiteFilterEnforcer(context: Context) : PolicyEnforcer {
         return events
     }
 
+    private fun reportedFailures(): Set<String> = prefs.getStringSet(KEY_REPORTED_FAILURES, emptySet()).orEmpty().toSet()
+
     private fun describe(code: Int): String = when (code) {
         DevicePolicyManager.PRIVATE_DNS_SET_ERROR_HOST_NOT_SERVING -> "host_not_serving"
         DevicePolicyManager.PRIVATE_DNS_SET_ERROR_FAILURE_SETTING -> "failure_setting"
@@ -92,9 +105,21 @@ class SiteFilterEnforcer(context: Context) : PolicyEnforcer {
         internal fun isHostPinned(mode: Int, currentHost: String?, wantedHost: String): Boolean =
             mode == DevicePolicyManager.PRIVATE_DNS_MODE_PROVIDER_HOSTNAME && currentHost == wantedHost
 
+        /**
+         * The failures to report as restored once setting the host works: those this version
+         * reported, plus, once, host_not_serving, which versions up to 1.0.37 reported without
+         * remembering it (so a phone updated with a stale red item gets it cleared).
+         */
+        internal fun restoredAfterSuccess(reported: Set<String>, legacyCleared: Boolean): List<String> =
+            (if (legacyCleared) reported else reported + LEGACY_FAILURE).sorted()
+
+        private const val LEGACY_FAILURE = "host_not_serving"
+
         private const val TAG = "ManaraSiteFilter"
         private const val PREFS_NAME = "site_filter_enforcer"
         private const val KEY_APPLIED_HOST = "applied_host"
         private const val CHECK_HOST = "private_dns_host"
+        private const val KEY_REPORTED_FAILURES = "reported_failures"
+        private const val KEY_LEGACY_CLEARED = "legacy_failures_cleared"
     }
 }
