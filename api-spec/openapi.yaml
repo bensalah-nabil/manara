@@ -897,7 +897,10 @@ paths:
                       pending: { $ref: '#/components/schemas/PendingChange' }
         '400':
           description: >
-            `invalid_browser_rules`, `invalid_lock_schedule`, or
+            `invalid_browser_rules`, `invalid_lock_schedule` (also a bedtime window
+            without 1 to 7 days or with an hour outside 0 to 23), `invalid_location`
+            (interval outside 0 to 1440), `invalid_time_limits` (no category, or
+            minutes outside 0 to 1440), or
             `invalid_change_delay` (hours other than 0, 1, 24, 48 or 168).
           content:
             application/json:

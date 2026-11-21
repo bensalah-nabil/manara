@@ -103,7 +103,9 @@ data class Policy(
     ) {
         @Serializable
         data class Window(
-            val days: List<Int>,
+            // Empty, not a parse error, if a server ever sends "days": null (audit 2026-11-21):
+            // a policy the phone can't read made every later sync fail. Needs coerceInputValues.
+            val days: List<Int> = emptyList(),
             val fromHour: Int,
             val toHour: Int
         )

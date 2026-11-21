@@ -508,6 +508,14 @@ func (h *Handlers) SetPolicy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_lock_schedule", err.Error())
 		return
 	}
+	if err := policy.Location.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_location", err.Error())
+		return
+	}
+	if err := policy.TimeLimits.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_time_limits", err.Error())
+		return
+	}
 	if err := policy.CallAlerts.Validate(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_call_alerts", err.Error())
 		return

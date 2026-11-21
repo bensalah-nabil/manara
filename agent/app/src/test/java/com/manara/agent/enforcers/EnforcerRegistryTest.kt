@@ -28,7 +28,24 @@ private class FakeEnforcer(override val id: String) : PolicyEnforcer {
     }
 }
 
+private class ThrowingEnforcer(override val id: String) : PolicyEnforcer {
+    override fun apply(policy: Policy) = throw IllegalStateException("boom")
+    override fun collectEvents(): List<Event> = emptyList()
+}
+
 class EnforcerRegistryTest {
+
+    @Test
+    fun `a rule that throws doesn't stop the rules after it, and is reported`() {
+        val after = FakeEnforcer("after")
+        val failed = mutableListOf<String>()
+        val registry = EnforcerRegistry(listOf(ThrowingEnforcer("broken"), after), onFailure = { id, _ -> failed += id })
+
+        registry.applyAll(Policy(version = 3))
+
+        assertEquals(3, after.lastAppliedVersion)
+        assertEquals(listOf("broken"), failed)
+    }
 
     @Test
     fun `applyAll calls apply on every registered enforcer`() {

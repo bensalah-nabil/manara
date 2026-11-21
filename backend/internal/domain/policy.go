@@ -167,6 +167,55 @@ func (s *LockSchedule) Validate() error {
 			return fmt.Errorf("%w: %q is not a package name", ErrInvalidLockSchedule, app)
 		}
 	}
+	// The spec's bounds (api-spec, LockWindow). A window without days went out as "days": null,
+	// which the phone can't read: every later sync failed (audit 2026-11-21).
+	if len(s.Windows) > MaxBedtimeWindows {
+		return fmt.Errorf("%w: at most %d windows", ErrInvalidLockSchedule, MaxBedtimeWindows)
+	}
+	for i, w := range s.Windows {
+		if len(w.Days) == 0 || len(w.Days) > 7 {
+			return fmt.Errorf("%w: window %d needs 1 to 7 days", ErrInvalidLockSchedule, i+1)
+		}
+		for _, d := range w.Days {
+			if d < 1 || d > 7 {
+				return fmt.Errorf("%w: window %d: day %d is not 1 to 7", ErrInvalidLockSchedule, i+1, d)
+			}
+		}
+		if w.FromHour < 0 || w.FromHour > 23 || w.ToHour < 0 || w.ToHour > 23 {
+			return fmt.Errorf("%w: window %d: hours are 0 to 23", ErrInvalidLockSchedule, i+1)
+		}
+	}
+	return nil
+}
+
+// MaxBedtimeWindows bounds the bedtime windows: the console offers a few, never dozens.
+const MaxBedtimeWindows = 14
+
+// ErrInvalidRules: a rule value the phone couldn't use.
+var ErrInvalidRules = errors.New("invalid rules")
+
+// Validate refuses a location interval the phone can't use: 0 means the phone's default (15),
+// otherwise 1 minute to 1 day. A negative one made the phone's location request throw.
+func (l LocationPolicy) Validate() error {
+	if l.IntervalMinutes < 0 || l.IntervalMinutes > 24*60 {
+		return fmt.Errorf("%w: location interval must be 0 to 1440 minutes", ErrInvalidRules)
+	}
+	return nil
+}
+
+// Validate refuses daily limits the phone can't use: a category, and 0 to 1440 minutes.
+func (t TimeLimits) Validate() error {
+	if len(t.Rules) > 200 {
+		return fmt.Errorf("%w: at most 200 time limits", ErrInvalidRules)
+	}
+	for _, r := range t.Rules {
+		if r.Category == "" {
+			return fmt.Errorf("%w: a time limit needs a category", ErrInvalidRules)
+		}
+		if r.DailyMinutes < 0 || r.DailyMinutes > 24*60 {
+			return fmt.Errorf("%w: %s: daily minutes must be 0 to 1440", ErrInvalidRules, r.Category)
+		}
+	}
 	return nil
 }
 

@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
  * [replace].
  */
 class PolicyCache(private val db: ManaraDatabase) {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
     suspend fun current(): Policy? =
         db.policyDao().get()?.let { json.decodeFromString(Policy.serializer(), it.json) }

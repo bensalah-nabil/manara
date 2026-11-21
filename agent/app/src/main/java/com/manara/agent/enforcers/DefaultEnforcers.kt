@@ -23,13 +23,19 @@ fun defaultEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegist
         AppChangesEnforcer(context)
     ),
     isManaged = { isManaged(context) },
+    onFailure = ::logFailure,
 )
 
 /** The rules [LiveRules] re-checks every minute while the screen is on. */
 fun liveEnforcerRegistry(context: Context): EnforcerRegistry = EnforcerRegistry(
     listOf(TimeLimitEnforcer(context), BrowserBlockEnforcer(context), LockEnforcer(context), CallLogEnforcer(context)),
     isManaged = { isManaged(context) },
+    onFailure = ::logFailure,
 )
+
+private fun logFailure(enforcerId: String, error: Exception) {
+    android.util.Log.w("ManaraEnforcers", "Rule $enforcerId failed to apply; the others still ran", error)
+}
 
 private fun isManaged(context: Context): Boolean =
     context.getSystemService(android.app.admin.DevicePolicyManager::class.java).isDeviceOwnerApp(context.packageName)

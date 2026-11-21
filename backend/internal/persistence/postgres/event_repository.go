@@ -3,9 +3,13 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"manara/backend/internal/domain"
 )
@@ -41,6 +45,17 @@ func (s *EventStore) Insert(ctx context.Context, events []*domain.Event) (domain
 			ON CONFLICT (id) DO NOTHING
 		`, e.ID, e.DeviceID, string(e.Kind), e.OccurredAt, raw)
 		if err != nil {
+			// An event the database refuses as bad data (SQLSTATE class 22, e.g. text jsonb
+			// can't hold) is dropped and accepted, so the phone stops re-sending it: one bad
+			// event once made every later sync of that phone fail, release included (audit
+			// 2026-11-21). Any other error (connection, server) fails the sync as before; the
+			// phone keeps its events and sends them again.
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && strings.HasPrefix(pgErr.Code, "22") {
+				log.Printf("events: dropped event %s (%s) the database refused: %s", e.ID, e.Kind, pgErr.Code)
+				result.Accepted = append(result.Accepted, e.ID)
+				continue
+			}
 			return domain.InsertResult{}, fmt.Errorf("insert event %s: %w", e.ID, err)
 		}
 		result.Accepted = append(result.Accepted, e.ID)

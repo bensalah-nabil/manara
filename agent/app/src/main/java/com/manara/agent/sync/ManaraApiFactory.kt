@@ -19,7 +19,9 @@ object ManaraApiFactory {
     val BASE_URL: String = BuildConfig.API_BASE_URL
 
     fun create(baseUrl: String = BASE_URL): ManaraApi {
-        val json = Json { ignoreUnknownKeys = true }
+        // coerceInputValues: a null where the phone expects a value takes the field's default
+        // instead of failing the whole sync response (Policy.LockSchedule.Window.days).
+        val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
         // A free host that sleeps when idle takes up to about a minute to answer the first request.
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)

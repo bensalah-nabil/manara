@@ -107,3 +107,42 @@ func TestBedtimeAllowedAppsValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestPolicyValuesThePhoneCantUseAreRefused(t *testing.T) {
+	good := &LockSchedule{Enabled: true, Windows: []LockWindow{{Days: []int{1, 7}, FromHour: 22, ToHour: 7}}}
+	if err := good.Validate(); err != nil {
+		t.Fatalf("a normal bedtime: %v", err)
+	}
+	for name, s := range map[string]*LockSchedule{
+		"no days":  {Windows: []LockWindow{{FromHour: 22, ToHour: 7}}},
+		"day 0":    {Windows: []LockWindow{{Days: []int{0}, FromHour: 22, ToHour: 7}}},
+		"day 8":    {Windows: []LockWindow{{Days: []int{8}, FromHour: 22, ToHour: 7}}},
+		"hour 24":  {Windows: []LockWindow{{Days: []int{1}, FromHour: 24, ToHour: 7}}},
+		"hour -1":  {Windows: []LockWindow{{Days: []int{1}, FromHour: 22, ToHour: -1}}},
+		"too many": {Windows: make([]LockWindow, MaxBedtimeWindows+1)},
+	} {
+		if err := s.Validate(); !errors.Is(err, ErrInvalidLockSchedule) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+
+	for _, ok := range []LocationPolicy{{}, {Enabled: true, IntervalMinutes: 15}, {IntervalMinutes: 1440}} {
+		if err := ok.Validate(); err != nil {
+			t.Errorf("location %+v: %v", ok, err)
+		}
+	}
+	for _, bad := range []LocationPolicy{{IntervalMinutes: -5}, {IntervalMinutes: 1441}} {
+		if err := bad.Validate(); !errors.Is(err, ErrInvalidRules) {
+			t.Errorf("location %+v: %v", bad, err)
+		}
+	}
+
+	if err := (TimeLimits{Rules: []TimeLimitRule{{Category: "Games", DailyMinutes: 60}, {Category: "Social", DailyMinutes: 0}}}).Validate(); err != nil {
+		t.Fatalf("normal limits: %v", err)
+	}
+	for _, bad := range []TimeLimits{{Rules: []TimeLimitRule{{Category: "", DailyMinutes: 60}}}, {Rules: []TimeLimitRule{{Category: "Games", DailyMinutes: -1}}}, {Rules: []TimeLimitRule{{Category: "Games", DailyMinutes: 1441}}}} {
+		if err := bad.Validate(); !errors.Is(err, ErrInvalidRules) {
+			t.Errorf("limits %+v: %v", bad, err)
+		}
+	}
+}

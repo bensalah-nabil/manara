@@ -221,14 +221,17 @@ func (h *Handlers) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	events := make([]*domain.Event, 0, len(req.Events))
+	now := time.Now()
 	for _, e := range req.Events {
-		events = append(events, &domain.Event{
+		event := &domain.Event{
 			ID:         e.ID,
 			DeviceID:   deviceID,
 			Kind:       domain.EventKind(e.Kind),
 			OccurredAt: e.OccurredAt,
 			Payload:    e.Payload,
-		})
+		}
+		event.Clean(now)
+		events = append(events, event)
 	}
 	stored, err := h.Events.Insert(r.Context(), events)
 	if err != nil {

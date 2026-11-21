@@ -86,17 +86,21 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
         prefs.edit().remove(KEY_CURSOR).commit()
     }
 
+    /**
+     * Stops reading; doesn't revoke READ_CALL_LOG. Revoking Manara's own permission makes Android
+     * kill it at once (PermissionManagerServiceImpl killUid, KILL_APP_REASON_PERMISSIONS_REVOKED,
+     * AOSP android14-release): from a normal sync that lost the rest of the sync, including a
+     * "Lock now" or "Remove" the server had already marked delivered (audit 2026-11-21). With the
+     * rule off nothing reads the log: apply() returns before reading, and the notice no longer
+     * lists calls. The cursor is removed with commit(), so turning it back on starts from then,
+     * never from where it stopped.
+     */
     private fun turnOff() {
         health.forget(CHECK_PERMISSION)
         health.forget(CHECK_APP_CALLS)
         pendingEvents.clear()
         pendingCursor = null
-        if (prefs.contains(KEY_CURSOR)) {
-            prefs.edit().remove(KEY_CURSOR).apply()
-            runCatching {
-                devicePolicyManager.setPermissionGrantState(admin, context.packageName, Manifest.permission.READ_CALL_LOG, DevicePolicyManager.PERMISSION_GRANT_STATE_DENIED)
-            }.onFailure { Log.w(TAG, "Cannot withdraw the permission", it) }
-        }
+        if (prefs.contains(KEY_CURSOR)) prefs.edit().remove(KEY_CURSOR).commit()
     }
 
     private fun grantToSelf() {
