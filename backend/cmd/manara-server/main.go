@@ -22,6 +22,7 @@ import (
 	"manara/backend/internal/notify/fcm"
 	"manara/backend/internal/persistence/postgres"
 	"manara/backend/internal/sealed"
+	"manara/backend/internal/setuphelp"
 	"manara/backend/internal/transport/admin"
 	"manara/backend/internal/transport/agent"
 	"manara/backend/internal/transport/console"
@@ -115,6 +116,18 @@ func main() {
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
 	}
+	// The setup assistant (internal/setuphelp) is on only when ANTHROPIC_API_KEY is set. 30
+	// questions a day per parent: enough for a hard setup, not for using it as a free chatbot.
+	assistantUsage := postgres.NewAssistantUsageRepository(db)
+	admin.CurrentAssistantModel = setuphelp.Model
+	if key := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")); key != "" {
+		consoleHandlers.SetupHelp = setuphelp.NewClaude(key)
+		consoleHandlers.AssistantUsage = assistantUsage
+		consoleHandlers.SetupHelpLimiter = guard.NewLimiter(30, 24*time.Hour).Persist("setup-help", rates)
+		log.Printf("setup assistant: on (%s)", setuphelp.Model)
+	} else {
+		log.Printf("setup assistant: off (ANTHROPIC_API_KEY not set)")
+	}
 	if len(alertSenders) > 0 {
 		go watchSilentPhones(ctx, &domain.SilenceWatcher{
 			Repo: postgres.NewSilenceRepository(db), Notifier: &domain.RecordingNotifier{Next: alertSenders, Log: alertLog},
@@ -165,6 +178,8 @@ func main() {
 	mux.HandleFunc("PUT /api/v1/console/devices/{deviceId}/policy", consoleHandlers.Audited(domain.AuditRulesChanged, nil, consoleHandlers.SetPolicy))
 	mux.HandleFunc("POST /api/v1/console/devices/{deviceId}/commands", consoleHandlers.Audited(domain.AuditCommandSent, console.CommandType, consoleHandlers.CreateCommand))
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/events", consoleHandlers.ListEvents)
+	mux.HandleFunc("GET /api/v1/console/setup-help", consoleHandlers.GetSetupHelp)
+	mux.HandleFunc("POST /api/v1/console/setup-help", consoleHandlers.AskSetupHelp)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup", consoleHandlers.GetSetup)
 	mux.HandleFunc("GET /api/v1/console/devices/{deviceId}/setup/readiness", consoleHandlers.GetReadiness)
 	mux.HandleFunc("DELETE /api/v1/console/devices/{deviceId}/setup/accounts", consoleHandlers.Audited(domain.AuditSetupAccountsClear, nil, consoleHandlers.ClearSetupAccounts))
@@ -185,7 +200,8 @@ func main() {
 				// 30 actions per 10 minutes per admin, shared between server instances.
 				Limiter: guard.NewLimiter(30, 10*time.Minute).Persist("admin-write", rates),
 			},
-			Beta: betaSignups,
+			Beta:      betaSignups,
+			Assistant: assistantUsage,
 		}
 		if mailer != nil {
 			adminHandlers.Actions.Mailer = mailer
@@ -193,6 +209,7 @@ func main() {
 		admin.Routes(mux, adminHandlers)
 		admin.ActionRoutes(mux, adminHandlers)
 		admin.BetaRoutes(mux, adminHandlers)
+		admin.AssistantRoutes(mux, adminHandlers)
 		mux.HandleFunc("GET /api/v1/console/notice", adminHandlers.PublicNotice)
 		log.Printf("admin console: on, %d admin(s)", len(v.Allowed))
 	}
@@ -609,6 +626,11 @@ func runRetentionSweep(ctx context.Context, db *postgres.DB, events domain.Event
 			log.Printf("retention sweep beta sign-ups: %v", err)
 		} else if n > 0 {
 			log.Printf("retention sweep: deleted %d old beta sign-up(s)", n)
+		}
+		if n, err := postgres.NewAssistantUsageRepository(db).PurgeAssistantUsage(ctx, time.Now().Add(-domain.AssistantUsageRetention)); err != nil {
+			log.Printf("retention sweep assistant usage: %v", err)
+		} else if n > 0 {
+			log.Printf("retention sweep: deleted %d old assistant usage row(s)", n)
 		}
 		if _, err := postgres.NewAlertLogRepository(db).PurgeOlderThan(ctx, time.Now().Add(-90*24*time.Hour)); err != nil {
 			log.Printf("retention sweep alert log: %v", err)

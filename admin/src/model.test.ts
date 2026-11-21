@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { agoText, phoneProblem } from './model.ts'
+import { agoText, phoneProblem, tokens, usd } from './model.ts'
 import type { Phone } from './api.ts'
 
 const now = Date.parse('2026-11-19T12:00:00Z')
@@ -53,4 +53,15 @@ test('axis tops are round numbers', async () => {
     assert.deepEqual([0, 1, 3, 7, 12, 48, 230].map(niceMax), [1, 1, 5, 10, 20, 50, 500])
     assert.equal(share(1, 4), '25%')
     assert.equal(share(1, 0), '–')
+})
+
+test('money and token counts read at a glance', () => {
+    assert.equal(usd(0), '$0')
+    assert.equal(usd(0.00042), '$0.0004')
+    assert.equal(usd(0.0123), '$0.01')
+    assert.equal(usd(2.5), '$2.50')
+    assert.equal(tokens(950), '950')
+    assert.equal(tokens(12_345), '12k')
+    assert.equal(tokens(4_100), '4.1k')
+    assert.equal(tokens(4_100_000), '4.1M')
 })

@@ -670,3 +670,18 @@ label.check.choice.danger:has(input:checked) { border-color: var(--danger); box-
 /* Sign-in page: the way in for a parent who doesn't have an account yet. */
 .visitor { padding: 14px 16px; border-radius: 12px; background: var(--brand-soft); text-align: center; }
 .visitor-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+/* The setup assistant (SetupHelp.tsx). */
+.help-open { margin: 0; }
+.setup-help { border-color: var(--brand); }
+.setup-help h3 { margin: 0; }
+.setup-help p { margin: 0; }
+.help-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+.help-suggestions .chip { border-radius: 999px; padding: 6px 12px; font-size: 0.9rem; text-align: start; }
+.help-turns { display: grid; gap: 10px; max-height: 420px; overflow-y: auto; }
+.help-turn { padding: 10px 12px; border-radius: 12px; }
+.help-turn.parent { background: var(--brand-soft); margin-inline-start: 15%; }
+.help-turn.assistant { border: 1px solid var(--line, #e5dac3); margin-inline-end: 8%; }
+.help-turn p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.help-ask { display: flex; gap: 8px; align-items: flex-end; }
+.help-ask textarea { flex: 1; font-family: inherit; font-size: 1rem; min-width: 0; }

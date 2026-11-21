@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"manara/backend/internal/domain"
+	"manara/backend/internal/setuphelp"
 	"manara/backend/internal/transport/guard"
 )
 
@@ -57,6 +58,12 @@ type Handlers struct {
 	Audit domain.AuditLog
 	// Pending holds loosenings waiting out a phone's cooling-off delay; nil: no delay anywhere.
 	Pending domain.PendingRepository
+	// SetupHelp answers setup questions (setup_help.go); nil when no Claude API key is set.
+	SetupHelp setuphelp.Answerer
+	// SetupHelpLimiter caps questions per parent.
+	SetupHelpLimiter *guard.Limiter
+	// AssistantUsage counts what each answer used (tokens, never text); nil: not counted.
+	AssistantUsage domain.AssistantUsageStore
 }
 
 type deviceSummaryDTO struct {

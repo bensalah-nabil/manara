@@ -13,6 +13,15 @@ child's phone (`agent/`). Nothing in the console changes: the app opens
 | Android | 5.0 and newer (minSdk 21), targets 35 |
 | Notifications | none yet (web push is planned after the beta) |
 
+## Why a TWA, not a native app (decided 2026-11-21)
+
+One codebase (the console), instant updates without a Play review, three languages and right to left
+already done, iPhone parents served by the browser. The one real gap, instant alerts, is closed by web
+push (planned after the beta), which a TWA supports. Revisit a native app only if the founding
+families find the app slow or need something only native gives (widget, fingerprint unlock, alerts
+where web push fails). Two apps, not one with a "parent or child" choice: the parent app must not wait
+on, or carry the permissions of, the child's app; `/start` makes the starting point one.
+
 ## Done (2026-11-20 and 21)
 
 1. **The console is installable** (`controller/public/manifest.webmanifest`, `icons/`, `sw.js`,

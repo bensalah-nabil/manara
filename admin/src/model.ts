@@ -54,6 +54,7 @@ export const ACTION_TEXT: Record<string, string> = {
     updates_back_to_server_settings: "Used Render's update setting again",
     set_notice: 'Showed a notice',
     cleared_notice: 'Removed the notice',
+    viewed_assistant_usage: 'Viewed the assistant usage',
 }
 
 /** One week of the dashboard: starts on Monday, sums what the days hold. */
@@ -95,4 +96,18 @@ export const ALERT_KIND_TEXT: Record<string, string> = {
     silent_phone: 'A phone stopped checking in',
     unknown_call: 'A call from an unknown number',
     other: 'Other alerts',
+}
+
+/** Dollars: four decimals under a cent, two from a cent up. */
+export function usd(value: number): string {
+    if (value === 0) return '$0'
+    if (value < 0.01) return `$${value.toFixed(4)}`
+    return `$${value.toFixed(2)}`
+}
+
+/** Token counts, short: 950, 4.1k, 12k, 4.1M. */
+export function tokens(value: number): string {
+    if (value < 1000) return String(value)
+    if (value < 1_000_000) return `${(value / 1000).toFixed(value < 10_000 ? 1 : 0)}k`
+    return `${(value / 1_000_000).toFixed(1)}M`
 }

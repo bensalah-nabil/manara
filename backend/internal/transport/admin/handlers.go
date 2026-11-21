@@ -26,6 +26,8 @@ type Handlers struct {
 	Actions *Actions
 	// Beta lists and follows up the beta page's sign-ups (beta.go); nil turns that off.
 	Beta domain.BetaSignupStore
+	// Assistant shows the setup assistant's usage and cost (assistant.go); nil turns that off.
+	Assistant domain.AssistantUsageStore
 }
 
 // Routes registers the admin endpoints on mux.

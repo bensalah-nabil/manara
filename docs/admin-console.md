@@ -12,6 +12,7 @@ page an admin opened. Parents never see it. Decision: ADR-0011.
 | Each phone's brand, model, Android and Manara versions, last check-in | The child's name the parent typed (the phone's label) |
 | The guided-setup step, status and error message | Location, calls, app usage, rules, events, anything else the phone reports |
 | The admin log | |
+| The setup assistant's questions and tokens per account and day, with an estimated cost ("AI assistant" tab) | Any question or answer: they are never stored |
 | Totals on the dashboard: per day, per version, per brand, per setup stage, per alert kind | Which phone or family is behind a total |
 
 Every request is checked and **written to `admin_log` before anything is read or done**. If the

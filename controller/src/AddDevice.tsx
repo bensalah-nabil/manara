@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks'
+import { SetupHelp } from './SetupHelp.tsx'
 import { ApiError, isSessionError } from './api.ts'
 import type { Api } from './api.ts'
 import { ATTESTATION_VERSION, STATEMENTS, attestationComplete, noAttestation } from './enrollment.ts'
@@ -232,6 +233,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 </>
             )}
             </div>
+            {step !== 'consent' && <SetupHelp api={api} onSessionExpired={onSessionExpired} step="add_phone" />}
         </div>
     )
 }

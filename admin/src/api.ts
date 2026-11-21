@@ -55,6 +55,26 @@ export interface ActionBody {
     notice?: SiteNotice
 }
 
+/** What the setup assistant used (GET /admin/assistant-usage): counts only, never a question. */
+export interface UsageTotals {
+    questions: number
+    inputTokens: number
+    outputTokens: number
+    cacheReadTokens: number
+    cacheWriteTokens: number
+    costUsd: number
+    /** False when some use was by a model with no known price: its cost is missing. */
+    priceKnown: boolean
+}
+
+export interface AssistantUsageView {
+    days: number
+    model: string
+    total: UsageTotals
+    perDay: (UsageTotals & { day: string })[]
+    accounts: (UsageTotals & { accountId: string; email: string; lastDay: string; models: string[] })[]
+}
+
 export interface AdminStats {
     days: { date: string; newAccounts: number; newPhones: number; activePhones: number }[]
     versions: { label: string; count: number }[]
@@ -163,6 +183,7 @@ export function createApi(token: () => Promise<string>) {
         phones: (accountId = '') => get<Phone[]>(`/admin/phones?account=${encodeURIComponent(accountId)}`),
         log: () => get<LogEntry[]>('/admin/log'),
         stats: (days: number) => get<AdminStats>(`/admin/stats?days=${days}`),
+        assistantUsage: (days: number) => get<AssistantUsageView>(`/admin/assistant-usage?days=${days}`),
         betaSignups: () => get<BetaSignup[]>('/admin/beta-signups'),
         /** The follow-up of one sign-up; logged on the server like every admin request. */
         setBetaStatus: async (id: string, status: BetaStatus) => {

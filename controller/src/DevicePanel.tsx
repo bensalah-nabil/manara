@@ -16,6 +16,7 @@ import { minutesText, summarizeDailyUsage } from './dailyUsage.ts'
 import type { DailyUsage } from './dailyUsage.ts'
 import { SetupProgress } from './SetupProgress.tsx'
 import { PhoneReady } from './PhoneReady.tsx'
+import { SetupHelp } from './SetupHelp.tsx'
 import type { SetupReadiness } from './api.ts'
 import type { DeviceSetup } from './setup.ts'
 import { ReleasePanel } from './ReleasePanel.tsx'
@@ -427,6 +428,10 @@ export function DevicePanel(props: Props & { onRemoved: () => void; onChanged: (
             {/* Before guided setup starts, the steps for this exact phone; then the live timeline. */}
             {(setup === null || setup?.step === 'linked') && <PhoneReady {...props} onReadiness={onReadiness} />}
             <SetupProgress {...props} onSetup={onSetup} watch={readiness !== null && setup === null} />
+            {/* Until setup is finished: the assistant, told where this phone is. */}
+            {setup !== undefined && setup?.status !== 'done' && (
+                <SetupHelp api={props.api} onSessionExpired={props.onSessionExpired} step={setup?.step ?? 'before'} status={setup?.status ?? ''} maker={device.manufacturer ?? ''} />
+            )}
             <PendingBanner {...props} />
 
             <div class="tabs" role="tablist" aria-label={t('tab.label')}>

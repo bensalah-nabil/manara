@@ -6,15 +6,17 @@ import type { Account, Api, LogEntry, Overview, Phone } from './api.ts'
 import { ACTION_TEXT, agoText, PROBLEM_TEXT, phoneProblem } from './model.ts'
 import { AccountActions, NoticeView, PhoneActions, ReleasesView } from './actions.tsx'
 import { Dashboard } from './dashboard.tsx'
+import { AssistantView } from './assistant.tsx'
 import { BetaView } from './beta.tsx'
 
-type View = 'overview' | 'accounts' | 'phones' | 'beta' | 'releases' | 'notice' | 'log'
+type View = 'overview' | 'accounts' | 'phones' | 'beta' | 'assistant' | 'releases' | 'notice' | 'log'
 
 const VIEWS: { key: View; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'accounts', label: 'Accounts' },
     { key: 'phones', label: 'Phones' },
     { key: 'beta', label: 'Beta sign-ups' },
+    { key: 'assistant', label: 'AI assistant' },
     { key: 'releases', label: 'Releases' },
     { key: 'notice', label: 'Notice' },
     { key: 'log', label: 'Admin log' },
@@ -91,6 +93,7 @@ function Console({ auth }: { auth: Auth }) {
             {view === 'accounts' && <AccountsView api={api} />}
             {view === 'phones' && <PhonesView api={api} accountId="" />}
             {view === 'beta' && <BetaView api={api} />}
+            {view === 'assistant' && <AssistantView api={api} />}
             {view === 'releases' && <ReleasesView api={api} />}
             {view === 'notice' && <NoticeView api={api} />}
             {view === 'log' && <LogView api={api} />}

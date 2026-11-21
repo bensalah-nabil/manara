@@ -1016,6 +1016,97 @@ paths:
         '404':
           description: Unknown device, or not this parent's.
 
+  /console/setup-help:
+    get:
+      tags: [console]
+      summary: Whether the setup assistant is on
+      description: >
+        False when the server has no Claude API key; the console then hides
+        the assistant.
+      security: [{ parentSession: [] }]
+      responses:
+        '200':
+          description: Availability.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available]
+                properties:
+                  available: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [console]
+      summary: Ask the setup assistant a question about setting up a phone
+      description: >
+        Answered by Claude from Manara's setup guide. Before anything leaves
+        the server, email addresses and runs of six or more digits (codes,
+        phone numbers) are removed. No name, account, phone id, rule or
+        activity is sent; the question is neither logged nor stored. Limited
+        to 30 questions a day per parent.
+      security: [{ parentSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, maxLength: 1000 }
+                step:
+                  type: string
+                  description: The setup step the console shows, `before` or `add_phone`, or empty.
+                status:
+                  type: string
+                  enum: ['', in_progress, waiting_for_parent, failed, done]
+                maker: { type: string, description: The phone's manufacturer, as the device reports it. }
+                language: { type: string, enum: [fr, ar, en] }
+                history:
+                  type: array
+                  description: Earlier turns of the same conversation; only the last 6 are used.
+                  items:
+                    type: object
+                    required: [role, text]
+                    properties:
+                      role: { type: string, enum: [parent, assistant] }
+                      text: { type: string }
+      responses:
+        '200':
+          description: The answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [answer]
+                properties:
+                  answer: { type: string }
+        '400':
+          description: Malformed request (`invalid_field` names the field).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: The assistant declined to answer (`assistant_declined`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Too many questions today.
+        '502':
+          description: The assistant couldn't be reached (`assistant_failed`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: The assistant is off (`assistant_unavailable`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /console/devices/{deviceId}/setup:
     get:
       tags: [console]

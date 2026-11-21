@@ -104,6 +104,15 @@ export interface ApiOptions {
     fetchImpl?: typeof fetch
 }
 
+export interface SetupHelpRequest {
+    question: string
+    step: string
+    status: string
+    maker: string
+    language: string
+    history: { role: 'parent' | 'assistant'; text: string }[]
+}
+
 export interface EnrollmentRequest {
     attestation: { parentOrGuardian: boolean; minorChild: boolean; childInformed: boolean }
     version: string
@@ -315,6 +324,19 @@ export function createApi({ baseUrl, getToken, fetchImpl = fetch }: ApiOptions) 
         },
 
         /** Changes waiting out the phone's cooling-off delay, soonest first. */
+        /** Whether the setup assistant is on (the server has a Claude API key). */
+        async setupHelpAvailable(): Promise<boolean> {
+            const value = (await request('GET', '/console/setup-help', undefined, true)) as { available?: unknown } | null
+            return value?.available === true
+        },
+
+        /** Asks the setup assistant; see setupHelp.ts for what the request carries. */
+        async askSetupHelp(input: SetupHelpRequest): Promise<string> {
+            const value = (await request('POST', '/console/setup-help', input, true)) as { answer?: unknown } | null
+            if (typeof value?.answer !== 'string') throw new ApiError(502, 'assistant_failed', 'No answer')
+            return value.answer
+        },
+
         async listPending(deviceId: string): Promise<PendingChange[]> {
             const value = await request('GET', devicePath(deviceId, 'pending'), undefined, true)
             if (!Array.isArray(value)) throw new ApiError(200, 'bad_response', 'Unexpected server response')
