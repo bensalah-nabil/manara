@@ -64,8 +64,12 @@ type ErrInvalid struct{ Field string }
 
 func (e *ErrInvalid) Error() string { return "setuphelp: invalid " + e.Field }
 
-// ErrDeclined means Claude declined to answer (a refusal); the console shows a fallback.
+// ErrDeclined means the model declined to answer (a refusal); the console shows a fallback.
 var ErrDeclined = errors.New("setuphelp: declined")
+
+// ErrBusy means the provider's rate limit was reached (Groq's free plan allows about one question a
+// minute); the console says to try again in a minute.
+var ErrBusy = errors.New("setuphelp: busy")
 
 // Normalize checks the request and removes what must not leave the server.
 func (r Request) Normalize() (Request, error) {
@@ -158,10 +162,13 @@ type Reply struct {
 // Answerer answers a normalized request.
 type Answerer interface {
 	Answer(ctx context.Context, r Request) (Reply, error)
+	// Model names the model that answers, for the log and the admin console.
+	Model() string
 }
 
-// Model is the Claude model the assistant uses: Haiku, about 0.04 US cents a question (docs/setup-assistant.md).
-const Model = "claude-haiku-5-5"
+// ClaudeModel is the Claude model used when ANTHROPIC_API_KEY is the key set: Haiku, about 0.04 US
+// cents a question (docs/setup-assistant.md).
+const ClaudeModel = "claude-haiku-5-5"
 
 // Claude answers with the Claude API.
 type Claude struct {
@@ -173,6 +180,7 @@ func NewClaude(apiKey string) *Claude {
 	return &Claude{client: anthropic.NewClient(option.WithAPIKey(apiKey), option.WithMaxRetries(2))}
 }
 
+// instructions come first in the system prompt, the knowledge after them; shared by every provider.
 const instructions = `You are Manara's setup assistant. You help a parent set up Manara, a visible parental-control
 app, on their own minor child's Android phone, and fix problems during setup. Answer only from the
 knowledge below; when it doesn't cover the question, say so plainly and point to the support email
@@ -195,10 +203,13 @@ How to answer:
 KNOWLEDGE
 `
 
+// Model is the Claude model this assistant uses.
+func (c *Claude) Model() string { return ClaudeModel }
+
 // Answer asks Claude.
 func (c *Claude) Answer(ctx context.Context, r Request) (Reply, error) {
 	resp, err := c.client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
-		Model:     Model,
+		Model:     ClaudeModel,
 		MaxTokens: 4000,
 		System: []anthropic.BetaTextBlockParam{{
 			Text:         instructions + knowledge,
@@ -211,7 +222,7 @@ func (c *Claude) Answer(ctx context.Context, r Request) (Reply, error) {
 		return Reply{}, err
 	}
 	reply := Reply{Usage: domain.AssistantUsage{
-		Model:      Model,
+		Model:      ClaudeModel,
 		Questions:  1,
 		Input:      resp.Usage.InputTokens,
 		Output:     resp.Usage.OutputTokens,

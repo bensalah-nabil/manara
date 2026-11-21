@@ -1021,7 +1021,7 @@ paths:
       tags: [console]
       summary: Whether the setup assistant is on
       description: >
-        False when the server has no Claude API key; the console then hides
+        False when the server has no AI key (GROQ_API_KEY or ANTHROPIC_API_KEY); the console hides
         the assistant.
       security: [{ parentSession: [] }]
       responses:
@@ -1040,7 +1040,7 @@ paths:
       tags: [console]
       summary: Ask the setup assistant a question about setting up a phone
       description: >
-        Answered by Claude from Manara's setup guide. Before anything leaves
+        Answered by an AI model (Groq or Claude) from the setup guide. Before anything leaves
         the server, email addresses and runs of six or more digits (codes,
         phone numbers) are removed. No name, account, phone id, rule or
         activity is sent; the question is neither logged nor stored. Limited
@@ -1102,7 +1102,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '503':
-          description: The assistant is off (`assistant_unavailable`).
+          description: The assistant is off (`assistant_unavailable`), or the AI provider is busy (`assistant_busy`, with Retry-After).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

@@ -66,6 +66,10 @@ func (h *Handlers) AskSetupHelp(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, setuphelp.ErrDeclined):
 		writeError(w, http.StatusUnprocessableEntity, "assistant_declined", "")
 		return
+	case errors.Is(err, setuphelp.ErrBusy):
+		w.Header().Set("Retry-After", "60")
+		writeError(w, http.StatusServiceUnavailable, "assistant_busy", "")
+		return
 	case err != nil:
 		// The error only, never the question.
 		log.Printf("setup help: %v", err)

@@ -27,7 +27,7 @@ test('every suggestion and failure message exists in the catalogue', () => {
     for (const step of steps) {
         for (const key of [...suggestions(step, 'in_progress'), ...suggestions(step, 'failed')]) assert.ok(key in en, key)
     }
-    for (const [code, status] of [['', 429], ['assistant_declined', 422], ['assistant_unavailable', 503], ['network', 0], ['x', 502]] as const) {
+    for (const [code, status] of [['', 429], ['assistant_declined', 422], ['assistant_busy', 503], ['assistant_unavailable', 503], ['network', 0], ['x', 502]] as const) {
         assert.ok(failureKey(code, status) in en)
     }
 })

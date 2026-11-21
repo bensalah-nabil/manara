@@ -116,17 +116,25 @@ func main() {
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
 	}
-	// The setup assistant (internal/setuphelp) is on only when ANTHROPIC_API_KEY is set. 30
-	// questions a day per parent: enough for a hard setup, not for using it as a free chatbot.
+	// The setup assistant (internal/setuphelp, docs/setup-assistant.md): Groq's free plan when
+	// GROQ_API_KEY is set (SETUP_HELP_MODEL picks another Groq model), else Claude when
+	// ANTHROPIC_API_KEY is, else off. 30 questions a day per parent: enough for a hard setup, not
+	// for using it as a free chatbot.
 	assistantUsage := postgres.NewAssistantUsageRepository(db)
-	admin.CurrentAssistantModel = setuphelp.Model
-	if key := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")); key != "" {
-		consoleHandlers.SetupHelp = setuphelp.NewClaude(key)
+	var assistant setuphelp.Answerer
+	if key := strings.TrimSpace(os.Getenv("GROQ_API_KEY")); key != "" {
+		assistant = setuphelp.NewGroq(key, strings.TrimSpace(os.Getenv("SETUP_HELP_MODEL")))
+	} else if key := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")); key != "" {
+		assistant = setuphelp.NewClaude(key)
+	}
+	if assistant != nil {
+		consoleHandlers.SetupHelp = assistant
 		consoleHandlers.AssistantUsage = assistantUsage
 		consoleHandlers.SetupHelpLimiter = guard.NewLimiter(30, 24*time.Hour).Persist("setup-help", rates)
-		log.Printf("setup assistant: on (%s)", setuphelp.Model)
+		admin.CurrentAssistantModel = assistant.Model()
+		log.Printf("setup assistant: on (%s)", assistant.Model())
 	} else {
-		log.Printf("setup assistant: off (ANTHROPIC_API_KEY not set)")
+		log.Printf("setup assistant: off (neither GROQ_API_KEY nor ANTHROPIC_API_KEY set)")
 	}
 	if len(alertSenders) > 0 {
 		go watchSilentPhones(ctx, &domain.SilenceWatcher{

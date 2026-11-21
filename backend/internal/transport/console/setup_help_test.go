@@ -22,6 +22,8 @@ type fakeAnswerer struct {
 
 var oneQuestion = domain.AssistantUsage{Model: "claude-haiku-5-5", Questions: 1, Input: 120, Output: 80, CacheRead: 4000}
 
+func (f *fakeAnswerer) Model() string { return "test-model" }
+
 func (f *fakeAnswerer) Answer(_ context.Context, r setuphelp.Request) (setuphelp.Reply, error) {
 	f.got = &r
 	if f.err != nil && !errors.Is(f.err, setuphelp.ErrDeclined) {
@@ -124,6 +126,13 @@ func TestSetupHelpOffWithoutKeyDeclinedAndFailed(t *testing.T) {
 	h.AskSetupHelp(w, setupHelpRequest("mine", `{"question":"q"}`))
 	if w.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("declined: %d", w.Code)
+	}
+
+	h.SetupHelp = &fakeAnswerer{err: setuphelp.ErrBusy}
+	w = httptest.NewRecorder()
+	h.AskSetupHelp(w, setupHelpRequest("mine", `{"question":"q"}`))
+	if w.Code != http.StatusServiceUnavailable || !strings.Contains(w.Body.String(), "assistant_busy") || w.Header().Get("Retry-After") != "60" {
+		t.Fatalf("busy: %d %s", w.Code, w.Body.String())
 	}
 
 	h.SetupHelp = &fakeAnswerer{err: errors.New("upstream down")}

@@ -119,13 +119,14 @@
       <li>Google Play services on the phone, for location and for scanning the connection QR code.</li>
       <li>GitHub, which hosts the Manara app file. When Manara installed from this website updates itself, the phone
         downloads the new version from GitHub, which sees the phone's IP address. Nothing else is sent.</li>
-      <li>Anthropic (Claude, United States), only if the parent uses the setup assistant ("Stuck? Ask the setup
-        assistant", during setup). It receives the question the parent types, the last few questions and answers of
-        that conversation, the setup step, the phone's maker and the console's language. Email addresses and runs of
+      <li>Groq (United States), only if the parent uses the setup assistant (the bot button during setup), which answers
+        with an AI model Groq hosts. Groq receives the question the parent types, the last few questions and answers
+        of that conversation, the setup step, the phone's maker and the console's language. Email addresses and runs of
         six or more digits (codes, phone numbers) are removed first; no name, account, phone identifier, rule or
-        activity is sent. Manara doesn't store the questions: it keeps only, per account and day, how many were asked and how many
-        tokens they used, to watch the cost, for 400 days or until the account is deleted; Anthropic keeps API data for a limited time under its own
-        commercial terms and doesn't use it to train its models.</li>
+        activity is sent. By its terms, Groq processes this only to answer, keeps no inference data by default apart
+        from troubleshooting logs of up to 30 days, and doesn't list training among its uses. Manara doesn't store the
+        questions: it keeps only, per account and day, how many were asked and how many tokens they used, for 400 days
+        or until the account is deleted.</li>
     </ul>
     <p>
       <strong>The people who run Manara</strong> can see, to fix problems: each account's email address, when it

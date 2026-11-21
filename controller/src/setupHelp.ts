@@ -63,6 +63,7 @@ export function suggestions(step: string, status: string): MessageKey[] {
 /** What to tell the parent when a question fails, by the server's error code or HTTP status. */
 export function failureKey(code: string, status: number): MessageKey {
     if (status === 429) return 'help.err.limit'
+    if (code === 'assistant_busy') return 'help.err.busy'
     if (code === 'assistant_declined') return 'help.err.declined'
     if (code === 'assistant_unavailable') return 'help.err.off'
     if (code === 'network') return 'help.err.network'

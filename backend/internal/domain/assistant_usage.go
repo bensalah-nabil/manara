@@ -35,9 +35,11 @@ type ModelPrice struct {
 // AssistantPrices: Anthropic's list prices (prompts up to 100K tokens), read 2026-11-21. A model
 // missing here is shown with no cost and marked, rather than guessed.
 var AssistantPrices = map[string]ModelPrice{
-	"claude-haiku-5-5":  {Input: 0.10, Output: 0.50},
-	"claude-sonnet-5-5": {Input: 2.00, Output: 10.00},
-	"claude-opus-5-5":   {Input: 4.00, Output: 20.00},
+	"claude-haiku-5-5": {Input: 0.10, Output: 0.50},
+	// Groq's free plan (docs/setup-assistant.md): no charge within its limits.
+	"openai/gpt-oss-120b": {Input: 0, Output: 0},
+	"claude-sonnet-5-5":   {Input: 2.00, Output: 10.00},
+	"claude-opus-5-5":     {Input: 4.00, Output: 20.00},
 }
 
 // Prompt-cache multipliers on the input price: writing a 5-minute cache entry costs 1.25 times,
