@@ -671,17 +671,40 @@ label.check.choice.danger:has(input:checked) { border-color: var(--danger); box-
 .visitor { padding: 14px 16px; border-radius: 12px; background: var(--brand-soft); text-align: center; }
 .visitor-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 
-/* The setup assistant (SetupHelp.tsx). */
-.help-open { margin: 0; }
-.setup-help { border-color: var(--brand); }
-.setup-help h3 { margin: 0; }
+/* The setup assistant (SetupHelp.tsx): a round bot button fixed at the bottom right of the page in
+   every language (the owner asked for the right), opening a floating panel. */
+.help-fab {
+  position: fixed; z-index: 40;
+  right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: 58px; height: 58px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--brand); border: 2px solid var(--brand); color: var(--brand-ink);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+.help-fab:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+.help-fab .bot-icon { width: 30px; height: 30px; }
+.help-fab[aria-expanded="true"] { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+.setup-help {
+  position: fixed; z-index: 41;
+  right: 20px; bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  width: min(420px, calc(100vw - 40px)); max-height: min(72vh, 680px);
+  overflow-y: auto; margin: 0;
+  border-color: var(--brand); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+.setup-help h3 { margin: 0; display: flex; align-items: center; gap: 8px; }
+.setup-help h3 .bot-icon { width: 22px; height: 22px; color: var(--brand); }
 .setup-help p { margin: 0; }
+.help-close { min-width: 40px; min-height: 40px; padding: 4px 10px; font-size: 1.1rem; }
 .help-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
 .help-suggestions .chip { border-radius: 999px; padding: 6px 12px; font-size: 0.9rem; text-align: start; }
-.help-turns { display: grid; gap: 10px; max-height: 420px; overflow-y: auto; }
+.help-turns { display: grid; gap: 10px; }
 .help-turn { padding: 10px 12px; border-radius: 12px; }
 .help-turn.parent { background: var(--brand-soft); margin-inline-start: 15%; }
 .help-turn.assistant { border: 1px solid var(--line, #e5dac3); margin-inline-end: 8%; }
 .help-turn p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .help-ask { display: flex; gap: 8px; align-items: flex-end; }
 .help-ask textarea { flex: 1; font-family: inherit; font-size: 1rem; min-width: 0; }
+@media (max-width: 520px) {
+  .help-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .setup-help { inset-inline: 8px; width: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 110px); }
+}

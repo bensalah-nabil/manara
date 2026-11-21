@@ -40,15 +40,30 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
     }, [api, onSessionExpired])
 
     useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'nearest' }) }, [turns, busy])
+    // Escape closes the panel, like any dialog.
+    useEffect(() => {
+        if (!open) return
+        const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [open])
 
     if (!available) return null
-    if (!open) {
-        return (
-            <p class="help-open">
-                <button type="button" class="ghost" onClick={() => setOpen(true)}>💬 {t('help.open')}</button>
-            </p>
-        )
-    }
+    // A round bot button, fixed at the bottom right of the page.
+    const bot = (
+        <button
+            type="button"
+            class="help-fab"
+            aria-label={t('help.open')}
+            title={t('help.open')}
+            aria-expanded={open}
+            aria-controls="setup-help-panel"
+            onClick={() => setOpen(!open)}
+        >
+            <BotIcon />
+        </button>
+    )
+    if (!open) return bot
 
     const privateText = looksPrivate(question)
 
@@ -77,10 +92,11 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
     }
 
     return (
-        <section class="card stack setup-help" aria-labelledby="setup-help-title">
+        <>
+        <section id="setup-help-panel" class="card stack setup-help" role="dialog" aria-labelledby="setup-help-title">
             <div class="card-head">
-                <h3 id="setup-help-title">💬 {t('help.title')}</h3>
-                <button type="button" class="ghost" onClick={() => setOpen(false)}>{t('help.close')}</button>
+                <h3 id="setup-help-title"><BotIcon /> {t('help.title')}</h3>
+                <button type="button" class="ghost help-close" aria-label={t('help.close')} title={t('help.close')} onClick={() => setOpen(false)}>✕</button>
             </div>
             <p>{t('help.intro')}</p>
             <p class="muted small">{t('help.privacy')}</p>
@@ -125,5 +141,22 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
             <p class="error" role="alert">{error}</p>
             <p class="muted small">{t('help.contact', { email: SUPPORT_EMAIL })}</p>
         </section>
+        {bot}
+        </>
+    )
+}
+
+/** A friendly robot head, drawn in the current text colour. */
+function BotIcon() {
+    return (
+        <svg class="bot-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v3" />
+            <circle cx="12" cy="2.6" r="0.9" fill="currentColor" stroke="none" />
+            <rect x="4" y="6.5" width="16" height="12" rx="4" />
+            <circle cx="9" cy="12.5" r="1.3" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="12.5" r="1.3" fill="currentColor" stroke="none" />
+            <path d="M9.5 16h5" />
+            <path d="M2 11.5v3M22 11.5v3" />
+        </svg>
     )
 }
