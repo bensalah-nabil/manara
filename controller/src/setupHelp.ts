@@ -13,11 +13,15 @@ export interface HelpTurn {
 export const HISTORY_TURNS = 6
 export const MAX_QUESTION = 1000
 
-/** True when the text holds what shouldn't be sent: an email address or six or more digits in a row. */
+/**
+ * True when the text holds what shouldn't be sent: an email address or six or more digits in a
+ * row, in any script (Arabic-Indic ٠-٩ too: \d alone is ASCII), with the separators people put in
+ * numbers. The same rule as the server's Redact (backend/internal/setuphelp).
+ */
 export function looksPrivate(text: string): boolean {
     if (/[^\s@]+@[^\s@]+\.[^\s@]+/.test(text)) return true
-    for (const run of text.match(/\+?\d[\d\s.:-]{4,}\d/g) ?? []) {
-        if ((run.match(/\d/g) ?? []).length >= 6) return true
+    for (const run of text.match(/\+?\p{Nd}[\p{Nd}\s.:,/()_-]{4,}\p{Nd}/gu) ?? []) {
+        if ((run.match(/\p{Nd}/gu) ?? []).length >= 6) return true
     }
     return false
 }
@@ -63,6 +67,7 @@ export function suggestions(step: string, status: string): MessageKey[] {
 /** What to tell the parent when a question fails, by the server's error code or HTTP status. */
 export function failureKey(code: string, status: number): MessageKey {
     if (status === 429) return 'help.err.limit'
+    if (code === 'assistant_quota') return 'help.err.quota'
     if (code === 'assistant_busy') return 'help.err.busy'
     if (code === 'assistant_declined') return 'help.err.declined'
     if (code === 'assistant_unavailable') return 'help.err.off'

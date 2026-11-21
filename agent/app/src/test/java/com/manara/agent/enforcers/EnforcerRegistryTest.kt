@@ -48,6 +48,26 @@ class EnforcerRegistryTest {
     }
 
     @Test
+    fun `only rules that applied are reported applied, and release carries on past a failure`() {
+        val after = FakeEnforcer("after")
+        val applied = mutableListOf<String>()
+        val failed = mutableListOf<String>()
+        val registry = EnforcerRegistry(
+            listOf(ThrowingEnforcer("broken"), after),
+            onFailure = { id, _ -> failed += id },
+            onApplied = { id -> applied += id },
+        )
+
+        registry.applyAll(Policy(version = 4))
+        assertEquals(listOf("after"), applied)
+
+        failed.clear()
+        registry.releaseAll()
+        assertEquals(listOf("broken"), failed)
+        assertEquals(0, after.lastAppliedVersion)
+    }
+
+    @Test
     fun `applyAll calls apply on every registered enforcer`() {
         val a = FakeEnforcer("a")
         val b = FakeEnforcer("b")

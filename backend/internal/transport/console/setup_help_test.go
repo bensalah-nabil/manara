@@ -135,6 +135,13 @@ func TestSetupHelpOffWithoutKeyDeclinedAndFailed(t *testing.T) {
 		t.Fatalf("busy: %d %s", w.Code, w.Body.String())
 	}
 
+	h.SetupHelp = &fakeAnswerer{err: &setuphelp.BusyError{RetryAfter: 5 * time.Hour}}
+	w = httptest.NewRecorder()
+	h.AskSetupHelp(w, setupHelpRequest("mine", `{"question":"q"}`))
+	if w.Code != http.StatusServiceUnavailable || !strings.Contains(w.Body.String(), "assistant_quota") || w.Header().Get("Retry-After") != "18000" {
+		t.Fatalf("daily quota: %d %s %q", w.Code, w.Body.String(), w.Header().Get("Retry-After"))
+	}
+
 	h.SetupHelp = &fakeAnswerer{err: errors.New("upstream down")}
 	w = httptest.NewRecorder()
 	h.AskSetupHelp(w, setupHelpRequest("mine", `{"question":"q"}`))

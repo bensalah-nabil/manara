@@ -140,9 +140,13 @@ same testers Manara needs.
 
 - **Guided setup and Device and Network Abuse.** Setup opens an ADB
   connection to the phone's own wireless debugging, removes and restores
-  apps, and makes Manara device owner. Nothing official allows or forbids
-  this. The closed test's review is the first real answer: keep the signed
-  APK on the site as the fallback until then.
+  apps, and makes Manara device owner. Play's Device and Network Abuse policy
+  lists as a violation "apps that facilitate or provide instructions on how to
+  ... circumvent security protections" (read 2026-11-21), and pausing account
+  apps so that Android's owner check passes may be read that way. Decide before
+  submitting: keep guided setup in `play` and explain it in the review notes
+  (the parent's own phone, visible, reversible, nothing removed), or ship `play`
+  with QR setup only. Keep the signed APK on the site as the fallback either way.
 - **Local network permission (when targeting API 37).** Checked 2026-11-07
   against [Local network permission](https://developer.android.com/privacy-and-security/local-network-permission):
   enforcement starts with Android 17, and only for apps that target API 37.

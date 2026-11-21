@@ -174,7 +174,7 @@ func (h *Handlers) TwoStepOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	acc, ok := h.account(w, r, req)
-	if !ok || !h.logged(w, r, a, "two_step_off", "account "+acc.Email, req.Reason) {
+	if !ok || !h.logged(w, r, a, "two_step_off", "account "+acc.ID, req.Reason) {
 		return
 	}
 	if h.Actions.TwoFactor == nil {
@@ -182,7 +182,7 @@ func (h *Handlers) TwoStepOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Actions.TwoFactor.Disable(r.Context(), acc.ID); err != nil {
-		h.failed(r, a, "two_step_off", acc.Email, err)
+		h.failed(r, a, "two_step_off", "account "+acc.ID, err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
@@ -203,13 +203,13 @@ func (h *Handlers) SendPasswordReset(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "email_unavailable", "this server cannot send email")
 		return
 	}
-	if !h.logged(w, r, a, "password_reset_sent", "account "+acc.Email, req.Reason) {
+	if !h.logged(w, r, a, "password_reset_sent", "account "+acc.ID, req.Reason) {
 		return
 	}
 	// A short cooldown, so the parent isn't sent two links seconds apart.
 	token, created, err := h.Actions.Resets.Create(r.Context(), acc.Email, domain.PasswordResetTTL, time.Minute)
 	if err != nil {
-		h.failed(r, a, "password_reset_sent", acc.Email, err)
+		h.failed(r, a, "password_reset_sent", "account "+acc.ID, err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
@@ -219,7 +219,7 @@ func (h *Handlers) SendPasswordReset(w http.ResponseWriter, r *http.Request) {
 	}
 	subject, text := domain.ResetEmail(strings.TrimRight(h.Actions.ConsoleURL, "/") + "/#reset=" + token)
 	if err := h.Actions.Mailer.Send(r.Context(), acc.Email, subject, text); err != nil {
-		h.failed(r, a, "password_reset_sent", acc.Email, err)
+		h.failed(r, a, "password_reset_sent", "account "+acc.ID, err)
 		writeError(w, http.StatusBadGateway, "email_failed", "the email could not be sent; see the server log")
 		return
 	}
@@ -240,11 +240,11 @@ func (h *Handlers) setSuspended(w http.ResponseWriter, r *http.Request, suspend 
 	if suspend {
 		action, audit = "suspended_account", domain.AuditSupportSuspended
 	}
-	if !h.logged(w, r, a, action, "account "+acc.Email, req.Reason) {
+	if !h.logged(w, r, a, action, "account "+acc.ID, req.Reason) {
 		return
 	}
 	if _, err := h.Store.SetSuspended(r.Context(), acc.ID, suspend, h.now()); err != nil {
-		h.failed(r, a, action, acc.Email, err)
+		h.failed(r, a, action, "account "+acc.ID, err)
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
@@ -273,11 +273,11 @@ func (h *Handlers) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotImplemented, "unavailable", "")
 		return
 	}
-	if !h.logged(w, r, a, "deleted_account", "account "+acc.Email, req.Reason) {
+	if !h.logged(w, r, a, "deleted_account", "account "+acc.ID, req.Reason) {
 		return
 	}
 	if err := h.Actions.Accounts.Delete(r.Context(), acc.ID); err != nil {
-		h.failed(r, a, "deleted_account", acc.Email, err)
+		h.failed(r, a, "deleted_account", "account "+acc.ID, err)
 		if errors.Is(err, domain.ErrDevicesRemain) {
 			writeError(w, http.StatusConflict, "phones_remain", "release or remove its phones first")
 			return

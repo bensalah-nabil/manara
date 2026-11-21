@@ -67,8 +67,7 @@ T['en'] = dict(file='guide.html', dir='ltr', title='Manara · Parent guide', lan
   <section id="how">
     <h2>How Manara works</h2>
     <p>Manara manages your child's Android phone openly. The phone always shows a notice saying it is managed, and opening
-      Manara on it shows exactly which rules are on and what you can see. There is no hidden mode. Manara never reads
-      messages, never sees photos and never listens to calls.</p>
+      Manara on it shows exactly which rules are on and what you can see. There is no hidden mode. Manara never keeps or passes on messages, never sees photos and never listens to calls.</p>
     <p>You set the rules in the <strong>console</strong>, a web page you open on your own phone or computer. Manara on the
       child's phone applies them, and keeps applying them without a connection. To see what it does first, watch
       <a href="/features-en">the short videos</a>.</p>
@@ -76,7 +75,7 @@ T['en'] = dict(file='guide.html', dir='ltr', title='Manara · Parent guide', lan
 
   <section id="before">
     <h2>Before you start</h2>
-    <p>Setup takes about 15 minutes, longer on a Samsung. No app is uninstalled and no app data is lost. Prepare:</p>
+    <p>Setup takes about 20 to 30 minutes, longer on a Samsung. No app is uninstalled and no app data is lost. Prepare:</p>
     <ul>
       <li>The phone runs <strong>Android 11 or newer</strong>, is on <strong>Wi-Fi</strong>, and is charged above 50%, or on its
         charger. No computer or cable is needed.</li>
@@ -242,7 +241,7 @@ T['fr'] = dict(file='guide-fr.html', dir='ltr', title='Manara · Guide des paren
     <h2>Comment fonctionne Manara</h2>
     <p>Manara gère le téléphone Android de votre enfant, ouvertement. Le téléphone affiche toujours un avis indiquant qu'il est
       géré, et Manara y montre exactement quelles règles sont en place et ce que vous pouvez voir. Il n'y a pas de mode caché.
-      Manara ne lit jamais les messages, ne voit jamais les photos et n'écoute jamais les appels.</p>
+      Manara ne garde ni ne transmet jamais les messages, ne voit jamais les photos et n'écoute jamais les appels.</p>
     <p>Vous réglez les règles dans la <strong>console</strong>, une page web que vous ouvrez sur votre propre téléphone ou
       ordinateur. Manara, sur le téléphone de l'enfant, les applique, même sans connexion. Pour voir d'abord ce qu'il fait,
       regardez <a href="/features">les courtes vidéos</a>.</p>
@@ -250,7 +249,7 @@ T['fr'] = dict(file='guide-fr.html', dir='ltr', title='Manara · Guide des paren
 
   <section id="before">
     <h2>Avant de commencer</h2>
-    <p>L'installation prend environ 15 minutes, un peu plus sur un Samsung. Aucune application n'est désinstallée et aucune
+    <p>L'installation prend environ 20 à 30 minutes, un peu plus sur un Samsung. Aucune application n'est désinstallée et aucune
       donnée n'est perdue. Préparez :</p>
     <ul>
       <li>Le téléphone est sous <strong>Android 11 ou plus récent</strong>, sur le <strong>Wi-Fi</strong>, et chargé à plus de
@@ -432,14 +431,14 @@ T['ar'] = dict(file='guide-ar.html', dir='rtl', title='منارة · دليل ا
   <section id="how">
     <h2>كيف تعمل منارة</h2>
     <p>تدير منارة هاتف طفلك الأندرويد بوضوح. يعرض الهاتف دائمًا إشعارًا بأنه خاضع للإشراف، وتُظهر منارة عليه بالضبط القواعد
-      المفعّلة وما يمكنك رؤيته. لا يوجد وضع مخفي. منارة لا تقرأ الرسائل، ولا ترى الصور، ولا تستمع إلى المكالمات أبدًا.</p>
+      المفعّلة وما يمكنك رؤيته. لا يوجد وضع مخفي. منارة لا تحتفظ بالرسائل ولا تنقلها، ولا ترى الصور، ولا تستمع إلى المكالمات أبدًا.</p>
     <p>تضبط القواعد في <strong>لوحة التحكم</strong>، وهي صفحة ويب تفتحها على هاتفك أو حاسوبك. وتطبّقها منارة على هاتف الطفل،
       حتى دون اتصال. لترى أولًا ما تفعله، شاهد <a href="/features-ar">الفيديوهات القصيرة</a>.</p>
   </section>
 
   <section id="before">
     <h2>قبل أن تبدأ</h2>
-    <p>يستغرق الإعداد نحو 15 دقيقة، وأكثر قليلًا على سامسونغ. لا يُحذف أي تطبيق ولا تضيع أي بيانات. جهّز:</p>
+    <p>يستغرق الإعداد نحو 20 إلى 30 دقيقة، وأكثر قليلًا على سامسونغ. لا يُحذف أي تطبيق ولا تضيع أي بيانات. جهّز:</p>
     <ul>
       <li>الهاتف بنظام <strong>أندرويد 11 أو أحدث</strong>، ومتصل بشبكة <strong>Wi-Fi</strong>، ومشحون بأكثر من 50% أو موصول
         بالشاحن. لا حاجة إلى حاسوب ولا إلى كابل.</li>

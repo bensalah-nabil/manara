@@ -230,7 +230,7 @@ function CallHistoryPanel(props: Props) {
                                 {day.calls.map((call) => (
                                     <li key={call.id} class={call.direction === 'missed' ? 'missed' : undefined}>
                                         <span class="call-time">{timeText(call.occurredAt)}</span>
-                                        <b>{numberText(call)}</b>
+                                        <b dir={/^[+\p{Nd}]/u.test(numberText(call)) ? 'ltr' : 'auto'}>{numberText(call)}</b>
                                         <span class="muted">{directionText(call.direction)}{durationText(call) && `${t('common.listSeparator')}${durationText(call)}`}{known !== null && isUnknownCaller(call, known) && <> <span class="tag warn">{t('callAlerts.unknownTag')}</span></>}</span>
                                     </li>
                                 ))}

@@ -43,8 +43,14 @@ is not told, and that the law differs by country.
 
 **30 days.** Call events are deleted from the server after 30 days, like location.
 
-**Off means off.** Turning it off withdraws the permission (`PERMISSION_GRANT_STATE_DENIED`)
-and forgets the phone's place in the call log.
+**Off means off.** Turning it off stops reading the call log at once and forgets the phone's
+place in it, so turning it back on starts from that moment. Since 2026-11-21 the permission is
+no longer withdrawn (`PERMISSION_GRANT_STATE_DENIED`): revoking Manara's own permission makes
+Android kill it mid-sync (PermissionManagerServiceImpl.onPermissionRevoked, killUid,
+android14/15-release), which lost a "Lock now" or "Remove" sent in the same sync. The grant is
+set back to `PERMISSION_GRANT_STATE_DEFAULT` instead, which only clears the admin lock (Permission
+module PermissionControllerServiceImpl, DEFAULT branch: no revoke). Nothing reads the log while
+the rule is off, and the child's notice no longer lists calls.
 
 ## Calls inside apps (2026-11-09; sources 1 and 2 built, 3 not built)
 

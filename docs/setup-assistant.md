@@ -23,7 +23,10 @@ The server picks, in order (`cmd/manara-server/main.go`):
 1. **`GROQ_API_KEY` set: Groq's free plan**, model `openai/gpt-oss-120b` (another Groq model with
    `SETUP_HELP_MODEL`). This is what runs (chosen 2026-11-21: free, and Groq's terms keep nothing
    by default and don't list training).
-2. **Else `ANTHROPIC_API_KEY` set: Claude Haiku 5.5** (prepaid; about 0.04 US cents a question).
+2. **Claude Haiku 5.5 only on purpose:** `SETUP_HELP_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`
+   (prepaid; about 0.04 US cents a question). The privacy policy names Groq, so a key left in
+   the environment alone no longer sends questions to Anthropic: **update the privacy pages (en,
+   fr, ar) before switching**.
 3. **Else off:** the console hides the bot (it asks `GET /setup-help` first).
 
 The log says which: `setup assistant: on (openai/gpt-oss-120b)`. 30 questions a day per parent.

@@ -68,7 +68,7 @@ P = {
       <p><strong>Manara</strong> s'installe sur le téléphone de l'enfant. Il affiche toujours qu'il est géré.</p>
       <ol>
         <li>Créez votre compte parent dans la console.</li>
-        <li>Choisissez <strong>Ajouter un téléphone</strong>&nbsp;: la console vous guide pas à pas (environ 15&nbsp;minutes).</li>
+        <li>Choisissez <strong>Ajouter un téléphone</strong>&nbsp;: la console vous guide pas à pas (environ 20 à 30&nbsp;minutes, plus sur un Samsung).</li>
       </ol>
       <div class="actions">
         <a class="btn" href="/">Commencer dans la console</a>
@@ -78,8 +78,7 @@ P = {
     </section>
   </div>
 
-  <p class="note">Uniquement pour le téléphone de <strong>votre propre enfant mineur</strong>. Manara ne lit jamais les
-    messages, ne voit jamais les photos et n'écoute jamais les appels.</p>"""),
+  <p class="note">Uniquement pour le téléphone de <strong>votre propre enfant mineur</strong>. Manara ne garde ni ne transmet jamais les messages, ne voit jamais les photos et n'écoute jamais les appels.</p>"""),
     'ar': dict(file='start-ar.html', dir='rtl', title='منارة · من أين تبدأ', label='اللغة', guide='/guide-ar.html', download='/download-ar.html',
                features='/features-ar', privacy='/privacy-ar.html', body=f"""
   <h1>لمن هذا الهاتف؟</h1>
@@ -104,7 +103,7 @@ P = {
       <p>تُثبَّت <strong>منارة</strong> على هاتف الطفل، وتُظهر دائمًا أنّ الهاتف مُدار.</p>
       <ol>
         <li>أنشئ حسابك في لوحة التحكم.</li>
-        <li>اختر <strong>إضافة هاتف</strong>: ترشدك لوحة التحكم خطوة بخطوة (نحو 15 دقيقة).</li>
+        <li>اختر <strong>إضافة هاتف</strong>: ترشدك لوحة التحكم خطوة بخطوة (نحو 20 إلى 30 دقيقة، وأكثر على سامسونغ).</li>
       </ol>
       <div class="actions">
         <a class="btn" href="/">ابدأ في لوحة التحكم</a>
@@ -114,7 +113,7 @@ P = {
     </section>
   </div>
 
-  <p class="note">لهاتف <strong>طفلك القاصر</strong> فقط. منارة لا تقرأ الرسائل أبدًا، ولا ترى الصور، ولا تستمع إلى
+  <p class="note">لهاتف <strong>طفلك القاصر</strong> فقط. منارة لا تحتفظ بالرسائل ولا تنقلها أبدًا، ولا ترى الصور، ولا تستمع إلى
     المكالمات.</p>"""),
     'en': dict(file='start-en.html', dir='ltr', title='Manara · Start here', label='Language', guide='/guide.html', download='/download.html',
                features='/features-en', privacy='/privacy.html', body=f"""
@@ -141,7 +140,7 @@ P = {
       <p><strong>Manara</strong> goes on the child's phone. It always shows that the phone is managed.</p>
       <ol>
         <li>Create your parent account in the console.</li>
-        <li>Choose <strong>Add a phone</strong>: the console guides you step by step (about 15 minutes).</li>
+        <li>Choose <strong>Add a phone</strong>: the console guides you step by step (about 20 to 30 minutes, longer on a Samsung).</li>
       </ol>
       <div class="actions">
         <a class="btn" href="/">Start in the console</a>
@@ -151,7 +150,7 @@ P = {
     </section>
   </div>
 
-  <p class="note">Only for <strong>your own minor child's</strong> phone. Manara never reads messages, never sees photos and
+  <p class="note">Only for <strong>your own minor child's</strong> phone. Manara never keeps or passes on messages, never sees photos and
     never listens to calls.</p>"""),
 }
 

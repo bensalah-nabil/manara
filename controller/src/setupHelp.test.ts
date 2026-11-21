@@ -4,10 +4,10 @@ import { HISTORY_TURNS, failureKey, helpRequest, looksPrivate, plainAnswer, sugg
 import { en } from './messages/en.ts'
 
 test('codes, phone numbers and emails are flagged; ordinary numbers are not', () => {
-    for (const text of ['the code is 482913', 'call +216 98 123 456', 'me@example.com', '48-29-13', '192.168.1.15:42277']) {
+    for (const text of ['the code is 482913', 'call +216 98 123 456', 'me@example.com', '48-29-13', '192.168.1.15:42277', 'رقمي +٢١٦ ٢٢ ١٢٣ ٤٥٦', 'الرمز ١٢٣٤٥٦', 'code ۴۸۲۹۱۳', '(216) 22 123 456', '123,456']) {
         assert.ok(looksPrivate(text), text)
     }
-    for (const text of ['Android 14', 'about 15 minutes', 'step 3 of 9', 'battery 50%', 'since 2026']) {
+    for (const text of ['Android 14', 'about 15 minutes', 'step 3 of 9', 'battery 50%', 'since 2026', 'ساعة ١٥ دقيقة']) {
         assert.ok(!looksPrivate(text), text)
     }
 })
@@ -27,7 +27,7 @@ test('every suggestion and failure message exists in the catalogue', () => {
     for (const step of steps) {
         for (const key of [...suggestions(step, 'in_progress'), ...suggestions(step, 'failed')]) assert.ok(key in en, key)
     }
-    for (const [code, status] of [['', 429], ['assistant_declined', 422], ['assistant_busy', 503], ['assistant_unavailable', 503], ['network', 0], ['x', 502]] as const) {
+    for (const [code, status] of [['', 429], ['assistant_declined', 422], ['assistant_busy', 503], ['assistant_quota', 503], ['assistant_unavailable', 503], ['network', 0], ['x', 502]] as const) {
         assert.ok(failureKey(code, status) in en)
     }
 })

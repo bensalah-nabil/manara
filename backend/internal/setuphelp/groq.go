@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -121,7 +122,16 @@ func (g *Groq) Answer(ctx context.Context, r Request) (Reply, error) {
 		return Reply{}, fmt.Errorf("groq: read: %w", err)
 	}
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return Reply{}, ErrBusy
+		// Groq says how long to wait: seconds for the per-minute limit, hours for the daily one.
+		wait := time.Minute
+		if secs, err := strconv.ParseFloat(strings.TrimSpace(resp.Header.Get("Retry-After")), 64); err == nil && secs > 0 {
+			wait = time.Duration(secs * float64(time.Second))
+		}
+		return Reply{}, &BusyError{RetryAfter: wait}
+	}
+	if resp.StatusCode == http.StatusRequestEntityTooLarge {
+		// Over the per-minute token limit in one request (a long conversation): busy, not broken.
+		return Reply{}, &BusyError{RetryAfter: time.Minute}
 	}
 	if resp.StatusCode != http.StatusOK {
 		// Groq's own error text, never the question: it doesn't echo the request.
@@ -147,6 +157,14 @@ func (g *Groq) Answer(ctx context.Context, r Request) (Reply, error) {
 		return reply, ErrDeclined
 	}
 	reply.Text = strings.TrimSpace(choice.Message.Content)
+	if choice.FinishReason == "length" {
+		// Cut at the length limit: an empty answer is "try again", not a refusal; a partial one is
+		// marked as cut so the parent doesn't take it as the whole answer.
+		if reply.Text == "" {
+			return reply, ErrCutShort
+		}
+		reply.Text += " …"
+	}
 	if reply.Text == "" {
 		return reply, ErrDeclined
 	}

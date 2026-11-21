@@ -202,7 +202,8 @@ func TestEveryAdminReadIsLoggedFirst(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "parent@example.com") {
 		t.Fatalf("status %d body %s", w.Code, w.Body)
 	}
-	if len(store.log) != 1 || store.log[0].Action != "listed_accounts" || store.log[0].Target != "parent" || store.log[0].AdminID != adminOID {
+	if len(store.log) != 1 || store.log[0].Action != "listed_accounts" || store.log[0].Target != "search" || // what was searched (often an email) is not kept
+		store.log[0].AdminID != adminOID {
 		t.Fatalf("log %+v", store.log)
 	}
 	if w.Header().Get("Cache-Control") != "no-store" {

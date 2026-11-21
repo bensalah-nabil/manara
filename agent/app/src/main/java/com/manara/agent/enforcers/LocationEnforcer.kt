@@ -2,6 +2,7 @@ package com.manara.agent.enforcers
 
 import android.content.Context
 import android.location.LocationManager
+import com.manara.agent.OwnerReceiver
 import com.manara.agent.events.Event
 import com.manara.agent.location.LocationSharing
 import com.manara.agent.policy.Policy
@@ -24,6 +25,9 @@ class LocationEnforcer(private val context: Context) : PolicyEnforcer {
 
     override fun apply(policy: Policy) {
         if (policy.location.enabled) {
+            // Granted only now, when the parent turns it on: granting it at setup showed the child
+            // "Location access granted to Manara" for a feature that was off (audit 2026-11-21).
+            if (!LocationSharing.hasPermissions(context)) OwnerReceiver.grantLocationPermissions(context)
             LocationSharing.start(context, intervalMinutes = policy.location.intervalMinutes)
             health.observe(CHECK_LOCATION_ON, isLocationOn(context) ?: false)
             health.observe(CHECK_PERMISSION, LocationSharing.hasPermissions(context))

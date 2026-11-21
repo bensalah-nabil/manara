@@ -18,6 +18,8 @@ class EnforcerRegistry(
     private val isManaged: () -> Boolean = { true },
     /** Told about a rule that threw while applying; the others still run. */
     private val onFailure: (enforcerId: String, error: Exception) -> Unit = { _, _ -> },
+    /** Told about a rule that applied without throwing, so a failure reported earlier can clear. */
+    private val onApplied: (enforcerId: String) -> Unit = {},
 ) {
 
     /**
@@ -32,14 +34,27 @@ class EnforcerRegistry(
                 enforcer.apply(policy)
             } catch (e: Exception) {
                 onFailure(enforcer.id, e)
+                return@forEach
             }
+            onApplied(enforcer.id)
         }
     }
 
-    /** Lifts every rule for a release ([PolicyEnforcer.release]). */
+    /**
+     * Lifts every rule for a release ([PolicyEnforcer.release]). One rule that throws no longer
+     * stops the others, nor the release itself, which would otherwise fail the same way on every
+     * retry and leave the phone managed with a token the server has revoked (audit 2026-11-21).
+     * Clearing the owner afterwards lifts whatever Android policy that rule had set.
+     */
     fun releaseAll() {
         if (!isManaged()) return
-        enforcers.forEach { it.release() }
+        enforcers.forEach { enforcer ->
+            try {
+                enforcer.release()
+            } catch (e: Exception) {
+                onFailure(enforcer.id, e)
+            }
+        }
     }
 
     fun collectAllEvents(): List<Event> =

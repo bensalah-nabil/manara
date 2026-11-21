@@ -30,6 +30,17 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
     const endRef = useRef<HTMLDivElement>(null)
+    const botRef = useRef<HTMLButtonElement>(null)
+    const panelRef = useRef<HTMLElement>(null)
+    // Opening moves focus into the panel (its question box); closing gives it back to the bot
+    // (WCAG 2.4.3, audit 2026-11-21: the panel couldn't be reached with Tab).
+    const [wasOpen, setWasOpen] = useState(false)
+    useEffect(() => {
+        if (open === wasOpen) return
+        setWasOpen(open)
+        if (open) panelRef.current?.querySelector<HTMLElement>('textarea, button')?.focus()
+        else botRef.current?.focus()
+    }, [open, wasOpen])
 
     useEffect(() => {
         let current = true
@@ -52,6 +63,7 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
     // A round bot button, fixed at the bottom right of the page.
     const bot = (
         <button
+            ref={botRef}
             type="button"
             class="help-fab"
             aria-label={t('help.open')}
@@ -93,7 +105,8 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
 
     return (
         <>
-        <section id="setup-help-panel" class="card stack setup-help" role="dialog" aria-labelledby="setup-help-title">
+        {bot}
+        <section id="setup-help-panel" ref={panelRef} class="card stack setup-help" role="dialog" aria-labelledby="setup-help-title">
             <div class="card-head">
                 <h3 id="setup-help-title"><BotIcon /> {t('help.title')}</h3>
                 <button type="button" class="ghost help-close" aria-label={t('help.close')} title={t('help.close')} onClick={() => setOpen(false)}>✕</button>
@@ -141,7 +154,6 @@ export function SetupHelp({ api, onSessionExpired, step, status = '', maker = ''
             <p class="error" role="alert">{error}</p>
             <p class="muted small">{t('help.contact', { email: SUPPORT_EMAIL })}</p>
         </section>
-        {bot}
         </>
     )
 }

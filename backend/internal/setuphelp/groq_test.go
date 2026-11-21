@@ -41,9 +41,10 @@ func TestGroqSendsTheConversationAndCountsTokens(t *testing.T) {
 	if reply.Usage != (domain.AssistantUsage{Model: GroqModel, Questions: 1, Input: 600, Output: 180, CacheRead: 4000}) {
 		t.Fatalf("usage %+v", reply.Usage)
 	}
-	if seen.Model != GroqModel || seen.ReasoningEffort != "low" || len(seen.Messages) != 4 ||
+	if seen.Model != GroqModel || seen.ReasoningEffort != "low" || len(seen.Messages) != 2 ||
 		seen.Messages[0].Role != "system" || !strings.Contains(seen.Messages[0].Content, "Wireless debugging") ||
-		seen.Messages[3].Role != "user" || !strings.Contains(seen.Messages[3].Content, "Question: stuck on pairing") {
+		seen.Messages[1].Role != "user" || !strings.Contains(seen.Messages[1].Content, "Question: stuck on pairing") ||
+		!strings.Contains(seen.Messages[1].Content, "<Parent>hi</Parent>") {
 		t.Fatalf("request %+v", seen)
 	}
 }
@@ -52,6 +53,12 @@ func TestGroqRateLimitIsBusyAndOtherErrorsFail(t *testing.T) {
 	r, _ := Request{Question: "q"}.Normalize()
 	if _, err := groqServer(t, http.StatusTooManyRequests, `{"error":{"message":"rate limit"}}`, nil).Answer(context.Background(), r); !errors.Is(err, ErrBusy) {
 		t.Fatalf("429: %v", err)
+	}
+	if _, err := groqServer(t, http.StatusOK, `{"choices":[{"message":{"content":""},"finish_reason":"length"}]}`, nil).Answer(context.Background(), r); !errors.Is(err, ErrCutShort) {
+		t.Fatalf("empty and cut: %v", err)
+	}
+	if reply, err := groqServer(t, http.StatusOK, `{"choices":[{"message":{"content":"1. Open"},"finish_reason":"length"}]}`, nil).Answer(context.Background(), r); err != nil || reply.Text != "1. Open …" {
+		t.Fatalf("partial: %q %v", reply.Text, err)
 	}
 	_, err := groqServer(t, http.StatusUnauthorized, `{"error":{"message":"Invalid API Key"}}`, nil).Answer(context.Background(), r)
 	if err == nil || errors.Is(err, ErrBusy) || !strings.Contains(err.Error(), "401") {

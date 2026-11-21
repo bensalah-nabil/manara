@@ -155,5 +155,13 @@ export function signBackInWays(type: string): SignBackInWay[] {
             },
         ]
     }
+    // The Samsung account asks for its password to be removed and to sign back in: "nothing to do"
+    // was wrong for it (audit 2026-11-21; add.inUseNeed.samsung, enroll.note.samsungPassword).
+    if (type === 'com.osp.app.signin') {
+        return [{
+            text: t('setup.way.samsung'),
+            link: { href: 'https://account.samsung.com', label: t('setup.way.samsungLink') },
+        }]
+    }
     return [{ text: t('setup.way.other') }]
 }

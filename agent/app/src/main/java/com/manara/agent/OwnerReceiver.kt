@@ -49,17 +49,31 @@ class OwnerReceiver : DeviceAdminReceiver() {
          * device-owner silent-grant API at all (see `TimeLimitEnforcer`).
          */
         fun grantSelfGrantablePermissions(context: Context) {
-            val dpm = context.getSystemService(DevicePolicyManager::class.java)
-            val admin = ComponentName(context, OwnerReceiver::class.java)
+            // Location is no longer granted here: Android tells the child "Location access granted
+            // to Manara" (Permission module AutoGrantPermissionsNotifier, android14/15-release) for
+            // a feature the parent may never turn on. LocationEnforcer grants it when the parent
+            // does (audit 2026-11-21).
             val permissions = buildList {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     add(android.Manifest.permission.POST_NOTIFICATIONS)
                 }
-                add(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
-                // After the foreground ones: background location is only granted on top of them.
-                add(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
+            grant(context, permissions)
+        }
+
+        /** The location permissions, granted when the parent turns location sharing on. */
+        fun grantLocationPermissions(context: Context) {
+            grant(context, listOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                // After the foreground ones: background location is only granted on top of them.
+                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+            ))
+        }
+
+        private fun grant(context: Context, permissions: List<String>) {
+            val dpm = context.getSystemService(DevicePolicyManager::class.java)
+            val admin = ComponentName(context, OwnerReceiver::class.java)
             // From target API 35, a sensor permission the owner may not grant throws instead of
             // returning quietly (AOSP THROW_SECURITY_EXCEPTION_FOR_SENSOR_PERMISSIONS). Guided
             // setup sets the owner over adb, which allows it; a failure here is logged, never fatal,

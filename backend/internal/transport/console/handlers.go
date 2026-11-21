@@ -54,6 +54,10 @@ type Handlers struct {
 	TwoFactor domain.TwoFactorRepository
 	// ChallengeLimiter caps code tries per pending sign-in.
 	ChallengeLimiter *guard.Limiter
+	// SecondFactorLimiter caps code tries per account, whatever the sign-in: each new password
+	// sign-in made a new challenge with 5 more tries, so the code could be guessed over time once
+	// the password was known (audit 2026-11-21). Nil: off.
+	SecondFactorLimiter *guard.Limiter
 	// Audit records what each parent account did (security.md, item 1); nil: not recorded.
 	Audit domain.AuditLog
 	// Pending holds loosenings waiting out a phone's cooling-off delay; nil: no delay anywhere.
@@ -62,6 +66,9 @@ type Handlers struct {
 	SetupHelp setuphelp.Answerer
 	// SetupHelpLimiter caps questions per parent.
 	SetupHelpLimiter *guard.Limiter
+	// SetupHelpDailyCap caps questions for everyone together, so throwaway accounts can't use up
+	// the free provider quota every family shares (audit 2026-11-21). Nil: no cap.
+	SetupHelpDailyCap *guard.Limiter
 	// AssistantUsage counts what each answer used (tokens, never text); nil: not counted.
 	AssistantUsage domain.AssistantUsageStore
 }

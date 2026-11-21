@@ -94,13 +94,24 @@ class CallLogEnforcer(private val context: Context) : PolicyEnforcer {
      * rule off nothing reads the log: apply() returns before reading, and the notice no longer
      * lists calls. The cursor is removed with commit(), so turning it back on starts from then,
      * never from where it stopped.
+     *
+     * The grant is set back to DEFAULT, which only clears the admin lock: the permission stays
+     * granted and Manara is not killed (PermissionControllerServiceImpl.
+     * onSetRuntimePermissionGrantStateByDeviceAdmin, DEFAULT branch: setPolicyFixed(false), no
+     * revoke; Permission module android14/15-release). Settings then no longer shows Call logs as
+     * locked by the admin while the rule is off.
      */
     private fun turnOff() {
         health.forget(CHECK_PERMISSION)
         health.forget(CHECK_APP_CALLS)
         pendingEvents.clear()
         pendingCursor = null
-        if (prefs.contains(KEY_CURSOR)) prefs.edit().remove(KEY_CURSOR).commit()
+        if (prefs.contains(KEY_CURSOR)) {
+            prefs.edit().remove(KEY_CURSOR).commit()
+            runCatching {
+                devicePolicyManager.setPermissionGrantState(admin, context.packageName, Manifest.permission.READ_CALL_LOG, DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT)
+            }.onFailure { Log.w(TAG, "Cannot unlock the call log permission", it) }
+        }
     }
 
     private fun grantToSelf() {

@@ -71,9 +71,9 @@ const FIXED_LABEL: Partial<Record<CardId, [string, string]>> = {
 function Stepper({ label, value, busy, onLess, onMore }: { label: string; value: string; busy: boolean; onLess: () => void; onMore: () => void }) {
     return (
         <span class="stepper">
-            <button type="button" class="step" disabled={busy} aria-label={t('rules.stepLess', { label })} onClick={onLess}>−</button>
+            <button type="button" class="step" aria-disabled={busy} aria-label={t('rules.stepLess', { label })} onClick={busy ? undefined : onLess}>−</button>
             <b aria-live="polite">{value}</b>
-            <button type="button" class="step" disabled={busy} aria-label={t('rules.stepMore', { label })} onClick={onMore}>+</button>
+            <button type="button" class="step" aria-disabled={busy} aria-label={t('rules.stepMore', { label })} onClick={busy ? undefined : onMore}>+</button>
         </span>
     )
 }
@@ -183,6 +183,8 @@ function CustomRules({ policy, busy, change }: { policy: Policy; busy: boolean; 
     )
 }
 
+// While a change saves, controls are aria-disabled, not disabled: a disabled button drops
+// keyboard focus to the top of the page (WCAG 2.4.3, audit 2026-11-21).
 export function RuleCards({ api, device, onSessionExpired, more }: Props & { more: Record<GroupId, ComponentChildren> }) {
     const [policy, setPolicy] = useState<Policy | null>(null)
     const [busy, setBusy] = useState(false)
@@ -245,7 +247,7 @@ export function RuleCards({ api, device, onSessionExpired, more }: Props & { mor
                     <span id="ages-label">{t('rules.ageLabel')}</span>
                     <div class="seg" role="group" aria-labelledby="ages-label">
                         {AGES.map((name: Age) => (
-                            <button key={name} type="button" aria-pressed={age === name} disabled={busy} onClick={() => change((latest) => applyAge(latest, name))}>{ageLabel(name)}</button>
+                            <button key={name} type="button" aria-pressed={age === name} aria-disabled={busy} onClick={busy ? undefined : () => change((latest) => applyAge(latest, name))}>{ageLabel(name)}</button>
                         ))}
                     </div>
                 </div>
@@ -264,7 +266,7 @@ export function RuleCards({ api, device, onSessionExpired, more }: Props & { mor
                                                 <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ART[id]}</svg>
                                             </div>
                                             <h3>{title}</h3>
-                                            <button type="button" class="switch" role="switch" aria-checked={state.on[id]} aria-label={title} disabled={busy} onClick={() => change((latest) => setCard(latest, id, !readCards(latest).on[id]))}><i /></button>
+                                            <button type="button" class="switch" role="switch" aria-checked={state.on[id]} aria-label={title} aria-disabled={busy} onClick={busy ? undefined : () => change((latest) => setCard(latest, id, !readCards(latest).on[id]))}><i /></button>
                                         </div>
                                         <p class="muted">{text}</p>
                                         <div class="rule-foot"><CardFoot id={id} state={state} busy={busy} change={change} /></div>

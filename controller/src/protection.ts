@@ -25,6 +25,7 @@ const ENFORCERS: Record<string, string> = {
     'usage-report': t('protection.enforcer.usageReport'),
     browser: t('protection.enforcer.browser'),
     'call-log': t('protection.enforcer.callLog'),
+    'managed-notice': t('protection.enforcer.notice'),
 }
 
 const DETAILS: Record<string, string> = {
@@ -34,6 +35,10 @@ const DETAILS: Record<string, string> = {
     // CallLogEnforcer's checks.
     read_call_log: t('protection.detail.callLogPermission'),
     app_call_notifications: t('protection.detail.appCalls'),
+    // ManagedNoticeEnforcer: the child turned the managed notice off (ADR-0001).
+    managed_notice_visible: t('protection.detail.noticeHidden'),
+    // Any rule that threw while applying (DefaultEnforcers, audit 2026-11-21).
+    apply_failed: t('protection.detail.applyFailed'),
     device_location_on: t('protection.detail.locationOff'),
     location_permission: t('protection.detail.locationPermission'),
     private_dns_host: t('protection.detail.privateDns'),

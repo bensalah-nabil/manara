@@ -98,6 +98,12 @@ func (h *Handlers) VerifyLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "")
 		return
 	}
+	if h.SecondFactorLimiter != nil {
+		if ok, wait := h.SecondFactorLimiter.Allow(r.Context(), parentID, now); !ok {
+			guard.Refuse(w, wait)
+			return
+		}
+	}
 	if err := h.TwoFactor.Check(r.Context(), parentID, req.Code, now); err != nil {
 		if errors.Is(err, domain.ErrBadSecondFactor) {
 			writeError(w, http.StatusUnauthorized, "bad_code", err.Error())

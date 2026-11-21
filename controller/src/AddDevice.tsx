@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks'
+import { useFocusInto } from './focus.ts'
 import { SetupHelp } from './SetupHelp.tsx'
 import { ApiError, isSessionError } from './api.ts'
 import type { Api } from './api.ts'
@@ -48,6 +49,8 @@ function Steps({ current, way }: { current: Step; way: Way | null }) {
  */
 export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessionExpired: () => void; onDone: () => void }) {
     const [step, setStep] = useState<Step>('consent')
+    // Each step replaces the card's content: focus moves into it (WCAG 2.4.3, audit 2026-11-21).
+    const card = useFocusInto(step)
     const [attestation, setAttestation] = useState<Attestation>(noAttestation)
     const qrOffered = qrSetupAvailable(MANARA_APK_URL)
     // No default: the two paths differ too much (erase the phone, or remove its accounts for a
@@ -97,7 +100,7 @@ export function AddDevice({ api, onSessionExpired, onDone }: { api: Api; onSessi
                 <button type="button" class="ghost" onClick={onDone}>{t('common.cancel')}</button>
             </div>
             <Steps current={step} way={way} />
-            <div class="card stack">
+            <div class="card stack" ref={card}>
 
             {step === 'consent' && (
                 <>

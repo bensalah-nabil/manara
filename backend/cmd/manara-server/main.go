@@ -110,31 +110,37 @@ func main() {
 		TwoFactor:    postgres.NewTwoFactorRepository(db),
 		// 5 code tries per pending sign-in: 5 in a million against a 6-digit code.
 		ChallengeLimiter: guard.NewLimiter(5, domain.ChallengeLifetime).Persist("two-step-challenge", rates),
-		Audit:            audit,
-		Pending:          pending,
+		// 20 code tries a day per account, across every sign-in: about 1 in 16,000 a day to guess.
+		SecondFactorLimiter: guard.NewLimiter(20, 24*time.Hour).Persist("two-step-account", rates),
+		Audit:               audit,
+		Pending:             pending,
 	}
 	if mailer != nil {
 		consoleHandlers.Mailer = mailer
 	}
 	// The setup assistant (internal/setuphelp, docs/setup-assistant.md): Groq's free plan when
-	// GROQ_API_KEY is set (SETUP_HELP_MODEL picks another Groq model), else Claude when
-	// ANTHROPIC_API_KEY is, else off. 30 questions a day per parent: enough for a hard setup, not
-	// for using it as a free chatbot.
+	// GROQ_API_KEY is set (SETUP_HELP_MODEL picks another Groq model). Claude only when chosen
+	// on purpose with SETUP_HELP_PROVIDER=anthropic, because the privacy policy names Groq: a key
+	// left in the environment must not send parents' questions to a provider the policy doesn't
+	// list (audit 2026-11-21). Else off. 30 questions a day per parent.
 	assistantUsage := postgres.NewAssistantUsageRepository(db)
 	var assistant setuphelp.Answerer
-	if key := strings.TrimSpace(os.Getenv("GROQ_API_KEY")); key != "" {
-		assistant = setuphelp.NewGroq(key, strings.TrimSpace(os.Getenv("SETUP_HELP_MODEL")))
-	} else if key := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")); key != "" {
-		assistant = setuphelp.NewClaude(key)
+	switch provider := strings.TrimSpace(os.Getenv("SETUP_HELP_PROVIDER")); {
+	case provider == "anthropic" && strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")) != "":
+		assistant = setuphelp.NewClaude(strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")))
+	case (provider == "" || provider == "groq") && strings.TrimSpace(os.Getenv("GROQ_API_KEY")) != "":
+		assistant = setuphelp.NewGroq(strings.TrimSpace(os.Getenv("GROQ_API_KEY")), strings.TrimSpace(os.Getenv("SETUP_HELP_MODEL")))
 	}
 	if assistant != nil {
 		consoleHandlers.SetupHelp = assistant
 		consoleHandlers.AssistantUsage = assistantUsage
 		consoleHandlers.SetupHelpLimiter = guard.NewLimiter(30, 24*time.Hour).Persist("setup-help", rates)
+		// About what Groq's free plan answers in a day (200K tokens, ~5K a question), for everyone.
+		consoleHandlers.SetupHelpDailyCap = guard.NewLimiter(40, 24*time.Hour).Persist("setup-help-all", rates)
 		admin.CurrentAssistantModel = assistant.Model()
 		log.Printf("setup assistant: on (%s)", assistant.Model())
 	} else {
-		log.Printf("setup assistant: off (neither GROQ_API_KEY nor ANTHROPIC_API_KEY set)")
+		log.Printf("setup assistant: off (set GROQ_API_KEY, or SETUP_HELP_PROVIDER=anthropic with ANTHROPIC_API_KEY)")
 	}
 	if len(alertSenders) > 0 {
 		go watchSilentPhones(ctx, &domain.SilenceWatcher{

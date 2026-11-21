@@ -10,6 +10,7 @@ import { agoText, authErrorText, deviceName, lastSeenText, statusText } from './
 import { createSessionStore } from './session.ts'
 import { chooseLanguage, language, languageSync, storedLanguage, t } from './i18n.ts'
 import { LanguageSwitch } from './LanguageSwitch.tsx'
+import { useFocusHeading } from './focus.ts'
 import type { SiteNotice } from './api.ts'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
@@ -63,6 +64,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
     const [sent, setSent] = useState(false)
+    const heading = useFocusHeading(mode)
 
     async function submit(event: Event) {
         event.preventDefault()
@@ -94,7 +96,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
                 <div class="auth-brand"><Logo /><span>{t('common.brand')}</span></div>
             <LanguageSwitch />
                 <form class="card auth-card" onSubmit={submit}>
-                    <h1>{t('auth.resetTitle')}</h1>
+                    <h1 ref={heading} tabIndex={-1}>{t('auth.resetTitle')}</h1>
                     {sent ? (
                         <p role="status" class="banner ok">
                             {t('auth.resetSent', { email: email.trim() })}
@@ -124,7 +126,7 @@ function AuthForm({ onSubmit, onForgot, notice }: {
             </div>
             <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
-                <h1>{mode === 'login' ? t('auth.signIn') : t('auth.createTitle')}</h1>
+                <h1 ref={heading} tabIndex={-1}>{mode === 'login' ? t('auth.signIn') : t('auth.createTitle')}</h1>
                 <p class="muted">{t('auth.tagline')}</p>
                 {notice && <p role="status" class="banner">{notice}</p>}
                 <label>
@@ -170,6 +172,8 @@ function AuthForm({ onSubmit, onForgot, notice }: {
 
 /** The second step of signing in: a code from the authenticator app, or a recovery code. */
 function SecondStep({ onCode, onCancel }: { onCode: (code: string) => Promise<void>; onCancel: () => void }) {
+    // Reached after the password: focus the new screen's heading, not <body>.
+    const twoStepHeading = useFocusHeading(null, true)
     const [code, setCode] = useState('')
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
@@ -191,11 +195,11 @@ function SecondStep({ onCode, onCancel }: { onCode: (code: string) => Promise<vo
             <div class="auth-brand"><Logo /><span>{t('common.brand')}</span></div>
             <LanguageSwitch />
             <form class="card auth-card" onSubmit={submit}>
-                <h1>{t('auth.twoStepTitle')}</h1>
+                <h1 ref={twoStepHeading} tabIndex={-1}>{t('auth.twoStepTitle')}</h1>
                 <p class="muted">{t('auth.twoStepHelp')}</p>
                 <label>
                     {t('auth.code')}
-                    <input autoComplete="one-time-code" inputMode="text" required value={code} onInput={(event) => setCode(event.currentTarget.value)} />
+                    <input autoComplete="one-time-code" inputMode="text" dir="ltr" required value={code} onInput={(event) => setCode(event.currentTarget.value)} />
                 </label>
                 <p role="alert" class="error">{error}</p>
                 <button type="submit" class="primary wide" disabled={busy}>{busy ? t('common.pleaseWait') : t('auth.signIn')}</button>

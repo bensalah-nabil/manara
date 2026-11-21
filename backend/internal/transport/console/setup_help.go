@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"manara/backend/internal/domain"
@@ -51,6 +52,13 @@ func (h *Handlers) AskSetupHelp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", "")
 		return
 	}
+	if h.SetupHelpDailyCap != nil {
+		if ok, wait := h.SetupHelpDailyCap.Allow(r.Context(), "everyone", time.Now()); !ok {
+			w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())))
+			writeError(w, http.StatusServiceUnavailable, "assistant_quota", "")
+			return
+		}
+	}
 	if h.SetupHelpLimiter != nil {
 		if ok, wait := h.SetupHelpLimiter.Allow(r.Context(), parentID, time.Now()); !ok {
 			guard.Refuse(w, wait)
@@ -61,14 +69,28 @@ func (h *Handlers) AskSetupHelp(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), setupHelpTimeout)
 	defer cancel()
 	reply, err := h.SetupHelp.Answer(ctx, req)
-	h.recordAssistantUsage(r.Context(), parentID, reply.Usage)
+	// Counted even if the parent left meanwhile: the tokens were used all the same.
+	h.recordAssistantUsage(context.WithoutCancel(r.Context()), parentID, reply.Usage)
 	switch {
 	case errors.Is(err, setuphelp.ErrDeclined):
 		writeError(w, http.StatusUnprocessableEntity, "assistant_declined", "")
 		return
 	case errors.Is(err, setuphelp.ErrBusy):
-		w.Header().Set("Retry-After", "60")
+		wait := time.Minute
+		var busy *setuphelp.BusyError
+		if errors.As(err, &busy) && busy.RetryAfter > 0 {
+			wait = busy.RetryAfter
+		}
+		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())))
+		if wait > setuphelp.DailyQuotaWait {
+			// The free plan's daily quota: the console says "back tomorrow", not "in a minute".
+			writeError(w, http.StatusServiceUnavailable, "assistant_quota", "")
+			return
+		}
 		writeError(w, http.StatusServiceUnavailable, "assistant_busy", "")
+		return
+	case errors.Is(err, setuphelp.ErrCutShort):
+		writeError(w, http.StatusBadGateway, "assistant_failed", "")
 		return
 	case err != nil:
 		// The error only, never the question.

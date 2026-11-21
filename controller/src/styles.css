@@ -20,7 +20,8 @@
   --warn-soft: #fdf1dc;
   --danger: #b42318;
   --danger-soft: #fdecea;
-  --idle: #98a4ad;
+  --idle: #7b8791; /* 3.6:1 on the surface: an off switch is a control (WCAG 1.4.11) */
+  --on-status: #ffffff;
   --focus: #a8841c;
   --radius: 12px;
   --shadow: 0 1px 2px rgb(16 32 42 / 6%), 0 1px 1px rgb(16 32 42 / 4%);
@@ -55,6 +56,7 @@
     --danger: #ff8a7f;
     --danger-soft: #3a1a18;
     --idle: #61707a;
+    --on-status: #0b1410; /* dark text on the light dark-mode green and red: 9.7 and 8.2 to 1 */
     --shadow: none;
     color-scheme: dark;
   }
@@ -382,19 +384,19 @@ details.setup-done[open] > summary { margin-bottom: 12px; }
   width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
   font-size: 0.875rem; font-weight: 650; background: var(--surface); border: 2px solid var(--line); color: var(--muted);
 }
-.tl-step.done .tl-marker { background: var(--ok); border-color: var(--ok); color: #fff; }
+.tl-step.done .tl-marker { background: var(--ok); border-color: var(--ok); color: var(--on-status); }
 .tl-step.current .tl-marker { border-color: var(--brand); color: var(--brand); }
 .tl-step.waiting .tl-marker { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
-.tl-step.failed .tl-marker { border-color: var(--danger); color: #fff; background: var(--danger); }
+.tl-step.failed .tl-marker { border-color: var(--danger); color: var(--on-status); background: var(--danger); }
 .tl-body { min-width: 0; padding-top: 3px; }
 .tl-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
 .tl-step.pending .tl-title > span:first-child { color: var(--muted); }
 .tl-step.current .tl-title > span:first-child, .tl-step.waiting .tl-title > span:first-child, .tl-step.failed .tl-title > span:first-child { font-weight: 650; }
-.tl-state { font-size: 0.875rem; padding: 1px 8px; border-radius: 999px; background: var(--line); color: var(--muted); }
+.tl-state { font-size: 0.875rem; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
 .tl-state.done { background: var(--ok-soft); color: var(--ok); }
 .tl-state.current { background: var(--brand-soft); color: var(--brand); }
 .tl-state.waiting { background: var(--warn-soft); color: var(--warn); }
-.tl-state.failed { background: var(--danger); color: #fff; }
+.tl-state.failed { background: var(--danger); color: var(--on-status); }
 .tl-detail { margin-top: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .tl-step.waiting .tl-detail { border-color: var(--warn); }
 .tl-step.failed .tl-detail { border-color: var(--danger); }
@@ -563,7 +565,10 @@ details.fold[open] > summary { margin-bottom: 10px; }
 html:lang(ar) { line-height: 1.7; }
 html:lang(ar) :is(h1, h2, h3) { line-height: 1.45; }
 :lang(ar) .rule-heading, :lang(ar) .call-day h4 { letter-spacing: 0; }
-.language select { width: auto; min-height: 36px; padding: 4px 8px; font-size: 0.875rem; }
+.language { display: inline-flex; gap: 2px; border: 1px solid var(--field-line, var(--line)); border-radius: 999px; padding: 2px; }
+.language button { min-width: 36px; min-height: 32px; padding: 2px 8px; border: 0; border-radius: 999px; background: transparent; font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.language button.on { background: var(--brand); color: var(--brand-ink); }
+.language button[lang="ar"] { font-size: 1rem; }
 .auth .language { align-self: center; }
 /* Codes, host names and package names are typed left to right in every language. */
 code, .token, .release-code, textarea, input[type="email"], input[type="password"], input[inputmode="numeric"] { direction: ltr; }
@@ -612,7 +617,7 @@ code, .token, .release-code, textarea, input[type="email"], input[type="password
 /* The phone's own checklist before guided setup (PhoneReady). */
 .ready-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ready-list li { display: flex; align-items: center; gap: 12px; }
-.ready-mark { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; flex: none; font-weight: 700; font-size: 0.875rem; background: var(--line); color: var(--muted); }
+.ready-mark { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; flex: none; font-weight: 700; font-size: 0.875rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
 .ready-list li.ok .ready-mark { background: var(--brand); color: var(--brand-ink); }
 .ready-list li.missing .ready-mark { background: var(--warn-soft); color: var(--warn); }
 .phone-ready h4 { margin: 0; }
@@ -708,3 +713,10 @@ label.check.choice.danger:has(input:checked) { border-color: var(--danger); box-
   .help-fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   .setup-help { inset-inline: 8px; width: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 110px); }
 }
+
+/* The sticky top bar (58px) must never hide the focused control (WCAG 2.4.11, audit 2026-11-21);
+   the fixed bot button must not hide the last lines of the page. */
+html { scroll-padding-top: 72px; scroll-padding-bottom: 96px; }
+main { padding-bottom: 88px; }
+@media (max-width: 760px) { html { scroll-padding-top: 64px; } }
+button[aria-disabled="true"] { opacity: 0.6; cursor: progress; }

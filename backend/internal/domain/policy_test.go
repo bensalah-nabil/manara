@@ -146,3 +146,10 @@ func TestPolicyValuesThePhoneCantUseAreRefused(t *testing.T) {
 		}
 	}
 }
+
+func TestAStoredWindowWithoutDaysIsSentAsAnEmptyList(t *testing.T) {
+	raw, err := json.Marshal(LockWindow{FromHour: 22, ToHour: 7})
+	if err != nil || string(raw) != `{"days":[],"fromHour":22,"toHour":7}` {
+		t.Fatalf("%s %v", raw, err)
+	}
+}

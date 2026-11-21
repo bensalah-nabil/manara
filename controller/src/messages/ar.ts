@@ -343,6 +343,9 @@ export const ar: Record<MessageKey, string> = {
     // TODO-REVIEW: Family Link's Arabic menu names: "عناصر التحكم", "إعدادات الحساب", "تغيير كلمة المرور"
     'setup.way.familyLink': 'عبر Family Link، إذا كنت قد أنشأت هذا الحساب لطفلك: في تطبيق Family Link، طفلك، «عناصر التحكم»، «إعدادات الحساب»، «تغيير كلمة المرور».',
     'setup.way.familyLinkLink': 'الطريقة',
+    'setup.canGetBackIn': 'أستطيع الرجوع إلى هذه الحسابات',
+    'setup.way.samsung': 'تحتاج إلى كلمة مرور حساب Samsung، لإزالته ولتسجيل الدخول من جديد. لا تعرفها؟ أعد تعيينها أولًا، قبل إزالة أي شيء.',
+    'setup.way.samsungLink': 'إعادة تعيين كلمة مرور Samsung',
     'setup.way.other': 'في الغالب لا شيء مطلوب: يبقى التطبيق مثبَّتًا ببياناته، وتطبيقات مثل Facebook تعيد إضافة حسابها تلقائيًا عند فتحها. وإلا فسجّل الدخول من جديد في التطبيق.',
     'setup.state.done': 'تم',
     'setup.state.current': 'جارٍ',
@@ -411,12 +414,15 @@ export const ar: Record<MessageKey, string> = {
     'protection.enforcer.lock': 'وقت النوم',
     'protection.enforcer.usageReport': 'تقرير الاستخدام',
     'protection.enforcer.browser': 'قواعد Chrome',
+    'protection.enforcer.notice': 'إشعار الإدارة',
     'protection.enforcer.callLog': 'سجل المكالمات',
     'protection.enforcer.prayerPause': 'التوقف وقت الصلاة',
     // TODO-REVIEW: "Usage Access" rendered as "الوصول إلى بيانات الاستخدام"
     // TODO-REVIEW
     'protection.detail.callLogPermission': 'غير مسموح لمنارة بقراءة سجل مكالمات الهاتف.',
     // TODO-REVIEW
+    'protection.detail.noticeHidden': 'أُوقف في إعدادات الهاتف الإشعار الذي يبيّن أنّ الهاتف مُدار، فلم يعد طفلك يراه. تحدّثا عن ذلك معًا؛ ويمكن إعادة تشغيله من الإعدادات، التطبيقات، منارة، الإشعارات.',
+    'protection.detail.applyFailed': 'تعذّر تطبيق هذه القاعدة على الهاتف. يعيد الهاتف المحاولة عند كل تحقّق؛ وإن استمرّ ذلك راسلنا.',
     'protection.detail.appCalls': 'الوصول إلى الإشعارات متوقف، لذلك لا تُرى المكالمات داخل تطبيقات مثل واتساب.',
     'protection.detail.usageAccess': 'الوصول إلى بيانات الاستخدام متوقف، لذلك لا يمكن قياس استخدام التطبيقات.',
     // TODO-REVIEW: bedtime wording (P2)
@@ -904,6 +910,7 @@ export const ar: Record<MessageKey, string> = {
     'help.q.notReporting': 'الهاتف يظهر «لا يرسل تقاريره».',
     'help.err.limit': 'أسئلة كثيرة اليوم. حاول غدًا، أو راسلنا.',
     'help.err.declined': 'لا يستطيع المساعد الإجابة عن هذا السؤال. راسلنا وسنساعدك.',
+    'help.err.quota': 'أجاب المساعد عن كل ما يستطيعه اليوم (الخطة المجانية). يعود غدًا؛ وفي الأثناء راسلنا.',
     'help.err.busy': 'المساعد مشغول: يجيب عن سؤال واحد تقريبًا في الدقيقة. حاول بعد دقيقة.',
     'help.err.off': 'المساعد غير متاح الآن. راسلنا وسنساعدك.',
     'help.err.network': 'تعذّر الوصول إلى الخادم. تحقّق من الاتصال وحاول مرّة أخرى.',

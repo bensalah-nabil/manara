@@ -113,7 +113,7 @@ func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", "search too long")
 		return
 	}
-	if _, ok := h.admin(w, r, "listed_accounts", query); !ok {
+	if _, ok := h.admin(w, r, "listed_accounts", searchTarget(query)); !ok {
 		return
 	}
 	list, err := h.Store.Accounts(r.Context(), query, listLimit)
@@ -189,4 +189,14 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]string{"code": code, "message": message})
+}
+
+// searchTarget records that an admin searched, not what for: a search is usually an email
+// address, and the admin log is kept 365 days, after the account itself is deleted (audit
+// 2026-11-21).
+func searchTarget(query string) string {
+	if strings.TrimSpace(query) == "" {
+		return ""
+	}
+	return "search"
 }

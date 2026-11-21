@@ -291,7 +291,7 @@ this section.** "Known" means a file or a recorded phone test says so.
 - [ ] **P3** on the lab phone: airplane mode; after a reboot; after an app update; clock 30 days ahead is blocked, so say how you want that case run.
 - [ ] **P4**: run the measurement on Topnet, Ooredoo and Orange.
 - [ ] **Alerts**: stop a protection on the lab phone and confirm the email arrives from Render (pending #9).
-- [ ] **Call history**: turn it off and check the permission is withdrawn; one incoming, one missed call; install the APK from a browser.
+- [ ] **Call history**: turn it off and check that Manara keeps running, no call is read, and Settings no longer shows Call logs as locked by the admin (the permission stays granted since 2026-11-21, ADR-0008); then send "Lock now" in the same minute and check the phone locks; one incoming, one missed call; install the APK from a browser.
 - [ ] **Funding**: write to UNICEF Tunisia (child protection) [11]; check NLnet's current call [12]; ask one parents' or child-protection association whether it would carry the project; ask a lawyer whether children's location data needs an INPDP declaration.
 - [ ] Borrow one non-Samsung phone (pending #4).
 

@@ -62,9 +62,9 @@ function ReadyCheck({ accounts, ready, onReady }: { accounts: SetupAccount[]; re
                     </ul>
                 </div>
             ))}
-            <label>
+            <label class="check">
                 <input type="checkbox" checked={ready} onChange={(event) => onReady((event.target as HTMLInputElement).checked)} />{' '}
-                I can get back in to these accounts
+                {t('setup.canGetBackIn')}
             </label>
         </div>
     )

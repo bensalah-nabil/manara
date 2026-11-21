@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -223,6 +224,17 @@ type LockWindow struct {
 	Days     []int `json:"days"`
 	FromHour int   `json:"fromHour"`
 	ToHour   int   `json:"toHour"`
+}
+
+// MarshalJSON always writes days as a list: a window stored without days went out as
+// "days": null, which phones up to 1.0.36 can't read, so every later sync failed. New policies
+// are refused without days (Validate); this covers the ones already stored (audit 2026-11-21).
+func (w LockWindow) MarshalJSON() ([]byte, error) {
+	type plain LockWindow
+	if w.Days == nil {
+		w.Days = []int{}
+	}
+	return json.Marshal(plain(w))
 }
 
 // DefaultPolicy is what a newly-enrolled device gets -- nothing enabled,

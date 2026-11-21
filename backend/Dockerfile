@@ -3,14 +3,16 @@
 # to the image itself: no session state, nothing durable outside Postgres,
 # so this container can be killed and replaced freely.
 
-FROM golang:1.26-alpine AS build
+# Pinned, not floating: 1.26.11 fixes GO-2026-6859 (net/http MaxBytesReader crash, reachable
+# through guard.BodyLimit); a floating tag served 1.26.10 from a cache (audit 2026-11-21).
+FROM golang:1.26.11-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o /manara-server ./cmd/manara-server
 
-FROM alpine:3.20
+FROM alpine:3.23
 RUN adduser -D -u 10001 manara
 COPY --from=build /manara-server /usr/local/bin/manara-server
 USER manara

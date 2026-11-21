@@ -27,7 +27,8 @@ time and length of each call. Never what was said." Two outgoing calls, at
 exactly those times and lengths, and none of the day's earlier calls did. They
 arrived one sync after they were read, so up to about 15 minutes late.
 
-Still to check: turning it off withdraws the permission; incoming and missed
+Still to check: turning it off keeps Manara running and unlocks the permission
+without revoking it (ADR-0008, since 2026-11-21); incoming and missed
 calls; a `play` build reports a missing permission and sends nothing; installing
 the APK from a browser instead of adb.
 

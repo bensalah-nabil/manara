@@ -1105,7 +1105,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '503':
-          description: The assistant is off (`assistant_unavailable`), or the AI provider is busy (`assistant_busy`, with Retry-After).
+          description: The assistant is off (`assistant_unavailable`), or the AI provider is busy (`assistant_busy`, with Retry-After), or today's quota is used up for everyone (`assistant_quota`, Retry-After in seconds until it resets).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
