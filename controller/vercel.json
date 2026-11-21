@@ -10,7 +10,10 @@
     { "source": "/beta-en", "destination": "/beta-en.html" },
     { "source": "/features", "destination": "/features.html" },
     { "source": "/features-ar", "destination": "/features-ar.html" },
-    { "source": "/features-en", "destination": "/features-en.html" }
+    { "source": "/features-en", "destination": "/features-en.html" },
+    { "source": "/start", "destination": "/start.html" },
+    { "source": "/start-ar", "destination": "/start-ar.html" },
+    { "source": "/start-en", "destination": "/start-en.html" }
   ],
   "headers": [
     {
